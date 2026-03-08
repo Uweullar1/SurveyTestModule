@@ -1,0 +1,11 @@
+# Visual Studio / VS Code
+.vs/
+.vscode/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Сборка Vite
+dist/
