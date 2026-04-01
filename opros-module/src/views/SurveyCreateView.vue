@@ -1,234 +1,528 @@
 <template>
-    <div class="container my-5">
-        <h1 class="mb-4">Создать новый опрос / анкету</h1>
-
-        <form @submit.prevent="createSurvey">
-            <!-- Название и описание -->
-            <div class="mb-4">
-                <label class="form-label fw-bold">Название опроса *</label>
-                <input v-model="form.title"
-                       type="text"
-                       class="form-control"
-                       placeholder="Например: Опрос удовлетворённости курсом"
-                       required />
+    <div class="create-container">
+        <div class="header-flex">
+            <div class="title-group">
+                <h1 class="main-title">Создание нового опроса</h1>
+                <div class="title-underline"></div>
             </div>
+            <button @click="createSurvey"
+                    :disabled="loading || !user"
+                    class="btn-publish">
+                {{ loading ? 'Сохранение...' : 'Опубликовать опрос' }}
+            </button>
+        </div>
 
-            <div class="mb-5">
-                <label class="form-label fw-bold">Описание (необязательно)</label>
-                <textarea v-model="form.description"
-                          class="form-control"
-                          rows="3"
-                          placeholder="Кратко опишите цель опроса"></textarea>
-            </div>
+        <div class="base-info-section">
+            <input v-model="survey.title"
+                   type="text"
+                   placeholder="Заголовок опроса *"
+                   class="minimal-input title-field">
+            <textarea v-model="survey.description"
+                      placeholder="Описание опроса (необязательно)"
+                      class="minimal-input desc-field"></textarea>
+        </div>
 
-            <!-- Вопросы -->
-            <h3 class="mb-4">Вопросы</h3>
+        <div class="questions-list">
+            <div v-for="(question, qIndex) in survey.questions" :key="question.id" class="question-item">
 
-            <div v-for="(q, qIndex) in form.questions" :key="qIndex" class="card mb-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title m-0">Вопрос №{{ qIndex + 1 }}</h5>
-                        <button type="button"
-                                class="btn btn-outline-danger btn-sm"
-                                @click="removeQuestion(qIndex)"
-                                :disabled="form.questions.length === 1">
-                            Удалить вопрос
-                        </button>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Текст вопроса *</label>
-                        <input v-model="q.text"
-                               type="text"
-                               class="form-control"
-                               placeholder="Например: Как вы оцениваете качество преподавания?"
-                               required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Тип ответа</label>
-                        <select v-model="q.type" class="form-select">
-                            <option value="single">Один вариант (радио-кнопки)</option>
-                            <option value="multiple">Несколько вариантов (чекбоксы)</option>
-                            <option value="text">Открытый текст</option>
-                            <option value="scale">Шкала (1–10)</option>
+                <div class="question-header">
+                    <span class="question-number">Вопрос №{{ qIndex + 1 }}</span>
+                    <div class="question-controls">
+                        <select v-model="question.type" class="type-select">
+                            <option value="radio">Один вариант</option>
+                            <option value="checkbox">Несколько вариантов</option>
+                            <option value="text">Текстовый ответ</option>
+                            <option value="scale">Шкала (1-10)</option>
                         </select>
-                    </div>
-
-                    <!-- Варианты ответов — только для single и multiple -->
-                    <div v-if="q.type === 'single' || q.type === 'multiple'" class="mt-4">
-                        <label class="form-label fw-bold">Варианты ответа</label>
-                        <div v-for="(choice, cIndex) in q.choices" :key="cIndex" class="input-group mb-2">
-                            <input v-model="choice.text"
-                                   type="text"
-                                   class="form-control"
-                                   placeholder="Вариант ответа"
-                                   required />
-                            <div class="input-group-text">
-                                <input type="checkbox"
-                                       :checked="choice.is_correct"
-                                       @change="choice.is_correct = $event.target.checked" />
-                                <label class="ms-2">Правильный</label>
-                            </div>
-                            <button type="button"
-                                    class="btn btn-outline-danger"
-                                    @click="removeChoice(qIndex, cIndex)"
-                                    :disabled="q.choices.length === 1">
-                                ×
-                            </button>
-                        </div>
-
-                        <button type="button"
-                                class="btn btn-outline-secondary btn-sm mt-2"
-                                @click="addChoice(qIndex)">
-                            + Добавить вариант
+                        <button @click="removeQuestion(qIndex)"
+                                v-if="survey.questions.length > 1"
+                                class="btn-remove-question"
+                                title="Удалить вопрос">
+                            Удалить
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <button type="button" class="btn btn-outline-primary mb-4" @click="addQuestion">
-                + Добавить ещё вопрос
-            </button>
+                <input v-model="question.text"
+                       type="text"
+                       placeholder="Введите ваш вопрос здесь *"
+                       class="minimal-input question-field">
 
-            <div class="d-grid mt-5">
-                <button type="submit" class="btn btn-success btn-lg" :disabled="loading">
-                    <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                    Сохранить опрос
-                </button>
+                <div class="answer-content">
+
+                    <div v-if="question.type === 'radio' || question.type === 'checkbox'" class="options-container">
+                        <div v-for="(choice, cIndex) in question.choices" :key="cIndex" class="option-row">
+
+                            <label class="custom-check-container" :title="choice.is_correct ? 'Правильный ответ' : 'Пометить как правильный'">
+                                <input :type="question.type === 'radio' ? 'radio' : 'checkbox'"
+                                       :name="'correct-' + qIndex"
+                                       v-model="choice.is_correct">
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <input v-model="choice.text"
+                                   type="text"
+                                   placeholder="Вариант ответа"
+                                   class="minimal-input option-field">
+
+                            <button @click="removeChoice(qIndex, cIndex)"
+                                    v-if="question.choices.length > 1"
+                                    class="btn-icon-delete"
+                                    title="Удалить вариант">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button @click="addChoice(qIndex)" class="btn-add-choice">
+                            <span class="plus-icon">+</span> Добавить вариант
+                        </button>
+                    </div>
+
+                    <div v-if="question.type === 'text'" class="text-answer-preview">
+                        <p>Поле для ввода развернутого текста (будет доступно респонденту)</p>
+                    </div>
+
+                    <div v-if="question.type === 'scale'" class="scale-container">
+                        <div class="scale-buttons">
+                            <button v-for="n in 10"
+                                    :key="n"
+                                    class="scale-item"
+                                    type="button">
+                                {{ n }}
+                            </button>
+                        </div>
+                        <div class="scale-labels">
+                            <span class="label-min">Минимум</span>
+                            <span class="label-max">Максимум</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </form>
+        </div>
+
+        <div class="toolbar-container">
+            <p class="toolbar-title">Добавить вопрос:</p>
+            <div class="toolbar-grid">
+                <button @click="addQuestion('radio')" class="btn-tool">● Один выбор</button>
+                <button @click="addQuestion('checkbox')" class="btn-tool">■ Множество</button>
+                <button @click="addQuestion('text')" class="btn-tool">¶ Текст</button>
+                <button @click="addQuestion('scale')" class="btn-tool">↔ Шкала</button>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
-    import { supabase } from '../supabase'  // ← твой путь
+    import { supabase } from '../supabase'
 
     const router = useRouter()
     const loading = ref(false)
+    const user = ref(null)
 
-    const form = ref({
+    // Изначально создаем один готовый вопрос (Один вариант)
+    const survey = ref({
         title: '',
         description: '',
         questions: [
             {
+                id: Date.now(),
                 text: '',
-                type: 'single',
-                choices: [
-                    { text: '', is_correct: false }
-                ]
+                type: 'radio',
+                choices: [{ text: '', is_correct: false }]
             }
         ]
     })
 
-    const addQuestion = () => {
-        form.value.questions.push({
+    onMounted(async () => {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        user.value = currentUser
+        // Если пользователя нет, отправляем логиниться, чтобы не было ошибок с ID
+        if (!currentUser) router.push('/login')
+    })
+
+    const addQuestion = (type) => {
+        survey.value.questions.push({
+            id: Date.now() + Math.random(),
             text: '',
-            type: 'single',
-            choices: [{ text: '', is_correct: false }]
+            type: type,
+            choices: (type === 'text' || type === 'scale') ? [] : [{ text: '', is_correct: false }]
         })
     }
 
-    const removeQuestion = (qIndex) => {
-        if (form.value.questions.length > 1) {
-            form.value.questions.splice(qIndex, 1)
-        }
-    }
-
-    const addChoice = (qIndex) => {
-        form.value.questions[qIndex].choices.push({ text: '', is_correct: false })
-    }
-
-    const removeChoice = (qIndex, cIndex) => {
-        if (form.value.questions[qIndex].choices.length > 1) {
-            form.value.questions[qIndex].choices.splice(cIndex, 1)
-        }
-    }
+    const removeQuestion = (index) => survey.value.questions.splice(index, 1)
+    const addChoice = (index) => survey.value.questions[index].choices.push({ text: '', is_correct: false })
+    const removeChoice = (qIdx, cIdx) => survey.value.questions[qIdx].choices.splice(cIdx, 1)
 
     const createSurvey = async () => {
-        // Валидация
-        if (!form.value.title.trim()) return alert('Введите название опроса!')
-        if (form.value.questions.some(q => !q.text.trim())) return alert('Заполните текст всех вопросов!')
+        if (!survey.value.title) return alert('Введите заголовок')
+        if (!user.value) return alert('Вы не авторизованы. Перезайдите в аккаунт.')
 
         loading.value = true
-
         try {
-            // 1. Создаём опрос
-            const { data: surveyData, error: surveyError } = await supabase
+            // 1. Создаем сам опрос
+            const { data: sData, error: sErr } = await supabase
                 .from('surveys')
                 .insert({
-                    title: form.value.title,
-                    description: form.value.description || null,
+                    title: survey.value.title,
+                    description: survey.value.description,
+                    user_id: user.value.id,
                     is_public: true,
                     is_active: true
                 })
-                .select('id')
-                .single()
+                .select().single()
 
-            if (surveyError) throw surveyError
+            if (sErr) throw sErr
 
-            const surveyId = surveyData.id
-
-            // 2. Добавляем вопросы
-            const questionsToInsert = form.value.questions.map((q, index) => ({
-                survey_id: surveyId,
-                text: q.text.trim(),
-                question_type: q.type,
-                order: index,
-                required: true
-            }))
-
-            const { data: insertedQuestions, error: questionsError } = await supabase
-                .from('questions')
-                .insert(questionsToInsert)
-                .select('id, order')
-
-            if (questionsError) throw questionsError
-
-            // Связываем вопросы с их ID
-            const questionMap = {}
-            insertedQuestions.forEach(q => {
-                questionMap[q.order] = q.id
-            })
-
-            // 3. Добавляем варианты ответов (только для single/multiple)
-            const choicesToInsert = []
-
-            form.value.questions.forEach((q, qIndex) => {
-                if (q.type === 'single' || q.type === 'multiple') {
-                    q.choices.forEach(choice => {
-                        if (choice.text.trim()) {
-                            choicesToInsert.push({
-                                question_id: questionMap[qIndex],
-                                text: choice.text.trim(),
-                                order: q.choices.indexOf(choice),
-                                is_correct: !!choice.is_correct
-                            })
-                        }
-                    })
+            // 2. Цикл по вопросам
+            for (const [i, q] of survey.value.questions.entries()) {
+                // Создаем объект вопроса. 
+                // ВАЖНО: Добавляем user_id, если такая колонка есть в таблице questions
+                const questionPayload = {
+                    survey_id: sData.id,
+                    text: q.text,
+                    question_type: q.type,
+                    order: i,
                 }
-            })
 
-            if (choicesToInsert.length > 0) {
-                const { error: choicesError } = await supabase
-                    .from('choices')
-                    .insert(choicesToInsert)
+                const { data: qData, error: qErr } = await supabase
+                    .from('questions')
+                    .insert({
+                        survey_id: sData.id,
+                        text: q.text,
+                        question_type: q.type,
+                        order: i
+                    })
+                    .select().single()
 
-                if (choicesError) throw choicesError
+                if (qErr) throw qErr // Ошибка вылетает здесь
+
+                // 3. Варианты ответов
+                if (q.choices && q.choices.length > 0) {
+                    const choicesToInsert = q.choices.map((c, ci) => ({
+                        question_id: qData.id,
+                        text: c.text,
+                        is_correct: c.is_correct,
+                        order: ci
+                    }))
+
+                    const { error: cErr } = await supabase
+                        .from('choices')
+                        .insert(choicesToInsert)
+
+                    if (cErr) throw cErr
+                }
             }
 
-            alert('Опрос успешно создан!')
+            alert('Опрос и вопросы успешно созданы!')
             router.push('/')
-        } catch (err) {
-            console.error('Полная ошибка при создании:', err)
-            console.log('Status:', err.status)
-            console.log('Message:', err.message)
-            console.log('Details:', err.details)
-            alert('Ошибка при создании: ' + (err.message || 'Неизвестная ошибка') + '\nСмотри консоль (F12)')
+        } catch (e) {
+            console.error('Полная ошибка:', e)
+            alert('Ошибка сохранения: ' + e.message)
         } finally {
             loading.value = false
         }
     }
+
 </script>
+<style scoped>
+    /* Контейнер */
+    .create-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 80px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 80px;
+    }
+
+    .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .main-title {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #212844;
+    }
+
+    .title-underline {
+        width: 50px;
+        height: 4px;
+        background: #212844;
+        margin-top: 10px;
+    }
+
+    /* Инпуты */
+    .minimal-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid rgba(33, 40, 68, 0.1);
+        padding: 15px 0;
+        color: #212844;
+        font-size: 1.1rem;
+        transition: border-color 0.2s;
+    }
+
+        .minimal-input:focus {
+            outline: none;
+            border-bottom-color: #DF2935; /* Используем твой акцентный красный при фокусе */
+        }
+
+    .title-field {
+        font-size: 2rem;
+        font-weight: 700;
+        border-bottom-width: 3px;
+    }
+
+    /* Список вопросов */
+    .questions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 100px;
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .question-number {
+        font-weight: 900;
+        opacity: 0.3;
+        text-transform: uppercase;
+    }
+
+    /* Управление вопросом (Select и Удаление) */
+    .question-controls {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .type-select {
+        padding: 8px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(33, 40, 68, 0.2);
+        background: white;
+        color: #212844;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    /* Варианты ответов */
+    .option-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+
+    /* Кастомные чекбоксы/радио */
+    .custom-check-container {
+        position: relative;
+        cursor: pointer;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+    }
+
+        .custom-check-container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 22px;
+        width: 22px;
+        background-color: transparent;
+        border: 2px solid #212844;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .custom-check-container input[type="radio"] + .checkmark {
+        border-radius: 50%;
+    }
+
+    .custom-check-container input:checked + .checkmark {
+        background-color: #212844;
+        box-shadow: inset 0 0 0 3px #FDFDF1; /* Светлый ободок внутри для четкости */
+    }
+
+    /* Кнопки */
+    .btn-publish {
+        background: #212844;
+        color: white;
+        padding: 14px 35px;
+        border-radius: 50px;
+        font-weight: 800;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
+    }
+
+        .btn-publish:hover:not(:disabled) {
+            background: #DF2935;
+            transform: translateY(-2px);
+        }
+
+        .btn-publish:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .btn-icon-delete {
+        background: none;
+        border: none;
+        color: #ccc;
+        cursor: pointer;
+        padding: 5px;
+        transition: color 0.2s;
+    }
+
+        .btn-icon-delete:hover {
+            color: #DF2935;
+        }
+
+    .btn-add-choice {
+        background: none;
+        border: 1px dashed rgba(33, 40, 68, 0.3);
+        color: #212844;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        margin-top: 10px;
+        margin-left: 37px; /* Смещение, чтобы кнопка была под текстом инпутов */
+        transition: all 0.2s;
+    }
+
+        .btn-add-choice:hover {
+            background: rgba(33, 40, 68, 0.05);
+            border-color: #212844;
+        }
+
+    .btn-remove-question {
+        background: none;
+        border: none;
+        color: #DF2935;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+
+        .btn-remove-question:hover {
+            opacity: 1;
+        }
+
+    /* Нижний тулбар */
+    .toolbar-container {
+        margin-top: 50px;
+        padding: 30px;
+        background: #FDFDF1; /* Твой фоновый цвет */
+        border-radius: 20px;
+        border: 2px solid #212844;
+    }
+
+    .toolbar-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .btn-tool {
+        padding: 12px 25px;
+        border: 2px solid #212844;
+        border-radius: 50px;
+        background: white;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-tool:hover {
+            background: #212844;
+            color: white;
+        }
+
+    /* Контейнер шкалы */
+    .scale-container {
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(33, 40, 68, 0.03); /* Легкий фон для выделения зоны */
+        border-radius: 15px;
+    }
+
+    /* Ряд кнопок */
+    .scale-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    /* Сами кружочки */
+    .scale-item {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #212844;
+        background: white;
+        color: #212844;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        cursor: default; /* В режиме создания они просто для превью */
+        transition: all 0.2s;
+    }
+
+    /* Подписи Минимум/Максимум */
+    .scale-labels {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 5px;
+    }
+
+        .scale-labels span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #212844;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+    /* Адаптивность для мобилок, чтобы кнопки не слипались */
+    @media (max-width: 600px) {
+        .scale-buttons {
+            gap: 5px;
+        }
+
+        .scale-item {
+            width: 30px;
+            height: 30px;
+            font-size: 0.8rem;
+        }
+    }
+</style>
