@@ -31,8 +31,7 @@ const routes = [
         component: () => import('../views/SurveyResultsView.vue'),
     },
     {
-        // Здесь обязательно должно быть двоеточие перед response_id
-        path: '/my-results/:response_id',
+        path: '/my-results/:id',
         name: 'UserResults',
         component: () => import('../views/UserResultsView.vue')
     },

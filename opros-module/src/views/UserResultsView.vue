@@ -1,108 +1,162 @@
 <template>
-    <div class="results-container" style="background-color: #F0E8D5; min-height: 100vh; padding: 40px 20px;">
-        <div class="content-card" style="background: white; max-width: 800px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(33,40,68,0.05);">
+    <div class="container py-5">
+        <h2 class="fw-bold mb-4">Результаты: {{ surveyTitle }}</h2>
 
-            <h1 style="color: #212844; font-weight: 800; margin-bottom: 10px;">Результаты тестирования</h1>
-            <p style="color: #212844; opacity: 0.6; margin-bottom: 30px;">Детальный отчет по вашим ответам</p>
+        <div class="card border-0 shadow-sm bg-white rounded-4 mb-4 p-4 text-center">
+            <div class="display-6 fw-bold text-primary">
+                {{ totalScore }} из {{ maxScore }}
+            </div>
+            <div class="text-muted">Итоговый балл</div>
+        </div>
 
-            <div style="background-color: #F2C4CE; padding: 20px; border-radius: 15px; margin-bottom: 40px; display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #212844; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Набранные баллы</span>
-                <span style="color: #212844; font-size: 2rem; font-weight: 900;">{{ totalScore }} / {{ answers.length }}</span>
+        <div v-for="(q, i) in questions" :key="q.id" class="mb-4 p-4 bg-white rounded-4 shadow-sm">
+            <h5 class="fw-bold">
+                #{{ i + 1 }} {{ q.text }}
+            </h5>
+
+            <div class="mt-3 p-3 bg-light rounded-3">
+                <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
             </div>
 
-            <div v-if="loading" style="text-align: center; padding: 40px;">Загрузка...</div>
-            <div v-else class="answers-list">
-                <div v-for="(ans, idx) in answers" :key="ans.id"
-                     style="border: 2px solid #212844; border-radius: 15px; padding: 25px; margin-bottom: 20px;">
-
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                        <span style="font-weight: 800; opacity: 0.3;">Вопрос №{{ idx + 1 }}</span>
-                        <span :style="{ color: ans.score > 0 ? '#4CAF50' : '#DF2935', fontWeight: '800' }">
-                            {{ ans.score > 0 ? '✓ Верно' : '✕ Ошибка' }}
-                        </span>
-                    </div>
-
-                    <h3 style="color: #212844; font-size: 1.2rem; margin-bottom: 20px;">{{ ans.questions.text }}</h3>
-
-                    <div style="background: #f9f9f9; padding: 15px; border-radius: 10px;">
-                        <small style="display: block; opacity: 0.5; margin-bottom: 5px;">Ваш ответ:</small>
-                        <span style="font-weight: 600;">{{ formatUserAnswer(ans) }}</span>
-                    </div>
-                </div>
+            <div class="mt-3 p-3 bg-success bg-opacity-10 rounded-3">
+                <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
             </div>
+        </div>
 
-            <button @click="$router.push('/my-history')"
-                    style="width: 100%; background: #212844; color: white; border: none; padding: 18px; border-radius: 50px; font-weight: 800; cursor: pointer; margin-top: 30px;">
-                Вернуться к списку
+        <div class="text-center mt-5">
+            <button @click="goBack" class="btn btn-dark px-5">
+                Вернуться в историю
             </button>
         </div>
     </div>
 </template>
+
 <script setup>
-    import { ref, computed, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
+    import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
-    import { useRoute } from 'vue-router'
 
     const route = useRoute()
-    const loading = ref(true)
-    const answers = ref([])
+    const router = useRouter()   // ← добавили router
+
+    const surveyTitle = ref('Опрос')
+    const questions = ref([])
+    const allAnswers = ref([])
+
+    const goBack = () => {
+        router.push('/my-history')
+    }
 
     onMounted(async () => {
+        const responseId = route.params.id
+        if (!responseId) {
+            console.log("Нет responseId в URL")
+            return
+        }
+
         try {
-            // 1. Загружаем ответы
-            const { data: ansData, error: ansError } = await supabase
+            console.log("Загружаем результаты для responseId:", responseId)
+
+            const { data: responseData, error: respError } = await supabase
+                .from('responses')
+                .select('survey_id')
+                .eq('id', responseId)
+                .single()
+
+            if (respError || !responseData) {
+                console.error("Ошибка получения response:", respError)
+                console.log("Прохождение не найдено для responseId:", responseId)
+                return
+            }
+
+            const surveyId = responseData.survey_id
+            console.log("Найден surveyId:", surveyId)
+
+            // Название опроса
+            const { data: sData } = await supabase
+                .from('surveys')
+                .select('title')
+                .eq('id', surveyId)
+
+            surveyTitle.value = sData?.[0]?.title || 'Опрос'
+
+            // Вопросы
+            const { data: qData } = await supabase
+                .from('questions')
+                .select('id, text, question_type, choices(id, text, is_correct)')
+                .eq('survey_id', surveyId)
+                .order('order')
+
+            questions.value = qData || []
+
+            // Ответы
+            const { data: aData } = await supabase
                 .from('answers')
                 .select('*')
-                .eq('response_id', route.params.response_id)
+                .eq('response_id', responseId)
 
-            if (ansError) throw ansError
+            allAnswers.value = aData || []
 
-            // 2. Обогащаем данными о вопросах (исправлено название колонки на question_type)
-            const enriched = await Promise.all(ansData.map(async (ans) => {
-                const { data: qData } = await supabase
-                    .from('questions')
-                    .select('id, text, question_type, choices(id, text, is_correct)')
-                    .eq('id', ans.question_id)
-                    .maybeSingle()
+            console.log("Загружено ответов:", allAnswers.value.length)
 
-                return { ...ans, questions: qData }
-            }))
-
-            answers.value = enriched.filter(a => a.questions !== null)
-        } catch (e) {
-            console.error("Ошибка загрузки:", e.message)
-        } finally {
-            loading.value = false
+        } catch (err) {
+            console.error('Общая ошибка загрузки результатов:', err)
         }
     })
 
-    // Функции для красивого отображения (чтобы не было UUID)
-    const formatUserAnswer = (ans) => {
-        if (!ans.questions || !ans.text_answer) return 'Нет ответа'
-        const type = ans.questions.question_type
-        if (['radio', 'checkbox', 'select'].includes(type)) {
-            try {
-                const selectedIds = ans.text_answer.startsWith('[')
-                    ? JSON.parse(ans.text_answer).map(String)
-                    : [String(ans.text_answer)]
+    const formatUserAnswer = (q) => {
+        const ansList = allAnswers.value.filter(a => a.question_id === q.id)
+        if (ansList.length === 0) return '—'
 
-                return ans.questions.choices
-                    .filter(c => selectedIds.includes(String(c.id)))
-                    .map(c => c.text).join(', ') || 'Вариант удален'
-            } catch (e) { return ans.text_answer }
-        }
-        return ans.text_answer
+        if (q.question_type === 'text') return ansList[0].text_answer || '—'
+        if (q.question_type === 'scale') return (ansList[0].scale_value || ansList[0].text_answer) + '/10'
+
+        const ids = ansList.map(a => a.choice_id).filter(id => id != null)
+
+        const texts = q.choices
+            .filter(c => ids.some(id => String(id) === String(c.id)))
+            .map(c => c.text)
+
+        return texts.length ? texts.join(', ') : '—'
     }
 
-    const totalScore = computed(() => answers.value.reduce((sum, a) => sum + (a.score || 0), 0))
+    const getCorrectAnswerText = (q) => {
+        if (!q.choices) return '—'
+        const correct = q.choices.filter(c => c.is_correct === true).map(c => c.text)
+        return correct.length ? correct.join(', ') : '—'
+    }
+
+    const maxScore = computed(() => questions.value.filter(q => q.question_type !== 'scale').length)
+
+    const totalScore = computed(() => {
+        let score = 0
+
+        questions.value.forEach(q => {
+            if (q.question_type === 'scale') return
+
+            const ansList = allAnswers.value.filter(a => a.question_id === q.id)
+            if (ansList.length === 0) return
+
+            // Если это открытый вопрос (text) — проверяем, есть ли ручная оценка
+            if (q.question_type === 'text') {
+                const ans = ansList[0]
+                // Если админ поставил балл > 0 — засчитываем
+                if (ans.score && Number(ans.score) > 0) {
+                    score++
+                }
+                return
+            }
+
+            // Для single / multiple — автоматическая проверка
+            const correctIds = q.choices.filter(c => c.is_correct === true).map(c => String(c.id))
+            const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
+
+            if (correctIds.length > 0 && userIds.length === correctIds.length &&
+                userIds.every(id => correctIds.includes(id))) {
+                score++
+            }
+        })
+
+        return score
+    })
 </script>
-
-<style scoped>
-    .feedback-card {
-        background-color: #fffdf2 !important;
-    }
-
-    .italic {
-        font-style: italic;
-    }
-</style>
