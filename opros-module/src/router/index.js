@@ -39,6 +39,11 @@ const routes = [
         path: '/my-history',
         name: 'MyHistory',
         component: () => import('../views/MyHistoryView.vue')
+    },
+    {
+        path: '/profile',
+        name: 'profile',
+        component: () => import('../views/ProfileView.vue')
     }
 
 ]

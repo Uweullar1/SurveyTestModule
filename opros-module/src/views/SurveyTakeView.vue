@@ -1,90 +1,101 @@
 <template>
-    <div class="container my-5">
-        <h1 class="mb-4 text-primary fw-bold">{{ survey.title || 'Прохождение опроса' }}</h1>
+    <div class="survey-taking-page">
+        <div class="progress-container sticky-top shadow-sm">
+            <div class="progress-bar" :style="{ width: progressPercentage + '%' }"></div>
+        </div>
 
-        <div v-if="loading" class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
+        <div class="container py-5" style="max-width: 850px;">
+            <div class="mb-5 text-center">
+                <h1 class="display-5 fw-bold survey-main-title">{{ survey.title || 'Прохождение опроса' }}</h1>
+                <p class="lead text-secondary">{{ survey.description || 'Пожалуйста, ответьте на вопросы ниже.' }}</p>
             </div>
-            <p class="mt-3 text-muted">Подгружаем вопросы, подождите...</p>
-        </div>
 
-        <div v-else-if="error" class="alert alert-danger shadow-sm text-center">
-            <i class="bi bi-exclamation-triangle me-2"></i> {{ error }}
-        </div>
+            <div v-if="loading" class="text-center my-5">
+                <div class="spinner-border text-dark" role="status"></div>
+                <p class="mt-3">Загрузка вопросов...</p>
+            </div>
 
-        <div v-else>
-            <p class="lead mb-5 text-secondary">{{ survey.description || 'Пожалуйста, ответьте на вопросы ниже.' }}</p>
+            <div v-else-if="error" class="alert alert-danger shadow-sm text-center">
+                <i class="bi bi-exclamation-triangle me-2"></i> {{ error }}
+            </div>
 
-            <form @submit.prevent="submitResponses">
-                <div v-for="(question, index) in questions" :key="question.id" class="card shadow-sm border-0 mb-4">
-                    <div class="card-body p-4">
-                        <h5 class="card-title mb-4">
-                            <span class="badge bg-primary me-2">{{ index + 1 }}</span>
-                            {{ question.text }}
-                            <span v-if="question.required" class="text-danger">*</span>
-                        </h5>
+            <div v-else>
+                <form @submit.prevent="submitResponses">
+                    <div v-for="(question, index) in questions" :key="question.id" class="question-block">
 
-                        <div v-if="question.question_type === 'single' || question.question_type === 'radio'" class="mb-3">
-                            <div class="form-check custom-radio" v-for="choice in question.choices" :key="choice.id">
-                                <input class="form-check-input"
-                                       type="radio"
+                        <div class="question-header">
+                            <span class="question-number">{{ index + 1 }}</span>
+                            <h3 class="question-text m-0">
+                                {{ question.text }}
+                                <span v-if="question.required" class="text-danger small">*</span>
+                            </h3>
+                        </div>
+
+                        <div v-if="question.question_type === 'single' || question.question_type === 'radio'" class="options-list">
+                            <div v-for="choice in question.choices" :key="choice.id" class="option-item">
+                                <input type="radio"
+                                       :id="`choice-${choice.id}`"
                                        :name="`q-${question.id}`"
+                                       v-model="responses[question.id]"
+                                       :value="choice.id"
+                                       class="hidden-input"
+                                       :required="question.required" />
+                                <label :for="`choice-${choice.id}`" class="option-label">
+                                    <span class="indicator radio-indicator"></span>
+                                    {{ choice.text }}
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-else-if="question.question_type === 'multiple' || question.question_type === 'checkbox'" class="options-list">
+                            <div v-for="choice in question.choices" :key="choice.id" class="option-item">
+                                <input type="checkbox"
                                        :id="`choice-${choice.id}`"
                                        v-model="responses[question.id]"
                                        :value="choice.id"
-                                       :required="question.required" />
-                                <label class="form-check-label" :for="`choice-${choice.id}`">
+                                       class="hidden-input" />
+                                <label :for="`choice-${choice.id}`" class="option-label">
+                                    <span class="indicator check-indicator"></span>
                                     {{ choice.text }}
                                 </label>
                             </div>
                         </div>
 
-                        <div v-else-if="question.question_type === 'multiple' || question.question_type === 'checkbox'" class="mb-3">
-                            <div class="form-check" v-for="choice in question.choices" :key="choice.id">
-                                <input class="form-check-input"
-                                       type="checkbox"
-                                       :id="`choice-${choice.id}`"
-                                       v-model="responses[question.id]"
-                                       :value="choice.id" />
-                                <label class="form-check-label" :for="`choice-${choice.id}`">
-                                    {{ choice.text }}
-                                </label>
-                            </div>
-                        </div>
-
-                        <div v-else-if="question.question_type === 'text'" class="mb-3">
+                        <div v-else-if="question.question_type === 'text'" class="mt-3">
                             <textarea v-model="responses[question.id]"
-                                      class="form-control"
+                                      class="form-control custom-textarea"
                                       rows="3"
                                       :required="question.required"
                                       placeholder="Введите ваш ответ..."></textarea>
                         </div>
 
-                        <div v-else-if="question.question_type === 'scale'" class="mb-3">
-                            <input type="range"
-                                   class="form-range"
-                                   min="1"
-                                   max="10"
-                                   v-model.number="responses[question.id]" />
-                            <div class="d-flex justify-content-between px-2 text-muted small">
-                                <span>1</span>
-                                <span class="fw-bold text-primary fs-5">{{ responses[question.id] || 5 }}</span>
-                                <span>10</span>
+                        <div v-else-if="question.question_type === 'scale'" class="mt-3">
+                            <div class="scale-wrapper">
+                                <div class="scale-buttons">
+                                    <button v-for="num in 10" :key="num"
+                                            type="button"
+                                            class="scale-btn"
+                                            :class="{ active: responses[question.id] === num }"
+                                            @click="responses[question.id] = num">
+                                        {{ num }}
+                                    </button>
+                                </div>
+                                <div class="scale-labels">
+                                    <span>Совсем плохо</span>
+                                    <span>Отлично</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="d-grid gap-2 mt-5">
-                    <button type="submit"
-                            class="btn btn-success btn-lg shadow"
-                            :disabled="submitting || loading">
-                        <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
-                        {{ submitting ? 'Сохранение...' : 'Завершить и посмотреть результат' }}
-                    </button>
-                </div>
-            </form>
+                    <div class="submit-section">
+                        <button type="submit" class="btn-finish" :disabled="submitting">
+                            {{ submitting ? 'Сохранение...' : 'Завершить прохождение' }}
+                        </button>
+                        <p class="text-muted mt-3">Все ответы будут сохранены автоматически в истории</p>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </template>
@@ -106,6 +117,42 @@
     const loading = ref(true)
     const error = ref(null)
 
+
+    // Проверка ограничения по количеству прохождений на пользователя
+    const checkMaxResponsesLimit = async (surveyId) => {
+        if (!surveyId) return true
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session?.user?.id) return true
+
+            const { data, error } = await supabase
+                .from('responses')
+                .select('id', { count: 'exact' })
+                .eq('survey_id', surveyId)
+                .eq('user_id', session.user.id)
+
+            if (error) {
+                console.error("Ошибка проверки лимита:", error)
+                return true
+            }
+
+            const currentAttempts = data?.length || 0
+            const maxAllowed = survey.value.max_responses || 0   // survey.value нужно будет загрузить
+
+            if (maxAllowed > 0 && currentAttempts >= maxAllowed) {
+                alert(`Вы уже прошли этот опрос максимальное количество раз (${maxAllowed}).`)
+                router.push('/my-history')
+                return false
+            }
+
+            return true
+        } catch (err) {
+            console.error(err)
+            return true // разрешаем на случай ошибки
+        }
+    }
+
     onMounted(async () => {
         const surveyId = route.params.id
         if (!surveyId) {
@@ -123,6 +170,9 @@
                 .single()
             if (sErr) throw sErr
             survey.value = sData
+
+            const canProceed = await checkMaxResponsesLimit(surveyId)
+            if (!canProceed) return
 
             // 2. Загружаем вопросы и варианты ответов
             const { data: qData, error: qErr } = await supabase
@@ -154,6 +204,7 @@
         }
     })
 
+
     // === ЭТОТ БЛОК ЗАМЕНИ ЦЕЛИКОМ ===
     const submitResponses = async () => {
         if (submitting.value) return
@@ -162,27 +213,27 @@
         const surveyId = route.params.id
 
         try {
-            // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-            // Получаем текущую сессию пользователя
+            // Получаем сессию
             const { data: { session } } = await supabase.auth.getSession()
-            // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
-            // Создаём прохождение с user_id
+            // Создаём прохождение
             const { data: rData, error: rErr } = await supabase
                 .from('responses')
                 .insert({
                     survey_id: surveyId,
-                    user_id: session?.user?.id || null,   // ← вот сюда вставляется user_id
+                    user_id: session?.user?.id || null,
                     submitted_at: new Date().toISOString()
                 })
                 .select('id')
                 .single()
 
-            if (rErr) throw rErr
+            if (rErr) {
+                console.error("Ошибка создания responses:", rErr)
+                throw rErr
+            }
 
             const responseId = rData.id
-
-            // ... остальной код с answersToInsert остаётся как был ...
+            console.log("Создано прохождение с ID:", responseId)
 
             const answersToInsert = []
 
@@ -219,7 +270,7 @@
                     answersToInsert.push({
                         response_id: responseId,
                         question_id: q.id,
-                        scale_value: parseInt(userVal),
+                        scale_value: parseInt(userVal) || 0,
                         text_answer: String(userVal)
                     })
                 }
@@ -227,15 +278,20 @@
 
             if (answersToInsert.length > 0) {
                 const { error: aErr } = await supabase.from('answers').insert(answersToInsert)
-                if (aErr) throw aErr
+                if (aErr) {
+                    console.error("Ошибка вставки answers:", aErr)
+                    throw aErr
+                }
             }
 
-            // Переходим на страницу результатов
-            router.push(`/my-results/${responseId}`)   // ← важно: передаём responseId, а не surveyId
+            // Переход на результаты
+            router.push(`/my-results/${responseId}`)
+
+            alert('Опрос успешно завершён!')
 
         } catch (err) {
-            console.error(err)
-            alert('Ошибка при сохранении: ' + err.message)
+            console.error("Ошибка при submitResponses:", err)
+            alert('Ошибка при сохранении ответа: ' + (err.message || 'Неизвестная ошибка'))
         } finally {
             submitting.value = false
         }
@@ -243,16 +299,203 @@
 </script>
 
 <style scoped>
-    .card {
-        transition: transform 0.2s ease;
+    .survey-taking-page {
+        background-color: #FDFDF1; /* Крем */
+        min-height: 100vh;
     }
 
-        .card:hover {
-            transform: translateY(-5px);
+    .progress-container {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.5);
+        z-index: 1000;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background-color: #F2C4CE; /* Розовый */
+        transition: width 0.3s ease;
+    }
+
+    .survey-main-title {
+        color: #212844;
+    }
+
+    /* Блок вопроса */
+    .question-block {
+        padding: 3rem 0; /* Больше отступа, чтобы вопросы не слипались */
+        border-bottom: 1px solid rgba(33, 40, 68, 0.1);
+    }
+
+    /* Шапка вопроса: ИСПРАВЛЕНИЕ, чтобы текст не съезжал */
+    .question-header {
+        display: flex;
+        align-items: center; /* Центрируем номер и текст по вертикали */
+        margin-bottom: 2rem; /* Отступ до вариантов ответов */
+    }
+
+    .question-number {
+        background-color: #212844;
+        color: #F2C4CE;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.95rem;
+        margin-right: 15px; /* Вот этот отступ отодвигает текст */
+        flex-shrink: 0; /* Чтобы номер не сжимался */
+    }
+
+    .question-text {
+        color: #212844;
+        font-weight: 700;
+        font-size: 1.4rem;
+        line-height: 1.2;
+    }
+
+    /* Опции выбора */
+    .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .hidden-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+    }
+
+    .option-label {
+        display: flex;
+        align-items: center;
+        padding: 14px 20px;
+        border: 2px solid rgba(33, 40, 68, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: rgba(255, 255, 255, 0.3);
+        color: #212844;
+    }
+
+        .option-label:hover {
+            background: rgba(255, 255, 255, 0.6);
+            border-color: #F2C4CE;
         }
 
-    .form-check-input:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
+    .hidden-input:checked + .option-label {
+        background-color: #212844;
+        color: #F2C4CE;
+        border-color: #212844;
     }
+
+    .indicator {
+        width: 18px;
+        height: 18px;
+        border: 2px solid currentColor;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .radio-indicator {
+        border-radius: 50%;
+    }
+
+    .check-indicator {
+        border-radius: 4px;
+    }
+
+    /* Шкала */
+    .scale-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Центрируем всё содержимое внутри wrapper */
+        margin-top: 1rem;
+        width: 100%;
+    }
+
+    .scale-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: center; /* Центрируем кнопки */
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .scale-btn {
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 2px solid rgba(33, 40, 68, 0.2);
+        color: #212844;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .scale-btn.active {
+            background: #212844;
+            color: #F2C4CE;
+            border-color: #212844;
+        }
+
+    .scale-labels {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 540px; /* Равно ширине ряда кнопок (10*45 + 9*10) */
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    /* Поле текста */
+    .custom-textarea {
+        width: 100%; /* Принудительно на всю ширину */
+        max-width: 600px; /* Ограничим, чтобы не было "колбасой" */
+        border: 2px solid rgba(33, 40, 68, 0.2);
+        border-radius: 12px;
+        padding: 15px;
+        background: transparent;
+        color: #212844;
+    }
+
+        .custom-textarea:focus {
+            border-color: #F2C4CE;
+            box-shadow: none;
+            background-color: #ffffff;
+        }
+
+
+    .submit-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 4rem 0;
+    }
+
+
+    /* Кнопка */
+    .btn-finish {
+        background-color: #212844;
+        color: #F2C4CE;
+        border: none;
+        border-radius: 18px;
+        padding: 20px 60px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+        .btn-finish:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(33, 40, 68, 0.2);
+            background-color: #2d365a;
+        }
+
 </style>

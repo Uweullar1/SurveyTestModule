@@ -26,7 +26,7 @@
                                 <button v-if="user && survey.user_id === user.id"
                                         @click.stop.prevent="router.push(`/results/${survey.id}/admin`)"
                                         class="admin-btn">
-                                    Результаты 📊
+                                    Результаты
                                 </button>
 
                                 <span v-else class="open-btn">Открыть →</span>
@@ -172,7 +172,7 @@
         color: #212844;
     }
     .admin-btn {
-        background: #FFD700; /* Яркий желтый для теста */
+        background: #F2C4CE; /* Яркий желтый для теста */
         border: 2px solid #212844;
         padding: 5px 12px;
         border-radius: 8px;
@@ -184,6 +184,6 @@
 
         .admin-btn:hover {
             transform: scale(1.05);
-            background: #ffecb3;
+            background: #F2C4CE;
         }
 </style>

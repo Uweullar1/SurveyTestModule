@@ -1,30 +1,33 @@
 <template>
-    <div class="container py-5">
+    <div class="container py-5 text-center">
         <h2 class="fw-bold mb-4">Результаты: {{ surveyTitle }}</h2>
 
-        <div class="card border-0 shadow-sm bg-white rounded-4 mb-4 p-4 text-center">
-            <div class="display-6 fw-bold text-primary">
-                {{ totalScore }} из {{ maxScore }}
+        <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
+            <div class="score-display fw-bold">
+                {{ totalScore }} <span style="font-size: 1.5rem; color: #6c757d;">из {{ maxScore }}</span>
             </div>
-            <div class="text-muted">Итоговый балл</div>
+            <div class="text-muted fw-bold text-uppercase">Итоговый балл</div>
         </div>
 
-        <div v-for="(q, i) in questions" :key="q.id" class="mb-4 p-4 bg-white rounded-4 shadow-sm">
-            <h5 class="fw-bold">
-                #{{ i + 1 }} {{ q.text }}
+        <div v-for="(q, i) in questions" :key="q.id" class="question-card shadow-sm">
+            <h5 class="fw-bold mb-3">
+                <span class="badge bg-dark me-2">{{ i + 1 }}</span> {{ q.text }}
             </h5>
 
-            <div class="mt-3 p-3 bg-light rounded-3">
+            <div class="answer-section"
+                 :class="getAnswerClass(q)">
                 <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
             </div>
 
-            <div class="mt-3 p-3 bg-success bg-opacity-10 rounded-3">
+            <div v-if="q.question_type !== 'text' && q.question_type !== 'scale'"
+                 class="answer-section"
+                 :class="formatUserAnswer(q) === getCorrectAnswerText(q) ? 'correct-ans-block' : 'neutral-ans-block'">
                 <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
             </div>
         </div>
 
-        <div class="text-center mt-5">
-            <button @click="goBack" class="btn btn-dark px-5">
+        <div class="publish-bottom">
+            <button @click="goBack" class="btn btn-dark px-5 shadow">
                 Вернуться в историю
             </button>
         </div>
@@ -159,4 +162,93 @@
 
         return score
     })
+
+    const getAnswerClass = (q) => {
+        // Если это текст или шкала — возвращаем нейтральный серый стиль без цвета
+        if (q.question_type === 'text' || q.question_type === 'scale') {
+            return 'neutral-ans-block';
+        }
+
+        // Для тестов: если совпало с правильным — зеленый, если нет — розовый
+        return formatUserAnswer(q) === getCorrectAnswerText(q)
+            ? 'correct-ans-block'
+            : 'user-ans-block';
+    }
 </script>
+
+<style scoped>
+    /* Общий фон страницы */
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .question-card {
+        background-color: #ffffff;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 25px;
+        text-align: left; /* Текст вопроса слева для структуры */
+    }
+
+    /* Заголовки */
+    h2, h5 {
+        color: #212844; /* Твой темно-синий */
+    }
+
+    /* Блок итогового балла */
+    .score-display {
+        font-size: 3.5rem;
+        color: #212844;
+    }
+
+    /* Стилизация ответов */
+    .answer-section {
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    }
+
+    /* Обычный блок (если ответ неверный) */
+    .user-ans-block {
+        background-color: #F2C4CE;
+        color: #212844;
+        border-left: 5px solid #212844;
+    }
+
+    .neutral-ans-block {
+        background-color: #f8f9fa; /* Светло-серый */
+        color: #212844;
+        border-left: 5px solid #dee2e6;
+    }
+
+    .correct-ans-block {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border-left: 5px solid #198754;
+    }
+
+    .publish-bottom {
+        margin-top: 80px;
+        text-align: center;
+        padding-bottom: 60px;
+    }
+
+    .btn-dark {
+        background-color: #212844;
+        color: #F2C4CE;
+        border: none;
+        border-radius: 18px;
+        padding: 20px 60px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+
+    }
+
+        .btn-dark:hover {
+            background-color: #1a2036;
+            color: #F2C4CE;
+        }
+</style>

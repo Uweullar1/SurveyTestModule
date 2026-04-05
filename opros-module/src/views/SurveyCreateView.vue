@@ -1,27 +1,68 @@
 <template>
     <div class="create-container">
+        <!-- Заголовок и кнопка вверху (для удобства) -->
         <div class="header-flex">
             <div class="title-group">
                 <h1 class="main-title">Создание нового опроса</h1>
                 <div class="title-underline"></div>
             </div>
-            <button @click="createSurvey"
-                    :disabled="loading || !user"
-                    class="btn-publish">
-                {{ loading ? 'Сохранение...' : 'Опубликовать опрос' }}
-            </button>
         </div>
 
+        <!-- Основная информация -->
         <div class="base-info-section">
             <input v-model="survey.title"
                    type="text"
                    placeholder="Заголовок опроса *"
                    class="minimal-input title-field">
+
             <textarea v-model="survey.description"
                       placeholder="Описание опроса (необязательно)"
                       class="minimal-input desc-field"></textarea>
         </div>
 
+        <!-- Настройки опроса -->
+        <div class="settings-section">
+            <h3 class="section-title">Настройки публикации и доступа</h3>
+
+            <div class="setting-row">
+                <label>
+                    <input type="checkbox" v-model="survey.is_private">
+                    Приватный опрос (доступен только по прямой ссылке)
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <label>
+                    <input type="checkbox" v-model="survey.show_correct_answers">
+                    Показывать правильные ответы после прохождения
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <label>Ограничение по количеству прохождений:</label>
+                <input v-model="survey.max_responses"
+                       type="number"
+                       min="0"
+                       placeholder="0 = без ограничения"
+                       class="minimal-input">
+            </div>
+
+            <div class="setting-row">
+                <label>Дата и время окончания опроса:</label>
+                <input v-model="survey.expires_at"
+                       type="datetime-local"
+                       class="minimal-input">
+            </div>
+
+            <div class="setting-row">
+                <label>
+                    <input type="checkbox" v-model="survey.is_closed">
+                    Закрыть опрос (никто не сможет его пройти)
+                </label>
+            </div>
+        </div>
+
+        <!-- Список вопросов -->
         <div class="questions-list">
             <div v-for="(question, qIndex) in survey.questions" :key="question.id" class="question-item">
 
@@ -36,8 +77,7 @@
                         </select>
                         <button @click="removeQuestion(qIndex)"
                                 v-if="survey.questions.length > 1"
-                                class="btn-remove-question"
-                                title="Удалить вопрос">
+                                class="btn-remove-question">
                             Удалить
                         </button>
                     </div>
@@ -49,11 +89,10 @@
                        class="minimal-input question-field">
 
                 <div class="answer-content">
-
+                    <!-- Варианты для radio / checkbox -->
                     <div v-if="question.type === 'radio' || question.type === 'checkbox'" class="options-container">
                         <div v-for="(choice, cIndex) in question.choices" :key="cIndex" class="option-row">
-
-                            <label class="custom-check-container" :title="choice.is_correct ? 'Правильный ответ' : 'Пометить как правильный'">
+                            <label class="custom-check-container">
                                 <input :type="question.type === 'radio' ? 'radio' : 'checkbox'"
                                        :name="'correct-' + qIndex"
                                        v-model="choice.is_correct">
@@ -67,42 +106,36 @@
 
                             <button @click="removeChoice(qIndex, cIndex)"
                                     v-if="question.choices.length > 1"
-                                    class="btn-icon-delete"
-                                    title="Удалить вариант">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                                    class="btn-icon-delete">
+                                ✕
                             </button>
                         </div>
 
                         <button @click="addChoice(qIndex)" class="btn-add-choice">
-                            <span class="plus-icon">+</span> Добавить вариант
+                            + Добавить вариант
                         </button>
                     </div>
 
+                    <!-- Превью для текстового ответа -->
                     <div v-if="question.type === 'text'" class="text-answer-preview">
-                        <p>Поле для ввода развернутого текста (будет доступно респонденту)</p>
+                        <p>Поле для ввода развёрнутого текста</p>
                     </div>
 
+                    <!-- Превью шкалы -->
                     <div v-if="question.type === 'scale'" class="scale-container">
                         <div class="scale-buttons">
-                            <button v-for="n in 10"
-                                    :key="n"
-                                    class="scale-item"
-                                    type="button">
-                                {{ n }}
-                            </button>
+                            <button v-for="n in 10" :key="n" class="scale-item" type="button">{{ n }}</button>
                         </div>
                         <div class="scale-labels">
-                            <span class="label-min">Минимум</span>
-                            <span class="label-max">Максимум</span>
+                            <span>Минимум</span>
+                            <span>Максимум</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Нижний тулбар добавления вопросов -->
         <div class="toolbar-container">
             <p class="toolbar-title">Добавить вопрос:</p>
             <div class="toolbar-grid">
@@ -111,6 +144,15 @@
                 <button @click="addQuestion('text')" class="btn-tool">¶ Текст</button>
                 <button @click="addQuestion('scale')" class="btn-tool">↔ Шкала</button>
             </div>
+        </div>
+
+        <!-- Кнопка публикации внизу -->
+        <div class="publish-bottom">
+            <button @click="createSurvey"
+                    :disabled="loading || !survey.title.trim()"
+                    class="btn-publish">
+                {{ loading ? 'Сохранение...' : 'Опубликовать опрос' }}
+            </button>
         </div>
     </div>
 </template>
@@ -124,10 +166,14 @@
     const loading = ref(false)
     const user = ref(null)
 
-    // Изначально создаем один готовый вопрос (Один вариант)
     const survey = ref({
         title: '',
         description: '',
+        is_private: false,
+        show_correct_answers: false,
+        is_closed: false,
+        max_responses: 0,
+        expires_at: null,
         questions: [
             {
                 id: Date.now(),
@@ -141,7 +187,6 @@
     onMounted(async () => {
         const { data: { user: currentUser } } = await supabase.auth.getUser()
         user.value = currentUser
-        // Если пользователя нет, отправляем логиниться, чтобы не было ошибок с ID
         if (!currentUser) router.push('/login')
     })
 
@@ -159,75 +204,85 @@
     const removeChoice = (qIdx, cIdx) => survey.value.questions[qIdx].choices.splice(cIdx, 1)
 
     const createSurvey = async () => {
-        if (!survey.value.title) return alert('Введите заголовок')
-        if (!user.value) return alert('Вы не авторизованы. Перезайдите в аккаунт.')
+        if (!survey.value.title?.trim()) {
+            return alert('Введите заголовок опроса')
+        }
 
         loading.value = true
+
         try {
-            // 1. Создаем сам опрос
+            // Исправляем формат expires_at
+            let expiresAt = null
+            if (survey.value.expires_at) {
+                expiresAt = new Date(survey.value.expires_at).toISOString()
+            }
+
             const { data: sData, error: sErr } = await supabase
                 .from('surveys')
                 .insert({
-                    title: survey.value.title,
-                    description: survey.value.description,
+                    title: survey.value.title.trim(),
+                    description: survey.value.description?.trim() || null,
                     user_id: user.value.id,
-                    is_public: true,
-                    is_active: true
+
+                    // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+                    is_public: !survey.value.is_private,        // Главное исправление
+                    is_private: !!survey.value.is_private,
+                    is_active: !survey.value.is_closed,
+                    show_correct_answers: !!survey.value.show_correct_answers,
+                    max_responses: parseInt(survey.value.max_responses) || 0,
+                    expires_at: expiresAt
+                    // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
                 })
-                .select().single()
+                .select()
+                .single()
 
             if (sErr) throw sErr
 
-            // 2. Цикл по вопросам
+            // Создание вопросов
             for (const [i, q] of survey.value.questions.entries()) {
-                // Создаем объект вопроса. 
-                // ВАЖНО: Добавляем user_id, если такая колонка есть в таблице questions
-                const questionPayload = {
-                    survey_id: sData.id,
-                    text: q.text,
-                    question_type: q.type,
-                    order: i,
-                }
+                if (!q.text?.trim()) continue
 
                 const { data: qData, error: qErr } = await supabase
                     .from('questions')
                     .insert({
                         survey_id: sData.id,
-                        text: q.text,
+                        text: q.text.trim(),
                         question_type: q.type,
                         order: i
                     })
-                    .select().single()
+                    .select()
+                    .single()
 
-                if (qErr) throw qErr // Ошибка вылетает здесь
+                if (qErr) throw qErr
 
-                // 3. Варианты ответов
+                // Варианты ответов
                 if (q.choices && q.choices.length > 0) {
-                    const choicesToInsert = q.choices.map((c, ci) => ({
-                        question_id: qData.id,
-                        text: c.text,
-                        is_correct: c.is_correct,
-                        order: ci
-                    }))
+                    const choicesToInsert = q.choices
+                        .filter(c => c.text?.trim())
+                        .map((c, ci) => ({
+                            question_id: qData.id,
+                            text: c.text.trim(),
+                            is_correct: !!c.is_correct,
+                            order: ci
+                        }))
 
-                    const { error: cErr } = await supabase
-                        .from('choices')
-                        .insert(choicesToInsert)
-
-                    if (cErr) throw cErr
+                    if (choicesToInsert.length > 0) {
+                        const { error: cErr } = await supabase.from('choices').insert(choicesToInsert)
+                        if (cErr) throw cErr
+                    }
                 }
             }
 
-            alert('Опрос и вопросы успешно созданы!')
+            alert('Опрос успешно опубликован!')
             router.push('/')
+
         } catch (e) {
-            console.error('Полная ошибка:', e)
-            alert('Ошибка сохранения: ' + e.message)
+            console.error('Ошибка создания опроса:', e)
+            alert('Ошибка при создании опроса:\n' + (e.message || e.details || JSON.stringify(e)))
         } finally {
             loading.value = false
         }
     }
-
 </script>
 <style scoped>
     /* Контейнер */
@@ -366,14 +421,14 @@
 
     /* Кнопки */
     .btn-publish {
-        background: #212844;
-        color: white;
-        padding: 14px 35px;
-        border-radius: 50px;
-        font-weight: 800;
+        background-color: #212844;
+        color: #F2C4CE;
         border: none;
-        cursor: pointer;
-        transition: transform 0.2s, background 0.2s;
+        border-radius: 18px;
+        padding: 20px 60px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
     }
 
         .btn-publish:hover:not(:disabled) {
@@ -525,4 +580,35 @@
             font-size: 0.8rem;
         }
     }
+    .publish-bottom {
+        margin-top: 80px;
+        text-align: center;
+        padding-bottom: 60px;
+    }
+
+    .settings-section {
+        background: #FDFDF1;
+        padding: 30px;
+        border-radius: 20px;
+        border: 2px solid #212844;
+        margin-bottom: 60px;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        color: #212844;
+    }
+
+    .setting-row {
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+        .setting-row label {
+            font-weight: 600;
+            color: #212844;
+        }
 </style>

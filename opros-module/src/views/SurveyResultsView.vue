@@ -1,66 +1,83 @@
 <template>
-    <div class="container my-5">
-        <div class="header-admin d-flex justify-content-between align-items-center mb-4">
-            <h1 class="fw-bold">Проверка: {{ surveyTitle }}</h1>
-            <button @click="router.push('/')" class="btn btn-outline-dark">Назад</button>
-        </div>
-
-        <div v-if="loading" class="text-center p-5">
-            <div class="spinner-border"></div>
-        </div>
-
-        <div v-else class="row">
-            <!-- Список участников -->
-            <div class="col-md-4">
-                <div class="list-group shadow-sm">
-                    <button v-for="(resp, idx) in allResponses" :key="resp.id"
-                            @click="selectUser(resp)"
-                            class="list-group-item list-group-item-action border-2 mb-2"
-                            :class="{ active: selectedResponse?.id === resp.id }">
-                        Участник #{{ allResponses.length - idx }}
-                        <small class="d-block opacity-75">{{ formatDate(resp.submitted_at) }}</small>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Детали ответов выбранного пользователя -->
-            <div class="col-md-8">
-                <div v-if="selectedResponse" class="results-detail p-4 border rounded-4 bg-white shadow">
-                    <h4 class="mb-4">Анкета №{{ allResponses.length - allResponses.indexOf(selectedResponse) }}</h4>
-
-                    <div v-for="q in questions" :key="q.id" class="border-bottom py-3">
-                        <p class="fw-bold">{{ q.text }}</p>
-                        <p><strong>Ответ:</strong> {{ formatAnswer(q, selectedResponse.id) }}</p>
-
-                        <!-- Для текстовых вопросов — возможность поставить баллы и фидбек -->
-                        <div v-if="q.question_type === 'text'" class="bg-light p-3 rounded mt-2">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label class="small">Баллы (0-10):</label>
-                                    <input type="number" v-model="editData[q.id].score" class="form-control" min="0" max="10">
-                                </div>
-                                <div class="col-md-9">
-                                    <label class="small">Комментарий:</label>
-                                    <input type="text" v-model="editData[q.id].feedback" class="form-control" placeholder="Напишите фидбек...">
-                                </div>
-                            </div>
+    <div class="admin-check-page">
+        <div class="container py-5">
+            <div class="row justify-content-center mb-5">
+                <div class="col-lg-10">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h1 class="fw-bold survey-title mb-2">{{ surveyTitle }}</h1>
+                            <p class="text-muted">Панель проверки ответов</p>
                         </div>
-
-                        <div v-else class="small text-muted mt-1">
-                            Проверяется автоматически
-                        </div>
-                    </div>
-
-                    <div class="mt-5 p-4 bg-dark rounded-4 text-center">
-                        <button @click="saveEvaluation" :disabled="submitting"
-                                class="btn btn-warning btn-lg px-5 fw-bold">
-                            {{ submitting ? 'Сохранение...' : 'СОХРАНИТЬ И ОТПРАВИТЬ ФИДБЕК' }}
+                        <button @click="router.push('/')" class="btn btn-back shadow-sm">
+                            <i class="bi bi-arrow-left"></i> Назад
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <div v-else class="text-center p-5 text-muted">
-                    Выберите участника слева
+            <div v-if="loading" class="text-center p-5">
+                <div class="spinner-border text-navy"></div>
+            </div>
+
+            <div v-else class="row justify-content-center g-5">
+                <div class="col-lg-3">
+                    <div class="participants-sidebar shadow-sm">
+                        <div class="sidebar-label">Список участников</div>
+                        <div class="scroll-area p-3">
+                            <button v-for="(resp, idx) in allResponses" :key="resp.id"
+                                    @click="selectUser(resp)"
+                                    class="user-nav-card"
+                                    :class="{ active: selectedResponse?.id === resp.id }">
+                                <div class="fw-bold">
+                                    {{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}
+                                </div>
+                                <small class="d-block opacity-75">{{ formatDate(resp.submitted_at) }}</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div v-if="selectedResponse" class="results-container">
+                        <div class="user-info-header mb-5">
+                            <h2 class="fw-bold mb-3">
+                                Ответы: {{ selectedResponse.profiles?.full_name || `Участник #${allResponses.length - allResponses.indexOf(selectedResponse)}` }}
+                            </h2>
+                            <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
+                        </div>
+
+                        <div v-for="q in questions" :key="q.id" class="question-block mb-5">
+                            <h5 class="question-heading mb-3">{{ q.text }}</h5>
+
+                            <div class="answer-display mb-3">
+                                <div class="answer-label">Ответ пользователя:</div>
+                                <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
+                            </div>
+
+                            <div v-if="q.question_type === 'text'" class="admin-eval-box mt-3 p-3 rounded-4">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="small fw-bold opacity-50">Баллы</label>
+                                        <input type="number" v-model="editData[q.id].score" class="form-control admin-input" placeholder="0-10">
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="small fw-bold opacity-50">Комментарий</label>
+                                        <input type="text" v-model="editData[q.id].feedback" class="form-control admin-input" placeholder="Напишите фидбек...">
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="auto-status mt-2">
+                                <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
+                            </div>
+                        </div>
+
+                        <div class="publish-bottom">
+                            <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
+                                <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                                СОХРАНИТЬ РЕЗУЛЬТАТЫ
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,12 +259,176 @@
     }
 
     const formatDate = (date) => new Date(date).toLocaleString('ru-RU')
+
 </script>
 
+
 <style scoped>
-    .list-group-item.active {
-        background-color: #212844 !important;
-        border-color: #212844 !important;
-        color: white;
+    .admin-check-page {
+        background-color: #F0E8D5;
+        min-height: 100vh;
+        color: #212844;
+    }
+
+    /* Заголовки */
+    .survey-title {
+        color: #212844;
+        font-size: 2.2rem;
+    }
+
+    .user-info-header h2 {
+        color: #212844;
+        font-size: 1.5rem;
+    }
+
+    .btn-back {
+        background: white;
+        border: 2px solid #212844;
+        color: #212844;
+        border-radius: 12px;
+        padding: 8px 20px;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+
+        .btn-back:hover {
+            background: #212844;
+            color: #F2C4CE;
+        }
+
+    /* Боковое меню */
+    .participants-sidebar {
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 24px;
+        border: 1px solid rgba(33, 40, 68, 0.05);
+        margin-top: 20px; /* Отступ от кнопки назад */
+    }
+
+    .sidebar-label {
+        padding: 15px;
+        background: #212844;
+        color: #F0E8D5;
+        font-weight: bold;
+        text-align: center;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .scroll-area {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .user-nav-card {
+        width: 100%;
+        background: white;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        padding: 15px;
+        margin-bottom: 10px;
+        text-align: left;
+        transition: all 0.3s ease;
+    }
+
+        .user-nav-card:hover {
+            transform: translateY(-2px);
+            border-color: #F2C4CE;
+        }
+
+        .user-nav-card.active {
+            background: #212844;
+            color: white;
+            box-shadow: 0 8px 15px rgba(33, 40, 68, 0.15);
+        }
+
+    /* Основной контент */
+    .results-container {
+        padding-bottom: 100px;
+    }
+
+    .question-block {
+        margin-bottom: 50px;
+    }
+
+    .question-heading {
+        font-weight: 800;
+        margin-bottom: 15px;
+    }
+
+    /* УБРАЛИ БЕЛУЮ ПОДЛОЖКУ */
+    .answer-display {
+        padding: 15px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-left: 5px solid #212844;
+        border-radius: 0 15px 15px 0;
+    }
+
+    .answer-label {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 800;
+        opacity: 0.6;
+        margin-bottom: 5px;
+    }
+
+    .answer-text {
+        font-size: 1.15rem;
+        font-weight: 600;
+    }
+
+    /* Ввод админа */
+    .admin-input {
+        border: 2px solid white;
+        border-radius: 12px;
+        background: white;
+    }
+
+        .admin-input:focus {
+            border-color: #212844;
+            box-shadow: none;
+        }
+
+    .auto-status {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 10px;
+    }
+
+    .admin-eval-box {
+        background: rgba(242, 196, 206, 0.2); /* Твой soft pink с прозрачностью */
+        border: 1px solid #F2C4CE;
+    }
+
+    /* Кнопка */
+    .btn-save-final {
+        background-color: #212844;
+        color: #F2C4CE;
+        border: none;
+        border-radius: 18px;
+        padding: 20px 60px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    .publish-bottom {
+        margin-top: 80px;
+        text-align: center;
+        padding-bottom: 60px;
+    }
+
+    .btn-save-final:hover {
+        transform: scale(1.03);
+        background: #2a3356;
+    }
+
+    .info-badge {
+        display: inline-block;
+        background: #F2C4CE;
+        color: #212844;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-weight: bold;
     }
 </style>
