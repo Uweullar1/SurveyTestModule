@@ -11,7 +11,6 @@
                 <div class="nav">
                     <router-link to="/my-history" class="nav-link">Мои ответы</router-link>
                     <router-link to="/" class="nav-link">Опросы</router-link>
-                    <router-link to="/about" class="nav-link">О нас</router-link>
                     <router-link to="/create" class="nav-link">Создать опрос</router-link>
                 </div>
 
