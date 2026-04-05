@@ -1,0 +1,18 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "opros-module/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "opros-module/dist"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/opros-module/dist/$1"
+        }
+    ]
+}
