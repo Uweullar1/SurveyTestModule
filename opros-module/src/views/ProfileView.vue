@@ -10,9 +10,7 @@
                         <i class="bi bi-camera-fill"></i>
                     </label>
                 </div>
-                <input type="file"
-                       accept="image/jpeg,image/png,image/gif,image/webp"
-                       @change="uploadAvatar" />
+                <input type="file" accept="image/*" @change="uploadAvatar" />
                 <p class="avatar-label">Ваше фото профиля</p>
             </div>
 
@@ -140,7 +138,7 @@
 
         console.log('Выбран файл:', file.name, 'тип:', file.type)
 
-        // Строгая проверка на изображение
+        // Проверка на изображение
         const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 
@@ -163,7 +161,6 @@
             return
         }
 
-        // Основная загрузка
         try {
             // Получаем текущего пользователя
             const { data: { user: currentUser } } = await supabase.auth.getUser()
@@ -174,12 +171,12 @@
 
             const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`
 
-            // Загружаем в Storage
+            // Загрузка в Storage
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(fileName, file, {
                     cacheControl: '3600',
-                    upsert: true   // перезаписывать файл с таким же именем
+                    upsert: true
                 })
 
             if (uploadError) throw uploadError
@@ -192,17 +189,19 @@
             // Обновляем профиль
             const { error: updateError } = await supabase
                 .from('profiles')
-                .update({
-                    avatar_url: urlData.publicUrl
-                })
+                .update({ avatar_url: urlData.publicUrl })
                 .eq('id', currentUser.id)
 
             if (updateError) throw updateError
 
             alert('Аватарка успешно обновлена!')
 
-            // Обновляем локальную переменную (если есть)
-            if (avatarUrl) avatarUrl.value = urlData.publicUrl + '?t=' + Date.now()
+            // Обновляем аватарку на странице (если у тебя есть ref)
+            // Если avatarUrl у тебя объявлен как ref — раскомментируй следующую строку:
+            // avatarUrl.value = urlData.publicUrl + '?t=' + Date.now()
+
+            // Принудительно перезагружаем данные профиля
+            window.location.reload()   // временное решение, чтобы увидеть новую аватарку
 
         } catch (err) {
             console.error('Ошибка загрузки аватарки:', err)
