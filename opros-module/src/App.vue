@@ -161,6 +161,4 @@
         margin: 0 auto;
         padding: 3rem 1rem;
     }
-
-    /* ... все остальные твои классы (.hero-section, .card-stack, .surveys-grid и т.д.) ... */
 </style>

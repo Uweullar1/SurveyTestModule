@@ -106,9 +106,6 @@
 </script>
 
 <style scoped>
-    /* Цвета: Крем #F0E8D5, Синий #212844, Розовый #F2C4CE */
-
-    <style scoped >
     /* Основной фон страницы */
     .history-page {
         background-color: #F0E8D5;
