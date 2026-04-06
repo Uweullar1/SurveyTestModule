@@ -53,9 +53,14 @@
     const surveys = ref([])
     const loading = ref(true)
 
+
+    const goToLogin = () => router.push('/login')
+
     const goToResults = (surveyId) => {
         router.push(`/results/${surveyId}/admin`)
     }
+
+    
 
     onMounted(async () => {
         // Получаем текущего пользователя
