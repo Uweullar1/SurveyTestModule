@@ -67,6 +67,12 @@
         const { data: { session } } = await supabase.auth.getSession()
         user.value = session?.user ?? null
 
+        // Если пользователь НЕ авторизован — сразу отправляем на страницу входа
+        if (!user.value) {
+            router.push('/login')
+            return
+        }
+
         try {
             // Загружаем опросы: публичные + свои (включая приватные)
             const { data, error } = await supabase
