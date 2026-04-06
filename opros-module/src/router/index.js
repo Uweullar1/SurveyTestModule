@@ -21,6 +21,12 @@ const routes = [
         meta: { requiresAuth: true } 
     },
     {
+        path: '/edit/:id',
+        name: 'survey-edit',
+        component: () => import('../views/SurveyCreateView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/take/:id',
         name: 'survey-take',
         component: () => import('../views/SurveyTakeView.vue')
@@ -44,6 +50,11 @@ const routes = [
         path: '/profile',
         name: 'profile',
         component: () => import('../views/ProfileView.vue')
+    },
+    {
+        path: '/my-surveys',
+        name: 'my-surveys',
+        component: () => import('../views/MySurveysView.vue'),
     }
 
 ]

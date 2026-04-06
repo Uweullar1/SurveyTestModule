@@ -1,78 +1,102 @@
 <template>
     <div id="app">
-        <!-- Навбар -->
         <nav class="main-header">
             <div class="nav-container">
-                <router-link to="/" class="logo-main">
-                    VOCUS
+                <router-link to="/" class="logo-group">
+                    <span class="logo-main">VOCUS</span>
                     <span class="logo-sub">SURVEY PLATFORM</span>
                 </router-link>
 
-                <div class="nav">
+                <div class="nav-links">
                     <router-link to="/my-history" class="nav-link">Мои ответы</router-link>
                     <router-link to="/" class="nav-link">Опросы</router-link>
+                    <router-link to="/my-surveys" class="nav-link">Мои опросы</router-link>
                     <router-link to="/create" class="nav-link">Создать опрос</router-link>
                 </div>
 
-                <!-- Кликабельная аватарка -->
-                <router-link to="/profile" class="avatar-link">
-                    <img :src="userAvatar"
-                         alt="Профиль"
-                         class="nav-avatar"
-                         @error="() => userAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" />
-                </router-link>
+                <div class="nav-right">
+                    <template v-if="isLoggedIn">
+                        <router-link to="/profile" class="avatar-link">
+                            <img :src="userAvatar"
+                                 alt="Профиль"
+                                 class="nav-avatar"
+                                 @error="onAvatarError" />
+                        </router-link>
+                    </template>
+                    <template v-else>
+                        <router-link to="/login" class="btn-login">
+                            Войти
+                        </router-link>
+                    </template>
+                </div>
             </div>
         </nav>
 
-        <!-- Основной контент -->
-        <router-view />
+        <main class="content-wrapper">
+            <router-view />
+        </main>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, watch } from 'vue'
     import { supabase } from './supabase'
-    import { useRouter } from 'vue-router'   // добавили
+    import { useRouter } from 'vue-router'
 
     const router = useRouter()
+
+    const isLoggedIn = ref(false)
     const userAvatar = ref('https://api.dicebear.com/7.x/avataaars/svg?seed=default')
 
-    const loadAvatar = async (force = false) => {
+    const loadUserData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
 
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('avatar_url')
-                .eq('id', user.id)
-                .single()
+            if (user) {
+                isLoggedIn.value = true
 
-            let url = profile?.avatar_url
-                ? profile.avatar_url
-                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'user'}`
+                // Загружаем аватар из профиля
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('avatar_url')
+                    .eq('id', user.id)
+                    .single()
 
-            // Принудительно сбрасываем кэш
-            if (force) {
-                url += '?t=' + Date.now()
+                if (profile?.avatar_url) {
+                    userAvatar.value = profile.avatar_url + '?t=' + Date.now()
+                } else {
+                    userAvatar.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || user.id}`
+                }
+            } else {
+                isLoggedIn.value = false
+                userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
             }
-
-            userAvatar.value = url
-        } catch (e) {
-            console.error(e)
+        } catch (err) {
+            console.error('Ошибка загрузки пользователя:', err)
+            isLoggedIn.value = false
         }
     }
 
-    onMounted(() => {
-        loadAvatar()
+    // Обновляем навбар при каждом изменении состояния авторизации
+    supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event) // для отладки
+        loadUserData()
     })
 
-    // Обновляем аватарку каждый раз, когда возвращаемся на главную страницу
-    router.afterEach((to) => {
-        if (to.path === '/' || to.path === '/my-history' || to.path === '/create') {
-            loadAvatar(true)   // force = true
+    onMounted(() => {
+        loadUserData()
+    })
+
+    // Дополнительно обновляем при возвращении на страницу
+    watch(router.currentRoute, () => {
+        if (router.currentRoute.value.path !== '/login') {
+            loadUserData()
         }
     })
+
+    const onAvatarError = () => {
+        userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+    }
 </script>
 
 <style>
@@ -103,21 +127,29 @@
         align-items: center;
     }
 
-    .logo-main {
-        font-size: 28px;
-        font-weight: 800;
-        letter-spacing: -1px;
+    /* Логотип */
+    .logo-group {
         text-decoration: none;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .logo-main {
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: -0.5px;
         color: #212844;
+        line-height: 1;
     }
 
     .logo-sub {
-        font-size: 10px;
-        letter-spacing: 2px;
+        font-size: 9px;
+        letter-spacing: 1.5px;
         text-transform: uppercase;
-        opacity: 0.6;
-        display: block;
-        margin-top: -4px;
+        font-weight: 700;
+        color: #212844;
+        opacity: 0.5;
+        margin-top: 4px;
     }
 
     .nav {
@@ -125,34 +157,59 @@
         gap: 30px;
     }
 
+    /* Ссылки (исправляем слипание) */
+    .nav-links {
+        display: flex;
+        gap: 40px; /* Увеличили расстояние между текстом */
+    }
+
     .nav-link {
+        font-size: 20px;
         font-weight: 700;
         color: #212844;
         text-decoration: none;
-        transition: color 0.2s;
+        position: relative;
+        transition: all 0.2s ease;
     }
 
         .nav-link:hover {
             color: #DF2935;
         }
 
+
     /* Аватарка в навбаре */
     .nav-avatar {
-        width: 45px;
-        height: 45px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         border: 3px solid #212844;
         object-fit: cover;
-        transition: transform 0.2s ease;
+        transition: transform 0.25s ease;
     }
 
         .nav-avatar:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
 
     .avatar-link {
         text-decoration: none;
     }
+
+    /* Кнопка "Войти" */
+    .btn-login {
+        background: #212844;
+        color: white;
+        padding: 12px 28px;
+        border-radius: 50px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+        .btn-login:hover {
+            background: #DF2935;
+            transform: translateY(-2px);
+        }
 
     /* Остальные твои стили (оставляем как были) */
     .container {

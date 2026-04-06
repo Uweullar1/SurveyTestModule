@@ -3,7 +3,6 @@
         <div class="progress-container sticky-top shadow-sm">
             <div class="progress-bar" :style="{ width: progressPercentage + '%' }"></div>
         </div>
-
         <div class="container py-5" style="max-width: 850px;">
             <div class="mb-5 text-center">
                 <h1 class="display-5 fw-bold survey-main-title">{{ survey.title || 'Прохождение опроса' }}</h1>
@@ -22,7 +21,6 @@
             <div v-else>
                 <form @submit.prevent="submitResponses">
                     <div v-for="(question, index) in questions" :key="question.id" class="question-block">
-
                         <div class="question-header">
                             <span class="question-number">{{ index + 1 }}</span>
                             <h3 class="question-text m-0">
@@ -97,6 +95,7 @@
                 </form>
             </div>
         </div>
+
     </div>
 </template>
 
@@ -104,11 +103,9 @@
     import { ref, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
-    import { useSurveyStore } from '../stores/survey'
 
     const route = useRoute()
     const router = useRouter()
-    const store = useSurveyStore()
 
     const survey = ref({})
     const questions = ref([])
@@ -117,8 +114,18 @@
     const loading = ref(true)
     const error = ref(null)
 
+    // Проверка: если пользователь не авторизован — сразу отправляем на логин
+    const checkAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+            alert('Для прохождения опроса необходимо войти в аккаунт')
+            router.push('/login')
+            return false
+        }
+        return true
+    }
 
-    // Проверка ограничения по количеству прохождений на пользователя
+    // Проверка ограничения по количеству прохождений
     const checkMaxResponsesLimit = async (surveyId) => {
         if (!surveyId) return true
 
@@ -126,9 +133,9 @@
             const { data: { session } } = await supabase.auth.getSession()
             if (!session?.user?.id) return true
 
-            const { data, error } = await supabase
+            const { count, error } = await supabase
                 .from('responses')
-                .select('id', { count: 'exact' })
+                .select('*', { count: 'exact', head: true })
                 .eq('survey_id', surveyId)
                 .eq('user_id', session.user.id)
 
@@ -137,75 +144,109 @@
                 return true
             }
 
-            const currentAttempts = data?.length || 0
-            const maxAllowed = survey.value.max_responses || 0   // survey.value нужно будет загрузить
+            const currentAttempts = count || 0
+            const maxAllowed = survey.value.max_responses || 0
 
             if (maxAllowed > 0 && currentAttempts >= maxAllowed) {
                 alert(`Вы уже прошли этот опрос максимальное количество раз (${maxAllowed}).`)
                 router.push('/my-history')
                 return false
             }
-
             return true
         } catch (err) {
             console.error(err)
-            return true // разрешаем на случай ошибки
+            return true
         }
     }
 
     onMounted(async () => {
-        const surveyId = route.params.id
-        if (!surveyId) {
-            error.value = 'ID опроса не найден'
-            loading.value = false
-            return
+    const surveyId = route.params.id
+    if (!surveyId) {
+        error.value = 'ID опроса не найден'
+        loading.value = false
+        return
+    }
+
+    // 1. Проверяем авторизацию
+    const isAuthenticated = await checkAuth()
+    if (!isAuthenticated) return
+
+    try {
+        // Загружаем опрос
+        const { data, error: sErr } = await supabase
+            .from('surveys')
+            .select('*, user_id, questions(*, choices(*))')
+            .eq('id', surveyId)
+            .single()
+
+        if (sErr) throw sErr
+        if (!data) throw new Error('Опрос не найден')
+
+        survey.value = data
+
+        // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
+        if (data.is_closed) {
+            const { data: { user } } = await supabase.auth.getUser()
+            const isCreator = user && user.id === data.user_id
+
+            if (!isCreator) {
+                // Красивое уведомление для обычных пользователей
+                const closedMessage = `
+                    <div style="text-align: center; padding: 20px;">
+                        <h2 style="color: #DF2935; margin-bottom: 15px;">⛔ Опрос закрыт</h2>
+                        <p style="font-size: 1.1rem; color: #212844;">
+                            Автор закрыл этот опрос.<br>
+                            Прохождение больше недоступно.
+                        </p>
+                    </div>
+                `
+                alert('Этот опрос был закрыт автором и недоступен для прохождения.')
+                // Можно заменить на более красивый модальный диалог позже
+                router.push('/')
+                return
+            } else {
+                // Для создателя — мягкое уведомление
+                alert('Этот опрос закрыт. Его могут видеть только вы.')
+            }
         }
 
-        try {
-            // 1. Загружаем данные опроса
-            const { data: sData, error: sErr } = await supabase
-                .from('surveys')
-                .select('*')
-                .eq('id', surveyId)
-                .single()
-            if (sErr) throw sErr
-            survey.value = sData
+        // 2. Проверка лимита прохождений
+        const canProceed = await checkMaxResponsesLimit(surveyId)
+        if (!canProceed) return
 
-            const canProceed = await checkMaxResponsesLimit(surveyId)
-            if (!canProceed) return
+        // 3. Загружаем вопросы
+        const { data: qData, error: qErr } = await supabase
+            .from('questions')
+            .select(`
+                id, text, question_type, order, required,
+                choices (id, text, is_correct)
+            `)
+            .eq('survey_id', surveyId)
+            .order('order')
 
-            // 2. Загружаем вопросы и варианты ответов
-            const { data: qData, error: qErr } = await supabase
-                .from('questions')
-                .select(`
-        id, text, question_type, order, required,
-        choices (id, text, is_correct)
-      `)
-                .eq('survey_id', surveyId)
-                .order('order')
-            if (qErr) throw qErr
-            questions.value = qData
+        if (qErr) throw qErr
 
-            // Инициализируем реактивные поля для ответов
-            questions.value.forEach(q => {
-                if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
-                    responses.value[q.id] = []
-                } else if (q.question_type === 'scale') {
-                    responses.value[q.id] = 5
-                } else {
-                    responses.value[q.id] = null
-                }
-            })
-        } catch (err) {
-            console.error(err)
-            error.value = 'Ошибка загрузки: ' + err.message
-        } finally {
-            loading.value = false
-        }
-    })
+        questions.value = qData || []
 
+        // Инициализация ответов
+        questions.value.forEach(q => {
+            if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
+                responses.value[q.id] = []
+            } else if (q.question_type === 'scale') {
+                responses.value[q.id] = 5
+            } else {
+                responses.value[q.id] = null
+            }
+        })
 
-    // === ЭТОТ БЛОК ЗАМЕНИ ЦЕЛИКОМ ===
+    } catch (err) {
+        console.error(err)
+        error.value = 'Ошибка загрузки опроса: ' + (err.message || 'Неизвестная ошибка')
+    } finally {
+        loading.value = false
+    }
+})
+
     const submitResponses = async () => {
         if (submitting.value) return
         submitting.value = true
@@ -213,10 +254,8 @@
         const surveyId = route.params.id
 
         try {
-            // Получаем сессию
             const { data: { session } } = await supabase.auth.getSession()
 
-            // Создаём прохождение
             const { data: rData, error: rErr } = await supabase
                 .from('responses')
                 .insert({
@@ -227,13 +266,9 @@
                 .select('id')
                 .single()
 
-            if (rErr) {
-                console.error("Ошибка создания responses:", rErr)
-                throw rErr
-            }
+            if (rErr) throw rErr
 
             const responseId = rData.id
-            console.log("Создано прохождение с ID:", responseId)
 
             const answersToInsert = []
 
@@ -248,8 +283,7 @@
                         choice_id: userVal,
                         text_answer: q.choices.find(c => c.id === userVal)?.text || null
                     })
-                }
-                else if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
+                } else if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
                     userVal.forEach(cid => {
                         answersToInsert.push({
                             response_id: responseId,
@@ -258,15 +292,13 @@
                             text_answer: q.choices.find(c => c.id === cid)?.text || null
                         })
                     })
-                }
-                else if (q.question_type === 'text') {
+                } else if (q.question_type === 'text') {
                     answersToInsert.push({
                         response_id: responseId,
                         question_id: q.id,
                         text_answer: userVal
                     })
-                }
-                else if (q.question_type === 'scale') {
+                } else if (q.question_type === 'scale') {
                     answersToInsert.push({
                         response_id: responseId,
                         question_id: q.id,
@@ -278,20 +310,14 @@
 
             if (answersToInsert.length > 0) {
                 const { error: aErr } = await supabase.from('answers').insert(answersToInsert)
-                if (aErr) {
-                    console.error("Ошибка вставки answers:", aErr)
-                    throw aErr
-                }
+                if (aErr) throw aErr
             }
 
-            // Переход на результаты
             router.push(`/my-results/${responseId}`)
-
-            alert('Опрос успешно завершён!')
 
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)
-            alert('Ошибка при сохранении ответа: ' + (err.message || 'Неизвестная ошибка'))
+            alert('Ошибка при сохранении: ' + (err.message || 'Неизвестная ошибка'))
         } finally {
             submitting.value = false
         }
@@ -497,5 +523,4 @@
             box-shadow: 0 10px 20px rgba(33, 40, 68, 0.2);
             background-color: #2d365a;
         }
-
 </style>
