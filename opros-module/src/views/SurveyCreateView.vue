@@ -109,7 +109,9 @@
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
+    import { rules, validate } from '../utils/validation.js'
 
+    const formErrors = ref({})
     const router = useRouter()
     const route = useRoute()
 
@@ -128,6 +130,10 @@
         expires_at: null,
         questions: []
     })
+
+    const handleTitleInput = () => {
+        formErrors.value.title = validate('surveyTitle', survey.value.title)
+    }
 
     // Загрузка
     const loadSurveyForEdit = async () => {
@@ -215,10 +221,24 @@
     }
 
     // ==================== ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ====================
-    // ==================== ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ====================
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
+        formErrors.value.title = validate('surveyTitle', survey.value.title)
+        formErrors.value.description = validate('surveyDescription', survey.value.description)
 
+        let hasQuestionErrors = false
+        survey.value.questions.forEach((q, i) => {
+            const err = validate('questionText', q.text)
+            if (err) {
+                hasQuestionErrors = true
+                // Можно сохранить ошибку по индексу
+            }
+        })
+
+        if (formErrors.value.title || hasQuestionErrors) {
+            alert('Исправьте ошибки в форме')
+            return
+        }
         loading.value = true
 
         try {

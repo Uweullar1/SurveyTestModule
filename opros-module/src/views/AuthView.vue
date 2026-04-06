@@ -8,18 +8,36 @@
 
                 <form @submit.prevent="handleAuth" class="auth-form">
                     <template v-if="!isLogin">
-                        <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" required />
-                        <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" required />
-                        <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
+                        <div class="input-wrapper">
+                            <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" />
+                            <div v-if="formErrors.firstName" class="error-message">
+                                {{ formErrors.firstName }}
+                            </div>
+                            <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" required />
+                            <div v-if="formErrors.lastName" class="error-message">
+                                {{ formErrors.lastName }}
+                            </div>
+                            <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
+                            <div v-if="formErrors.username" class="error-message">
+                                {{ formErrors.username}}
+                            </div>
+                        </div>
+
                     </template>
-
-                    <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
-                    <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
-
-                    <div class="btn-container">
-                        <button type="submit" class="btn-submit">
-                            {{ isLogin ? 'Войти' : 'Создать аккаунт' }}
-                        </button>
+                    <div class="input-wrapper">
+                        <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
+                        <div v-if="formErrors.email" class="error-message">
+                            {{ formErrors.email }}
+                        </div>
+                        <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
+                        <div v-if="formErrors.password" class="error-message">
+                            {{ formErrors.password }}
+                        </div>
+                        <div class="btn-container">
+                            <button type="submit" class="btn-submit">
+                                {{ isLogin ? 'Войти' : 'Создать аккаунт' }}
+                            </button>
+                        </div>
                     </div>
                 </form>
 
@@ -35,7 +53,9 @@
     import { ref } from 'vue'
     import { supabase } from '../supabase'
     import { useRouter } from 'vue-router'
+    import { validateProfileForm } from '../utils/validation.js'
 
+    const formErrors = ref({})
     const router = useRouter()
 
     // Состояния формы
@@ -45,11 +65,32 @@
     const firstName = ref('')
     const lastName = ref('')
     const username = ref('')
+  
 
     /**
      * Основная функция авторизации и регистрации
      */
     const handleAuth = async () => {
+        formErrors.value = {} // очищаем старые ошибки
+
+        if (!isLogin.value) { // регистрация
+            formErrors.value.firstName = profileRules.firstName(firstName.value)
+            formErrors.value.lastName = profileRules.lastName(lastName.value)
+            formErrors.value.username = profileRules.username(username.value)
+        }
+
+        formErrors.value.email = profileRules.email(email.value)
+        formErrors.value.password = profileRules.password(password.value)
+
+        // Проверяем, есть ли ошибки
+        if (Object.values(formErrors.value).some(err => err !== '')) {
+            return // не продолжаем, если есть ошибки
+        }
+
+        if (!isValid) {
+            formErrors.value = errors
+            return
+        }
         try {
             if (isLogin.value) {
                 // --- ЛОГИКА ВХОДА ---
@@ -203,5 +244,19 @@
         opacity: 0.7;
         text-decoration: underline;
         cursor: pointer;
+    }
+
+    .error-message {
+        color: #DF2935;
+        font-size: 0.9rem;
+        margin-top: 6px;
+        text-align: left;
+        padding-left: 4px;
+        font-weight: 500;
+    }
+
+    .input-wrapper {
+        width: 100%;
+        max-width: 320px;
     }
 </style>
