@@ -1,38 +1,29 @@
 <template>
     <div class="auth-page">
         <div class="auth-card-wrapper">
-            
-
             <div class="auth-card">
                 <h2 class="auth-title">{{ isLogin ? 'Вход' : 'Регистрация' }}</h2>
 
                 <form @submit.prevent="handleAuth" class="auth-form">
-                    <template v-if="!isLogin">
-                        <div class="input-wrapper">
-                            <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" />
-                            <div v-if="formErrors.firstName" class="error-message">
-                                {{ formErrors.firstName }}
-                            </div>
-                            <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" required />
-                            <div v-if="formErrors.lastName" class="error-message">
-                                {{ formErrors.lastName }}
-                            </div>
-                            <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
-                            <div v-if="formErrors.username" class="error-message">
-                                {{ formErrors.username}}
-                            </div>
-                        </div>
+                    <div class="form-content">
 
-                    </template>
-                    <div class="input-wrapper">
+                        <template v-if="!isLogin">
+                            <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" />
+                            <div v-if="formErrors.firstName" class="error-message">{{ formErrors.firstName }}</div>
+
+                            <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" required />
+                            <div v-if="formErrors.lastName" class="error-message">{{ formErrors.lastName }}</div>
+
+                            <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
+                            <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
+                        </template>
+
                         <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
-                        <div v-if="formErrors.email" class="error-message">
-                            {{ formErrors.email }}
-                        </div>
+                        <div v-if="formErrors.email" class="error-message">{{ formErrors.email }}</div>
+
                         <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
-                        <div v-if="formErrors.password" class="error-message">
-                            {{ formErrors.password }}
-                        </div>
+                        <div v-if="formErrors.password" class="error-message">{{ formErrors.password }}</div>
+
                         <div class="btn-container">
                             <button type="submit" class="btn-submit">
                                 {{ isLogin ? 'Войти' : 'Создать аккаунт' }}
@@ -41,7 +32,7 @@
                     </div>
                 </form>
 
-                <p class="auth-switch" @click="isLogin = !isLogin">
+                <p class="auth-switch" @click="toggleMode">
                     {{ isLogin ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти' }}
                 </p>
             </div>
@@ -51,150 +42,130 @@
 
 <script setup>
     import { ref } from 'vue'
-    import { supabase } from '../supabase'
     import { useRouter } from 'vue-router'
-    import { validateProfileForm } from '../utils/validation.js'
+    import { supabase } from '../supabase'
+    import { profileRules } from '../utils/validation.js'   // ← Эта строка была пропущена
 
-    const formErrors = ref({})
     const router = useRouter()
 
-    // Состояния формы
     const isLogin = ref(true)
-    const email = ref('')
-    const password = ref('')
+
     const firstName = ref('')
     const lastName = ref('')
     const username = ref('')
-  
+    const email = ref('')
+    const password = ref('')
 
-    /**
-     * Основная функция авторизации и регистрации
-     */
+    const formErrors = ref({})
+
     const handleAuth = async () => {
         formErrors.value = {} // очищаем старые ошибки
 
-        if (!isLogin.value) { // регистрация
+        if (!isLogin.value) {
+            // Регистрация — проверяем все поля
             formErrors.value.firstName = profileRules.firstName(firstName.value)
             formErrors.value.lastName = profileRules.lastName(lastName.value)
             formErrors.value.username = profileRules.username(username.value)
         }
 
+        // Проверяем email и пароль всегда
         formErrors.value.email = profileRules.email(email.value)
         formErrors.value.password = profileRules.password(password.value)
 
-        // Проверяем, есть ли ошибки
+        // Если есть ошибки — останавливаемся
         if (Object.values(formErrors.value).some(err => err !== '')) {
-            return // не продолжаем, если есть ошибки
-        }
-
-        if (!isValid) {
-            formErrors.value = errors
             return
         }
+
         try {
             if (isLogin.value) {
-                // --- ЛОГИКА ВХОДА ---
-                const { data, error: loginError } = await supabase.auth.signInWithPassword({
-                    email: email.value,
+                // === ВХОД ===
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email.value.trim(),
                     password: password.value
                 })
 
-                // Если Supabase не нашел почту или пароль неверный
-                if (loginError) {
-                    alert("Ошибка входа: " + loginError.message)
-                    return // Прекращаем выполнение, на главную не пускаем
-                }
+                if (error) throw error
 
-                console.log("Успешный вход пользователя:", data.user.email)
-
+                router.push('/')
             } else {
-                // --- ЛОГИКА РЕГИСТРАЦИИ ---
-                // 1. Создаем аккаунт в системной схеме auth.users
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: email.value,
+                // === РЕГИСТРАЦИЯ ===
+                const { data, error } = await supabase.auth.signUp({
+                    email: email.value.trim(),
                     password: password.value
                 })
 
-                if (authError) {
-                    alert("Ошибка регистрации: " + authError.message)
-                    return
+                if (error) throw error
+
+                // Создаём профиль
+                if (data.user) {
+                    await supabase.from('profiles').insert({
+                        id: data.user.id,
+                        first_name: firstName.value.trim(),
+                        last_name: lastName.value.trim(),
+                        username: username.value.trim(),
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
+                    })
                 }
 
-                // 2. Если аккаунт в Auth создан, записываем данные в нашу таблицу profiles (3НФ)
-                if (authData.user) {
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: authData.user.id,
-                                first_name: firstName.value.trim(),
-                                last_name: lastName.value.trim(),
-                                username: username.value.trim(),
-                                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value}`
-                            }
-                        ])
-
-                    if (profileError) {
-                        console.error("Ошибка при создании профиля:", profileError.message)
-                        alert("Аккаунт создан, но данные профиля не сохранились.")
-                        return
-                    }
-                }
+                alert('Регистрация прошла успешно!\nПроверьте почту для подтверждения аккаунта.')
+                isLogin.value = true // переключаем на форму входа
             }
-
-            // Если мы дошли до сюда — значит ошибок нет, редиректим
-            router.push('/')
-
         } catch (err) {
-            console.error("Непредвиденная ошибка:", err)
-            alert("Произошла системная ошибка. Проверьте консоль.")
+            alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'))
         }
+    }
+
+    const toggleMode = () => {
+        isLogin.value = !isLogin.value
+        formErrors.value = {} // очищаем ошибки при смене режима
     }
 </script>
 
 <style scoped>
-    /* Контейнер всей страницы */
     .auth-page {
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 90vh;
         padding: 20px;
+        background-color: #FDFDF1; /* Цвет фона под стиль сайта */
     }
 
-    /* Обертка для карточки */
     .auth-card-wrapper {
         width: 100%;
         max-width: 420px;
     }
 
-    /* Белая карточка */
     .auth-card {
         background: white;
-        border: 2px solid #212844;
-        border-radius: 28px;
-        padding: 50px 40px;
+        border: 3px solid #212844; /* Сделал обводку чуть толще под стиль */
+        border-radius: 35px;
+        padding: 40px;
         display: flex;
         flex-direction: column;
-        align-items: center; /* Центрирует всё внутри */
-        box-shadow: 0 15px 35px rgba(33, 40, 68, 0.08);
+        align-items: center;
+        box-shadow: 10px 10px 0px rgba(33, 40, 68, 0.1);
     }
 
     .auth-title {
         font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 40px;
+        font-weight: 900;
+        margin-bottom: 30px;
         color: #212844;
-        text-align: center;
     }
 
-    /* Форма и инпуты */
     .auth-form {
         width: 100%;
+    }
+
+    /* Контейнер, который держит все инпуты и кнопку в одну колонку */
+    .form-content {
         display: flex;
         flex-direction: column;
-        align-items: center; /* Выравнивает инпуты по центру */
-        gap: 18px;
+        align-items: center;
+        gap: 15px; /* Расстояние между плашками */
+        width: 100%;
     }
 
     .auth-input {
@@ -202,61 +173,62 @@
         max-width: 320px;
         padding: 16px 20px;
         border: 2px solid #212844;
-        border-radius: 14px;
+        border-radius: 16px;
         background-color: #FDFDF1;
         font-size: 16px;
-        text-align: center; /* Текст внутри инпута по центру */
-        transition: all 0.3s ease;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
     }
 
-        /* ГОЛУБОЙ АКЦЕНТ ПРИ НАЖАТИИ */
         .auth-input:focus {
             outline: none;
             border-color: #B0D7FF;
-            box-shadow: 0 0 0 4px rgba(176, 215, 255, 0.4);
+            transform: translateY(-2px);
         }
 
-    /* Кнопка */
+    .btn-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
     .btn-submit {
         width: 100%;
-        max-width: 200px;
+        max-width: 240px;
         background-color: #212844;
         color: white;
         padding: 16px;
-        border-radius: 14px;
-        font-weight: 700;
-        margin-top: 15px;
+        border-radius: 18px;
+        font-weight: 800;
         border: none;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
         .btn-submit:hover {
-            background-color: #B0D7FF; /* Голубой при наведении */
+            background-color: #B0D7FF;
             color: #212844;
-            transform: translateY(-2px);
+            transform: scale(1.05);
         }
 
     .auth-switch {
-        margin-top: 30px;
+        margin-top: 25px;
         font-size: 14px;
+        font-weight: 700;
         color: #212844;
-        opacity: 0.7;
-        text-decoration: underline;
+        opacity: 0.6;
         cursor: pointer;
+        text-decoration: underline;
     }
 
     .error-message {
         color: #DF2935;
-        font-size: 0.9rem;
-        margin-top: 6px;
-        text-align: left;
-        padding-left: 4px;
-        font-weight: 500;
-    }
-
-    .input-wrapper {
-        width: 100%;
-        max-width: 320px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-top: -10px; /* Притягиваем ошибку к инпуту */
+        margin-bottom: 5px;
     }
 </style>

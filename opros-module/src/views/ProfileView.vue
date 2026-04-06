@@ -10,11 +10,7 @@
                         <i class="bi bi-camera-fill"></i>
                     </label>
                 </div>
-                <input type="file"
-                       id="avatar-upload"
-                       accept="image/*"
-                       @change="uploadAvatar"
-                       hidden />
+                <input type="file" id="avatar-upload" accept="image/*" @change="uploadAvatar" hidden />
                 <p class="avatar-label">Ваше фото профиля</p>
             </div>
 
@@ -88,7 +84,7 @@
                 </button>
 
                 <div class="secondary-actions">
-                    <button @click="logout" class="btn-logout">Выйти</button>
+                    <button @click="logout" class="btn-logout">Выйти из аккаунта</button>
                     <button @click="deleteAccount" class="btn-delete">Удалить аккаунт</button>
                 </div>
             </div>
@@ -126,7 +122,10 @@
 <script setup>
     import { ref, onMounted, computed } from 'vue'
     import { supabase } from '../supabase'
+    import { useRouter } from 'vue-router'
     import { profileRules } from '../utils/validation.js'
+
+    const router = useRouter()
 
     const profile = ref({
         first_name: '',
@@ -158,24 +157,120 @@
 
     // Загрузка профиля
     onMounted(async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push('/login')
+                return
+            }
 
-        currentEmail.value = user.email || ''
+            currentEmail.value = user.email || ''
 
-        const { data } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, username, avatar_url')
-            .eq('id', user.id)
-            .single()
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, username, avatar_url')
+                .eq('id', user.id)
+                .single()
 
-        if (data) {
-            profile.value.first_name = data.first_name || ''
-            profile.value.last_name = data.last_name || ''
-            profile.value.username = data.username || ''
-            if (data.avatar_url) avatarPreview.value = data.avatar_url
+            if (error && error.code === 'PGRST116') {
+                // PGRST116 = "no rows returned"
+                console.warn('Профиль не найден — возможно аккаунт был удалён')
+                alert('Ваш профиль не найден. Возможно, аккаунт был удалён.')
+                await supabase.auth.signOut()
+                router.push('/login')
+                return
+            }
+
+            if (error) throw error
+
+            if (data) {
+                profile.value.first_name = data.first_name || ''
+                profile.value.last_name = data.last_name || ''
+                profile.value.username = data.username || ''
+                if (data.avatar_url) avatarPreview.value = data.avatar_url
+            }
+        } catch (err) {
+            console.error(err)
+            alert('Ошибка загрузки профиля')
+            router.push('/login')
         }
     })
+
+    const uploadAvatar = async (event) => {
+        const file = event.target.files[0]
+        if (!file) return
+
+        console.log('Выбран файл:', file.name, 'тип:', file.type)
+
+        // Строгая проверка на изображение
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png']
+        const allowedExtensions = ['jpg', 'jpeg', 'png']
+
+        if (!allowedMimeTypes.includes(file.type)) {
+            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png')
+            event.target.value = ''
+            return
+        }
+
+        const fileExt = file.name.split('.').pop().toLowerCase()
+        if (!allowedExtensions.includes(fileExt)) {
+            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png')
+            event.target.value = ''
+            return
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Файл слишком большой. Максимальный размер — 5 МБ')
+            event.target.value = ''
+            return
+        }
+
+        try {
+            const { data: { user: currentUser } } = await supabase.auth.getUser()
+            if (!currentUser) {
+                alert('Вы должны быть авторизованы')
+                return
+            }
+
+            // Очищаем имя файла от опасных символов
+            const safeFileName = `${Date.now()}-${file.name
+                .replace(/[^a-zA-Z0-9.-]/g, '_')   // заменяем все плохие символы на _
+                .toLowerCase()}`
+
+            // Загружаем файл
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(safeFileName, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                })
+
+            if (uploadError) throw uploadError
+
+            // Получаем публичный URL
+            const { data: urlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(safeFileName)
+
+            // Обновляем профиль
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: urlData.publicUrl })
+                .eq('id', currentUser.id)
+
+            if (updateError) throw updateError
+
+            alert('Аватарка успешно обновлена!')
+
+            // Обновляем превью сразу
+            avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
+
+        } catch (err) {
+            console.error('Ошибка загрузки аватарки:', err)
+            alert('Не удалось загрузить аватарку: ' + (err.message || 'Неизвестная ошибка'))
+        }
+    }
+
 
     // Сохранение с валидацией
     const saveProfile = async () => {
@@ -217,10 +312,74 @@
     // Заглушки для модалок (замени на свои функции)
     const showChangeEmailModal = () => showEmailModal.value = true
     const showChangePasswordModal = () => showPasswordModal.value = true
-    const changeEmail = () => { alert('Смена email пока не реализована'); showEmailModal.value = false }
-    const changePassword = () => { alert('Смена пароля пока не реализована'); showPasswordModal.value = false }
-    const logout = () => { alert('Выход из аккаунта'); }
-    const deleteAccount = () => { alert('Удаление аккаунта пока не реализовано'); }
+
+    const changeEmail = async () => {
+        if (!newEmail.value || newEmail.value === currentEmail.value) {
+            alert('Введите новый email')
+            return
+        }
+
+        try {
+            const { error } = await supabase.auth.updateUser({
+                email: newEmail.value.trim()
+            })
+
+            if (error) throw error
+
+            alert('Запрос на смену email отправлен!\n\nПроверьте почту (старую и новую) и подтвердите изменение.')
+            showEmailModal.value = false
+            newEmail.value = ''
+        } catch (err) {
+            alert('Ошибка: ' + err.message)
+        }
+    }
+
+    const changePassword = async () => {
+        if (!newPassword.value || newPassword.value.length < 6) {
+            return alert('Пароль должен быть не менее 6 символов')
+        }
+
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword.value })
+            if (error) throw error
+
+            alert('Пароль успешно изменён!')
+            showPasswordModal.value = false
+            newPassword.value = ''
+        } catch (err) {
+            alert('Ошибка смены пароля: ' + err.message)
+        }
+    }
+    const logout = async () => {
+        if (confirm('Выйти из аккаунта?')) {
+            await supabase.auth.signOut()
+            router.push('/login')
+        }
+    }
+
+    const deleteAccount = async () => {
+        if (!confirm('Вы уверены, что хотите удалить аккаунт?\n\nВсе ваши опросы, ответы и данные будут удалены без возможности восстановления.')) return
+        if (!confirm('Это действие НЕОБРАТИМО. Вы точно хотите продолжить?')) return
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // Удаляем все данные пользователя
+            await supabase.from('responses').delete().eq('user_id', user.id)
+            await supabase.from('surveys').delete().eq('user_id', user.id)
+            await supabase.from('profiles').delete().eq('id', user.id)
+
+            // Выходим из аккаунта
+            await supabase.auth.signOut()
+
+            alert('Аккаунт успешно удалён. Вы вышли из системы.')
+            router.push('/login')
+        } catch (err) {
+            console.error(err)
+            alert('Не удалось полностью удалить аккаунт. Попробуйте позже.')
+        }
+    }
 </script>
 
 <style scoped>
