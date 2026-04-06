@@ -139,18 +139,18 @@
         console.log('Выбран файл:', file.name, 'тип:', file.type)
 
         // Проверка на изображение
-        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png']
+        const allowedExtensions = ['jpg', 'jpeg', 'png']
 
         if (!allowedMimeTypes.includes(file.type)) {
-            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png, gif, webp')
+            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png')
             event.target.value = ''
             return
         }
 
         const fileExt = file.name.split('.').pop().toLowerCase()
         if (!allowedExtensions.includes(fileExt)) {
-            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png, gif, webp')
+            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png')
             event.target.value = ''
             return
         }

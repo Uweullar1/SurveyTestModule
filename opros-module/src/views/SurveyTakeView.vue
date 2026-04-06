@@ -184,6 +184,16 @@
 
         survey.value = data
 
+        if (survey.value.is_private) {
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (user?.id !== survey.value.user_id) {
+                alert('Этот опрос доступен только по прямой ссылке и только для тех, кому автор дал ссылку.')
+                router.push('/')
+                return
+            }
+        }
+
         // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
         if (data.is_closed) {
             const { data: { user } } = await supabase.auth.getUser()

@@ -53,22 +53,25 @@
     const goToLogin = () => router.push('/login')
 
     onMounted(async () => {
-        // Получаем текущую сессию
-        const { data: { session } } = await supabase.auth.getSession()
-        user.value = session?.user ?? null
-        try {
-            const { data, error } = await supabase
-                .from('surveys')
-                .select('*')
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            surveys.value = data || []
-        } catch (e) {
-            console.error('Ошибка при загрузке:', e.message)
-        } finally {
-            loading.value = false
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            router.push('/login')
+            return
         }
+
+        // Загружаем только публичные опросы + свои приватные
+        const { data, error } = await supabase
+            .from('surveys')
+            .select('*')
+            .or(`is_private.eq.false, user_id.eq.${user.id}`)   // Главное исправление
+            .order('created_at', { ascending: false })
+
+        if (error) {
+            console.error(error)
+            return
+        }
+
+        surveys.value = data || []
     })
 </script>
 
