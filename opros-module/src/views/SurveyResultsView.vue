@@ -265,7 +265,7 @@
 
 <style scoped>
     .admin-check-page {
-        background-color: #F0E8D5;
+        background-color: #FDFDF1;
         min-height: 100vh;
         color: #212844;
     }

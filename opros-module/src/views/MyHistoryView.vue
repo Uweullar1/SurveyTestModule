@@ -108,7 +108,7 @@
 <style scoped>
     /* Основной фон страницы */
     .history-page {
-        background-color: #F0E8D5;
+        background-color: #FDFDF1;
         min-height: 100vh;
         padding-bottom: 2rem;
     }
