@@ -12,9 +12,7 @@
                 </div>
                 <input type="file"
                        accept="image/jpeg,image/png,image/gif,image/webp"
-                       @change="uploadAvatar"
-                       id="avatar-upload"
-                       hidden />
+                       @change="uploadAvatar" />
                 <p class="avatar-label">Ваше фото профиля</p>
             </div>
 
@@ -140,27 +138,18 @@
         const file = event.target.files[0]
         if (!file) return
 
-        console.log('Выбран файл:', file.name, 'тип:', file.type) // для отладки
+        console.log('Выбран файл:', file.name, 'тип:', file.type)
 
-        // === СТРОГАЯ ПРОВЕРКА ===
-        const allowedMimeTypes = [
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/gif',
-            'image/webp'
-        ]
-
+        // Строгая проверка на изображение
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 
-        // Проверка по MIME типу
         if (!allowedMimeTypes.includes(file.type)) {
             alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png, gif, webp')
-            event.target.value = '' // очищаем input
+            event.target.value = ''
             return
         }
 
-        // Проверка по расширению файла (дополнительная защита)
         const fileExt = file.name.split('.').pop().toLowerCase()
         if (!allowedExtensions.includes(fileExt)) {
             alert('Можно загружать только изображения с расширениями: jpg, jpeg, png, gif, webp')
@@ -168,45 +157,56 @@
             return
         }
 
-        // Проверка размера (максимум 5 МБ)
         if (file.size > 5 * 1024 * 1024) {
             alert('Файл слишком большой. Максимальный размер — 5 МБ')
             event.target.value = ''
             return
         }
 
-        // Если всё ок — загружаем
+        // Основная загрузка
         try {
-            // ... твой существующий код загрузки в Supabase ...
+            // Получаем текущего пользователя
+            const { data: { user: currentUser } } = await supabase.auth.getUser()
+            if (!currentUser) {
+                alert('Вы должны быть авторизованы')
+                return
+            }
 
-            const fileName = `${Date.now()}-${file.name}`
+            const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`
 
-            const { data, error } = await supabase.storage
-                .from('avatars')        // ← убедись, что имя бакета правильное
+            // Загружаем в Storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
                 .upload(fileName, file, {
                     cacheControl: '3600',
-                    upsert: false
+                    upsert: true   // перезаписывать файл с таким же именем
                 })
 
-            if (error) throw error
+            if (uploadError) throw uploadError
 
-            // Получаем публичный URL и сохраняем
+            // Получаем публичный URL
             const { data: urlData } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(fileName)
 
-            // Сохраняем URL в профиль
-            await supabase
+            // Обновляем профиль
+            const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ avatar_url: urlData.publicUrl })
-                .eq('id', user.value.id)
+                .update({
+                    avatar_url: urlData.publicUrl
+                })
+                .eq('id', currentUser.id)
+
+            if (updateError) throw updateError
 
             alert('Аватарка успешно обновлена!')
-            // обновить аватарку в навбаре и т.д.
+
+            // Обновляем локальную переменную (если есть)
+            if (avatarUrl) avatarUrl.value = urlData.publicUrl + '?t=' + Date.now()
 
         } catch (err) {
-            console.error(err)
-            alert('Ошибка при загрузке: ' + err.message)
+            console.error('Ошибка загрузки аватарки:', err)
+            alert('Не удалось загрузить аватарку: ' + (err.message || 'Неизвестная ошибка'))
         }
     }
 
