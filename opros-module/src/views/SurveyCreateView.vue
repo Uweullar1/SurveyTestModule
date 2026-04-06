@@ -220,7 +220,6 @@
             survey.value.questions[qIndex].choices.splice(cIndex, 1)
     }
 
-    // ==================== ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ====================
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
         formErrors.value.title = validate('surveyTitle', survey.value.title)

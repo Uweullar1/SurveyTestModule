@@ -90,7 +90,6 @@
             </div>
         </div>
 
-        <!-- Модальные окна (оставляем как было) -->
         <Transition name="fade">
             <div v-if="showEmailModal" class="modal-overlay" @click.self="showEmailModal = false">
                 <div class="modal">
@@ -196,6 +195,8 @@
         }
     })
 
+
+    //Загрузка аватарок
     const uploadAvatar = async (event) => {
         const file = event.target.files[0]
         if (!file) return

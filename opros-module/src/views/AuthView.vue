@@ -118,7 +118,7 @@
 
     const toggleMode = () => {
         isLogin.value = !isLogin.value
-        formErrors.value = {} // очищаем ошибки при смене режима
+        formErrors.value = {}
     }
 </script>
 
