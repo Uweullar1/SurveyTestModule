@@ -140,6 +140,26 @@
         const file = event.target.files[0]
         if (!file) return
 
+        // Проверка, что файл — изображение
+        if (!file.type.startsWith('image/')) {
+            alert('Можно загружать только изображения (jpg, png, webp и т.д.)')
+            return
+        }
+
+        // Дополнительная проверка по расширению
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        const fileExtension = file.name.split('.').pop().toLowerCase()
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Разрешены только файлы с расширениями: jpg, jpeg, png, gif, webp')
+            return
+        }
+
+        // Проверка размера (например, максимум 5 МБ)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Файл слишком большой. Максимальный размер — 5 МБ')
+            return
+        }
+
         try {
             saving.value = true
 
