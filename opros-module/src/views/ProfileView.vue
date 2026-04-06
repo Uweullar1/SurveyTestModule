@@ -11,7 +11,7 @@
                     </label>
                 </div>
                 <input type="file"
-                       accept="image/*"
+                       accept="image/jpeg,image/png,image/gif,image/webp"
                        @change="uploadAvatar"
                        id="avatar-upload"
                        hidden />
@@ -140,48 +140,73 @@
         const file = event.target.files[0]
         if (!file) return
 
-        // Проверка, что файл — изображение
-        if (!file.type.startsWith('image/')) {
-            alert('Можно загружать только изображения (jpg, png, webp и т.д.)')
-            return
-        }
+        console.log('Выбран файл:', file.name, 'тип:', file.type) // для отладки
 
-        // Дополнительная проверка по расширению
+        // === СТРОГАЯ ПРОВЕРКА ===
+        const allowedMimeTypes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp'
+        ]
+
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
-        const fileExtension = file.name.split('.').pop().toLowerCase()
-        if (!allowedExtensions.includes(fileExtension)) {
-            alert('Разрешены только файлы с расширениями: jpg, jpeg, png, gif, webp')
+
+        // Проверка по MIME типу
+        if (!allowedMimeTypes.includes(file.type)) {
+            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png, gif, webp')
+            event.target.value = '' // очищаем input
             return
         }
 
-        // Проверка размера (например, максимум 5 МБ)
+        // Проверка по расширению файла (дополнительная защита)
+        const fileExt = file.name.split('.').pop().toLowerCase()
+        if (!allowedExtensions.includes(fileExt)) {
+            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png, gif, webp')
+            event.target.value = ''
+            return
+        }
+
+        // Проверка размера (максимум 5 МБ)
         if (file.size > 5 * 1024 * 1024) {
             alert('Файл слишком большой. Максимальный размер — 5 МБ')
+            event.target.value = ''
             return
         }
 
+        // Если всё ок — загружаем
         try {
-            saving.value = true
+            // ... твой существующий код загрузки в Supabase ...
 
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${Date.now()}.${fileExt}`
-            const filePath = `avatars/${fileName}`
+            const fileName = `${Date.now()}-${file.name}`
 
-            const { error } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file, { upsert: true })
+            const { data, error } = await supabase.storage
+                .from('avatars')        // ← убедись, что имя бакета правильное
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                })
 
             if (error) throw error
 
-            const { data: { publicUrl } } = supabase.storage
+            // Получаем публичный URL и сохраняем
+            const { data: urlData } = supabase.storage
                 .from('avatars')
-                .getPublicUrl(filePath)
+                .getPublicUrl(fileName)
 
-            profile.value.avatar_url = publicUrl
+            // Сохраняем URL в профиль
+            await supabase
+                .from('profiles')
+                .update({ avatar_url: urlData.publicUrl })
+                .eq('id', user.value.id)
+
+            alert('Аватарка успешно обновлена!')
+            // обновить аватарку в навбаре и т.д.
+
         } catch (err) {
-            alert('Ошибка загрузки аватарки: ' + err.message)
-        } finally {
-            saving.value = false
+            console.error(err)
+            alert('Ошибка при загрузке: ' + err.message)
         }
     }
 
