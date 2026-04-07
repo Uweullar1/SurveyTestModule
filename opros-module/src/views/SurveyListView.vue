@@ -183,6 +183,8 @@
     }
 
     .open-btn {
+        font-weight: 800;
+        font-size: 0.8rem;
         color: #212844;
         text-decoration: none;
         cursor: pointer;
