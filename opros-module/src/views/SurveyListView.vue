@@ -10,8 +10,7 @@
 
             <div class="surveys-grid">
                 <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
-
-                    <div class="survey-card">
+                    <div class="survey-card" @click="handleCardClick(survey)">
                         <div class="card-deco"></div>
                         <div class="card-content">
                             <span class="badge">ОПРОС</span>
@@ -21,19 +20,15 @@
                             <div class="card-footer">
                                 <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
 
-                                <!-- Кнопка "Результаты" видна только владельцу -->
                                 <button v-if="user && survey.user_id === user.id"
-                                        @click.stop.prevent="goToResults(survey.id)"
+                                        @click.stop="goToResults(survey.id)"
                                         class="admin-btn">
                                     Результаты
                                 </button>
 
-                                <!-- Кнопка "Открыть" для всех остальных -->
-                                <router-link v-else
-                                             :to="`/take/${survey.id}`"
-                                             class="open-btn">
+                                <span v-else class="open-btn">
                                     Открыть →
-                                </router-link>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -72,6 +67,7 @@
             router.push('/login')
             return
         }
+
 
         try {
             // Загружаем опросы: публичные + свои (включая приватные)
