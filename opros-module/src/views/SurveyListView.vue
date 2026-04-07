@@ -183,11 +183,12 @@
     }
 
     .open-btn {
-        font-weight: 800;
-        font-size: 0.8rem;
         color: #212844;
         text-decoration: none;
         cursor: pointer;
+    }
+        .admin-btn:active {
+        transform: scale(1.05);
     }
 
     .admin-btn {
