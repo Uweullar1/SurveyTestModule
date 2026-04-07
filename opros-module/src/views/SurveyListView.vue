@@ -55,7 +55,17 @@
         router.push(`/results/${surveyId}/admin`)
     }
 
-    
+    const handleCardClick = (survey) => {
+        const isOwner = user.value && survey.user_id === user.value.id
+
+        if (isOwner) {
+            // Если я владелец — иду в админку результатов
+            goToResults(survey.id)
+        } else {
+            // Если я гость — иду проходить опрос
+            router.push(`/take/${survey.id}`)
+        }
+    }
 
     onMounted(async () => {
         // Получаем текущего пользователя
@@ -67,7 +77,6 @@
             router.push('/login')
             return
         }
-
 
         try {
             // Загружаем опросы: публичные + свои (включая приватные)
