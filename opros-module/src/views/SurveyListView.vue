@@ -8,28 +8,26 @@
 
             <div v-if="loading" class="loader">Загрузка...</div>
 
-            <div class="surveys-grid">
-                <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
-                    <div class="survey-card" @click="handleCardClick(survey)">
-                        <div class="card-deco"></div>
-                        <div class="card-content">
-                            <span class="badge">ОПРОС</span>
-                            <h3 class="survey-title">{{ survey.title }}</h3>
-                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+            <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
+                <div class="survey-card" @click="handleCardClick(survey)">
+                    <div class="card-deco"></div>
+                    <div class="card-content">
+                        <span class="badge">ОПРОС</span>
+                        <h3 class="survey-title">{{ survey.title }}</h3>
+                        <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
-                            <div class="card-footer">
-                                <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                        <div class="card-footer">
+                            <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
 
-                                <button v-if="user && survey.user_id === user.id"
-                                        @click.stop="goToResults(survey.id)"
-                                        class="admin-btn">
-                                    Результаты
-                                </button>
+                            <button v-if="user && survey.user_id === user.id"
+                                    @click.stop="goToResults(survey.id)"
+                                    class="admin-btn">
+                                Результаты
+                            </button>
 
-                                <span v-else class="open-btn">
-                                    Открыть →
-                                </span>
-                            </div>
+                            <span v-else class="open-btn">
+                                Открыть →
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -110,8 +108,20 @@
 
     .survey-card {
         position: relative;
+        cursor: pointer; /* Добавляем указатель */
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
+        /* Эффект "подпрыгивания" всей карточки при наведении */
+        .survey-card:hover {
+            transform: translate(-4px, -4px);
+        }
+
+            /* Чтобы декоративный слой тоже реагировал красиво */
+            .survey-card:hover .card-deco {
+                transform: translate(4px, 4px);
+                background: #F2C4CE; /* Можно менять цвет тени при наведении для фана */
+            }
 
     .card-deco {
         position: absolute;
@@ -188,9 +198,6 @@
         color: #212844;
         text-decoration: none;
         cursor: pointer;
-    }
-        .admin-btn:active {
-        transform: scale(1.05);
     }
 
     .admin-btn {
