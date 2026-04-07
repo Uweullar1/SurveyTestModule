@@ -7,27 +7,28 @@
             </div>
 
             <div v-if="loading" class="loader">Загрузка...</div>
+            <div class="surveys-grid">
+                <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
+                    <div class="survey-card" @click="handleCardClick(survey)">
+                        <div class="card-deco"></div>
+                        <div class="card-content">
+                            <span class="badge">ОПРОС</span>
+                            <h3 class="survey-title">{{ survey.title }}</h3>
+                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
-            <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
-                <div class="survey-card" @click="handleCardClick(survey)">
-                    <div class="card-deco"></div>
-                    <div class="card-content">
-                        <span class="badge">ОПРОС</span>
-                        <h3 class="survey-title">{{ survey.title }}</h3>
-                        <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                            <div class="card-footer">
+                                <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
 
-                        <div class="card-footer">
-                            <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                <button v-if="user && survey.user_id === user.id"
+                                        @click.stop="goToResults(survey.id)"
+                                        class="admin-btn">
+                                    Результаты
+                                </button>
 
-                            <button v-if="user && survey.user_id === user.id"
-                                    @click.stop="goToResults(survey.id)"
-                                    class="admin-btn">
-                                Результаты
-                            </button>
-
-                            <span v-else class="open-btn">
-                                Открыть →
-                            </span>
+                                <span v-else class="open-btn">
+                                    Открыть →
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -57,6 +58,10 @@
         const isOwner = user.value && survey.user_id === user.value.id
 
         if (isOwner) {
+            // Владельца кидаем на результаты (или куда ты хочешь)
+            router.push(`/take/${survey.id}`)
+        } else {
+            // Остальных на прохождение
             router.push(`/take/${survey.id}`)
         }
     }
