@@ -187,6 +187,7 @@
         font-size: 0.8rem;
         color: #212844;
         text-decoration: none;
+        cursor: pointer;
     }
 
     .admin-btn {
