@@ -95,15 +95,33 @@
     /* Твои стили остаются без изменений */
     .surveys-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        /* Фиксируем 3 колонки для больших экранов */
+        grid-template-columns: repeat(3, 1fr);
         gap: 30px;
         padding: 40px 0;
+        width: 100%;
     }
 
+    /* Адаптив: если экран меньше 900px, переходим на 2 колонки */
+    @media (max-width: 900px) {
+        .surveys-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* Адаптив: если экран меньше 600px, в одну колонку */
+    @media (max-width: 600px) {
+        .surveys-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Важно: убедись, что у карточки нет фиксированной ширины, которая мешает ей влезть */
     .survey-card-link {
         text-decoration: none;
         color: inherit;
         display: block;
+        width: 100%; /* Карточка должна заполнять свою ячейку сетки */
     }
 
     .survey-card {
