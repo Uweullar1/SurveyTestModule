@@ -10,9 +10,10 @@
         }
     ],
     "routes": [
+        { "handle": "filesystem" },
         {
-            "src": "/(.*)",
-            "dest": "/opros-module/dist/$1"
+            "src": "/.*",
+            "dest": "/opros-module/dist/index.html"
         }
     ]
 }
