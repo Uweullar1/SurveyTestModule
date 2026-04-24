@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Expose-Headers', '*');
 
@@ -14,31 +14,52 @@ export default async function handler(req, res) {
     // Получаем путь
     const url = new URL(req.url, `http://${req.headers.host}`);
     let path = url.pathname.replace('/api/supabase-proxy', '') + url.search;
-    if (!path) path = '/';
+    if (!path || path === '/') path = '/';
 
     const targetUrl = `${SUPABASE_URL}${path}`;
 
-    try {
-        const response = await fetch(targetUrl, {
-            method: req.method,
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': req.headers['content-type'] || 'application/json',
-                'Prefer': req.headers.prefer || '',
-                'x-upsert': req.headers['x-upsert'] || '',
-            },
-            body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
-        });
+    console.log('Proxy to:', targetUrl, 'Method:', req.method);
 
+    try {
+        const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
+        };
+
+        // Копируем Content-Type как есть
+        if (req.headers['content-type']) {
+            headers['Content-Type'] = req.headers['content-type'];
+        }
+
+        // Копируем другие важные заголовки
+        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
+        if (req.headers['x-upsert']) headers['x-upsert'] = req.headers['x-upsert'];
+
+        const fetchOptions = {
+            method: req.method,
+            headers: headers,
+        };
+
+        // ВАЖНО: Передаем body как есть для PATCH, POST, PUT
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+            if (req.body) {
+                // Тело уже распаршено Vercel, отправляем как JSON
+                fetchOptions.body = JSON.stringify(req.body);
+                headers['Content-Type'] = 'application/json';
+            }
+        }
+
+        const response = await fetch(targetUrl, fetchOptions);
+
+        const contentType = response.headers.get('content-type') || 'application/json';
         const buffer = await response.arrayBuffer();
 
-        // Устанавливаем заголовки
-        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
-        res.setHeader('Content-Length', response.headers.get('content-length') || buffer.byteLength);
+        res.setHeader('Content-Type', contentType);
 
         return res.status(response.status).send(Buffer.from(buffer));
+
     } catch (error) {
+        console.error('Proxy error:', error);
         return res.status(500).json({ error: error.message });
     }
 }
