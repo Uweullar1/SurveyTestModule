@@ -109,9 +109,7 @@
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
-    import { rules, validate } from '../utils/validation.js'
 
-    const formErrors = ref({})
     const router = useRouter()
     const route = useRoute()
 
@@ -131,11 +129,7 @@
         questions: []
     })
 
-    const handleTitleInput = () => {
-        formErrors.value.title = validate('surveyTitle', survey.value.title)
-    }
-
-    // Загрузка
+    // Загрузка опроса для редактирования
     const loadSurveyForEdit = async () => {
         const id = route.params.id
         if (!id) return
@@ -143,42 +137,71 @@
         isEditMode.value = true
         surveyId.value = id
 
-        const { data, error } = await supabase
+        // Загружаем опрос
+        const { data: surveyData, error: surveyError } = await supabase
             .from('surveys')
-            .select(`
-            *,
-            questions (
-                id, text, question_type,
-                choices (id, text, is_correct)
-            )
-        `)
+            .select('*')
             .eq('id', id)
             .single()
 
-        if (error || !data) {
+        if (surveyError || !surveyData) {
+            console.error('Ошибка загрузки опроса:', surveyError)
             alert('Опрос не найден')
             router.push('/my-surveys')
             return
         }
 
-        survey.value.title = data.title || ''
-        survey.value.description = data.description || ''
-        survey.value.is_private = !!data.is_private
-        survey.value.show_correct_answers = !!data.show_correct_answers
-        survey.value.is_closed = !!data.is_closed
-        survey.value.max_responses = data.max_responses || 0
-        survey.value.expires_at = data.expires_at ? data.expires_at.slice(0, 16) : null
+        // Загружаем вопросы
+        const { data: questionsData, error: questionsError } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('survey_id', id)
+            .order('order')
 
-        survey.value.questions = data.questions.map(q => ({
-            id: q.id,
-            text: q.text || '',
-            type: q.question_type,
-            choices: q.choices.map(c => ({
-                id: c.id,
-                text: c.text || '',
-                is_correct: c.is_correct === true
-            }))
-        }))
+        if (questionsError) {
+            console.error('Ошибка загрузки вопросов:', questionsError)
+            return
+        }
+
+        // Загружаем варианты ответов для всех вопросов
+        const questionIds = questionsData.map(q => q.id)
+        const { data: choicesData, error: choicesError } = await supabase
+            .from('choices')
+            .select('*')
+            .in('question_id', questionIds)
+            .order('order')
+
+        if (choicesError) {
+            console.error('Ошибка загрузки вариантов:', choicesError)
+            return
+        }
+
+        // Заполняем форму
+        survey.value.title = surveyData.title || ''
+        survey.value.description = surveyData.description || ''
+        survey.value.is_private = !!surveyData.is_private
+        survey.value.show_correct_answers = !!surveyData.show_correct_answers
+        survey.value.is_closed = !!surveyData.is_closed
+        survey.value.max_responses = surveyData.max_responses || 0
+        survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
+
+        // Собираем вопросы с их вариантами
+        survey.value.questions = questionsData.map(q => {
+            const questionChoices = choicesData
+                .filter(c => c.question_id === q.id)
+                .map(c => ({
+                    id: c.id,
+                    text: c.text || '',
+                    is_correct: c.is_correct === true
+                }))
+
+            return {
+                id: q.id,
+                text: q.text || '',
+                type: q.question_type || 'radio',
+                choices: questionChoices.length > 0 ? questionChoices : [{ text: '', is_correct: false }]
+            }
+        })
     }
 
     onMounted(async () => {
@@ -186,8 +209,9 @@
         user.value = u
         if (!u) return router.push('/login')
 
-        if (route.params.id) await loadSurveyForEdit()
-        else {
+        if (route.params.id) {
+            await loadSurveyForEdit()
+        } else {
             survey.value.questions = [{
                 id: Date.now(),
                 text: '',
@@ -197,7 +221,7 @@
         }
     })
 
-    // Функции формы (без изменений)
+    // Добавление вопроса
     const addQuestion = (type) => {
         survey.value.questions.push({
             id: Date.now() + Math.random(),
@@ -207,37 +231,26 @@
         })
     }
 
+    // Удаление вопроса
     const removeQuestion = (index) => {
         if (survey.value.questions.length > 1) survey.value.questions.splice(index, 1)
     }
 
+    // Добавление варианта ответа
     const addChoice = (qIndex) => {
         survey.value.questions[qIndex].choices.push({ text: '', is_correct: false })
     }
 
+    // Удаление варианта ответа
     const removeChoice = (qIndex, cIndex) => {
         if (survey.value.questions[qIndex].choices.length > 1)
             survey.value.questions[qIndex].choices.splice(cIndex, 1)
     }
 
+    // Сохранение опроса
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
-        formErrors.value.title = validate('surveyTitle', survey.value.title)
-        formErrors.value.description = validate('surveyDescription', survey.value.description)
 
-        let hasQuestionErrors = false
-        survey.value.questions.forEach((q, i) => {
-            const err = validate('questionText', q.text)
-            if (err) {
-                hasQuestionErrors = true
-                // Можно сохранить ошибку по индексу
-            }
-        })
-
-        if (formErrors.value.title || hasQuestionErrors) {
-            alert('Исправьте ошибки в форме')
-            return
-        }
         loading.value = true
 
         try {
@@ -247,8 +260,6 @@
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
                 is_private: !!survey.value.is_private,
-                is_public: !survey.value.is_private,
-                is_active: !survey.value.is_closed,
                 show_correct_answers: !!survey.value.show_correct_answers,
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
@@ -258,22 +269,38 @@
             let savedId = surveyId.value
 
             if (isEditMode.value) {
-                await supabase.from('surveys').update(surveyData).eq('id', surveyId.value)
-                await supabase.from('questions').delete().eq('survey_id', surveyId.value)
+                // Обновляем опрос
+                const { error: updateError } = await supabase
+                    .from('surveys')
+                    .update(surveyData)
+                    .eq('id', surveyId.value)
+
+                if (updateError) throw updateError
+
+                // Удаляем старые вопросы (каскадно удалятся и choices)
+                const { error: deleteError } = await supabase
+                    .from('questions')
+                    .delete()
+                    .eq('survey_id', surveyId.value)
+
+                if (deleteError) throw deleteError
             } else {
-                const { data } = await supabase
+                // Создаем новый опрос
+                const { data, error: insertError } = await supabase
                     .from('surveys')
                     .insert({ ...surveyData, user_id: user.value.id })
                     .select()
                     .single()
+
+                if (insertError) throw insertError
                 savedId = data.id
             }
 
-            // Пересоздаём вопросы и choices
+            // Создаем новые вопросы с вариантами
             for (const [order, q] of survey.value.questions.entries()) {
                 if (!q.text?.trim()) continue
 
-                const { data: qData } = await supabase
+                const { data: qData, error: qError } = await supabase
                     .from('questions')
                     .insert({
                         survey_id: savedId,
@@ -284,18 +311,25 @@
                     .select()
                     .single()
 
+                if (qError) throw qError
+
+                // Сохраняем варианты ответов (только для radio и checkbox)
                 if (q.choices && q.choices.length > 0) {
                     const choicesToInsert = q.choices
                         .filter(c => c.text?.trim())
                         .map((c, i) => ({
                             question_id: qData.id,
                             text: c.text.trim(),
-                            is_correct: Boolean(c.is_correct),   // ← Принудительно Boolean
+                            is_correct: Boolean(c.is_correct),
                             order: i
                         }))
 
                     if (choicesToInsert.length > 0) {
-                        await supabase.from('choices').insert(choicesToInsert)
+                        const { error: choicesError } = await supabase
+                            .from('choices')
+                            .insert(choicesToInsert)
+
+                        if (choicesError) throw choicesError
                     }
                 }
             }
@@ -304,7 +338,7 @@
             router.push('/my-surveys')
 
         } catch (e) {
-            console.error(e)
+            console.error('Ошибка сохранения:', e)
             alert('Ошибка: ' + (e.message || 'Неизвестная ошибка'))
         } finally {
             loading.value = false

@@ -104,16 +104,24 @@
     onMounted(async () => {
         const surveyId = route.params.id
         if (!surveyId) {
-            console.error("ID опроса не найден в параметрах пути")
+            console.error("ID опроса не найден")
             loading.value = false
             return
         }
 
         try {
             loading.value = true
-            console.log("Начинаю загрузку для ID:", surveyId)
 
-            // 1. Загружаем вопросы и варианты (БЕЗ джойна с surveys, чтобы не было ошибки questions_1)
+            // Загружаем заголовок опроса
+            const { data: sData } = await supabase
+                .from('surveys')
+                .select('title')
+                .eq('id', surveyId)
+                .single()
+
+            surveyTitle.value = sData?.title || 'Опрос без названия'
+
+            // Загружаем вопросы с вариантами
             const { data: qData, error: qError } = await supabase
                 .from('questions')
                 .select(`
@@ -128,18 +136,8 @@
 
             if (qError) throw qError
             questions.value = qData || []
-            console.log("Вопросы загружены:", qData.length)
 
-            // 2. Отдельно берем заголовок, раз Supabase путается в связях
-            const { data: sData } = await supabase
-                .from('surveys')
-                .select('title')
-                .eq('id', surveyId)
-                .maybeSingle()
-
-            surveyTitle.value = sData?.title || 'Опрос без названия'
-
-            // 3. Загружаем ответы пользователей (responses)
+            // Загружаем ответы пользователей
             const { data: rData, error: rError } = await supabase
                 .from('responses')
                 .select('*')
@@ -149,7 +147,7 @@
             if (rError) throw rError
             allResponses.value = rData || []
 
-            // 4. Загружаем все ответы из таблицы answers
+            // Загружаем все answers
             if (allResponses.value.length > 0) {
                 const respIds = allResponses.value.map(r => r.id)
                 const { data: aData, error: aError } = await supabase
@@ -161,13 +159,12 @@
                 allAnswers.value = aData || []
             }
 
-            // Если есть участники, выбираем первого
             if (allResponses.value.length > 0) {
                 selectUser(allResponses.value[0])
             }
 
         } catch (err) {
-            console.error("Критическая ошибка загрузки:", err.message)
+            console.error("Ошибка загрузки:", err.message)
             alert("Ошибка при получении данных: " + err.message)
         } finally {
             loading.value = false
@@ -177,9 +174,10 @@
     const selectUser = (resp) => {
         selectedResponse.value = resp
 
-        // Инициализируем поля для оценки
         questions.value.forEach(q => {
-            const existing = allAnswers.value.find(a => a.question_id === q.id && a.response_id === resp.id)
+            const existing = allAnswers.value.find(
+                a => a.question_id === q.id && a.response_id === resp.id
+            )
             editData[q.id] = {
                 id: existing?.id,
                 score: existing?.score || 0,
@@ -193,30 +191,21 @@
         try {
             for (const qId in editData) {
                 const item = editData[qId]
-
-                // Сохраняем только если есть ID ответа
                 if (item.id) {
                     const { error } = await supabase
                         .from('answers')
                         .update({
-                            score: Number(item.score), // Принудительно число
-                            feedback: item.feedback
+                            score: Number(item.score) || 0,
+                            feedback: item.feedback || ''
                         })
                         .eq('id', item.id)
 
                     if (error) throw error
-
-                    // Обновляем локальный массив allAnswers, чтобы данные "приклеились"
-                    const localIdx = allAnswers.value.findIndex(a => a.id === item.id)
-                    if (localIdx !== -1) {
-                        allAnswers.value[localIdx].score = Number(item.score)
-                        allAnswers.value[localIdx].feedback = item.feedback
-                    }
                 }
             }
-            alert('Фидбек успешно сохранён в базе и обновлен в списке!')
+            alert('Результаты сохранены!')
         } catch (e) {
-            console.error("Ошибка при сохранении:", e)
+            console.error("Ошибка сохранения:", e)
             alert('Ошибка сохранения: ' + e.message)
         } finally {
             submitting.value = false
@@ -224,44 +213,38 @@
     }
 
     const formatAnswer = (q, responseId) => {
-        const ans = allAnswers.value.find(a => a.question_id === q.id && a.response_id === responseId)
+        const ans = allAnswers.value.find(
+            a => a.question_id === q.id && a.response_id === responseId
+        )
         if (!ans) return '—'
 
-        // Для текстовых полей выводим сразу
         if (q.question_type === 'text') return ans.text_answer || '—'
         if (q.question_type === 'scale') return ans.scale_value || '—'
 
-        // Обработка вариантов выбора (радио и чекбоксы)
-        let selectedIds = []
-
-        // Если в базе лежит UUID в choice_id
+        // Для radio - ищем choice_id
         if (ans.choice_id) {
-            selectedIds = [String(ans.choice_id)]
+            const choice = q.choices.find(c => c.id === ans.choice_id)
+            return choice ? choice.text : 'Ответ не найден'
         }
-        // Если в базе лежит JSON массив (для чекбоксов)
-        else if (ans.text_answer && ans.text_answer.startsWith('[')) {
+
+        // Для checkbox - парсим JSON массив
+        if (ans.text_answer) {
             try {
-                selectedIds = JSON.parse(ans.text_answer).map(String)
+                const selectedIds = JSON.parse(ans.text_answer)
+                const texts = q.choices
+                    .filter(c => selectedIds.includes(c.id))
+                    .map(c => c.text)
+                return texts.length ? texts.join(', ') : 'Ответ не найден'
             } catch {
-                selectedIds = [String(ans.text_answer)]
+                return ans.text_answer
             }
         }
-        // Если просто один ID в текстовом поле
-        else if (ans.text_answer) {
-            selectedIds = [String(ans.text_answer)]
-        }
 
-        const texts = q.choices
-            .filter(c => selectedIds.includes(String(c.id)))
-            .map(c => c.text)
-
-        return texts.length ? texts.join(', ') : 'Ответ не найден в списке вариантов'
+        return '—'
     }
 
     const formatDate = (date) => new Date(date).toLocaleString('ru-RU')
-
 </script>
-
 
 <style scoped>
     .admin-check-page {
