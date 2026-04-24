@@ -275,6 +275,7 @@
                 description: survey.value.description?.trim() || null,
                 is_private: !!survey.value.is_private,
                 is_public: !survey.value.is_private,
+                is_active: !survey.value.is_closed,
                 show_correct_answers: !!survey.value.show_correct_answers,
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
