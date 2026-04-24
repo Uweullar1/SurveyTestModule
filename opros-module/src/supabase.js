@@ -4,38 +4,37 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://vojascpwckvikdqlbfvy.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvamFzY3B3Y2t2aWtkcWxiZnZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MTYxNDksImV4cCI6MjA4ODQ5MjE0OX0.M6Se9csIMpeAvOBJzi2VH1VY1scAOtaE44HZ_FWUbAo'  // вставь свой реальный ключ из Supabase → Settings → API
 
-const customFetch = async (url, options = {}) => {
-    // Всегда используем прокси
-    const urlString = typeof url === 'string' ? url : url.toString();
-    const urlObj = new URL(urlString);
+// Кастомный fetch с прокси
+const customFetch = async (input, init) => {
+    let url;
+    let options;
 
-    // Берем путь после домена Supabase
-    const pathWithQuery = urlObj.pathname + urlObj.search;
-    const proxyUrl = `${window.location.origin}/api/supabase-proxy${pathWithQuery}`;
+    if (input instanceof Request) {
+        url = input.url;
+        options = {
+            method: input.method,
+            headers: Object.fromEntries(input.headers.entries()),
+            body: input.body
+        };
+    } else {
+        url = typeof input === 'string' ? input : input.url;
+        options = init || {};
+    }
 
-    console.log('Fetching through proxy:', {
-        original: urlString,
-        proxy: proxyUrl,
-        method: options.method || 'GET'
-    });
+    // Заменяем URL Supabase на прокси
+    if (url.includes('supabase.co')) {
+        const urlObj = new URL(url);
+        const path = urlObj.pathname + urlObj.search;
+        url = `${window.location.origin}/api/supabase-proxy${path}`;
+    }
 
     try {
-        const response = await fetch(proxyUrl, {
+        const response = await fetch(url, {
             ...options,
             headers: {
                 ...options.headers,
                 'Content-Type': 'application/json',
             }
-        });
-
-        // Логируем ответ для отладки
-        const clone = response.clone();
-        clone.text().then(text => {
-            console.log('Response:', {
-                status: response.status,
-                ok: response.ok,
-                bodyPreview: text.substring(0, 100)
-            });
         });
 
         return response;
@@ -47,11 +46,14 @@ const customFetch = async (url, options = {}) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        autoRefreshToken: true,
         persistSession: true,
+        autoRefreshToken: true,
         detectSessionInUrl: true
     },
     global: {
-        fetch: customFetch
+        fetch: customFetch,
+        headers: {
+            'Content-Type': 'application/json',
+        }
     }
-})
+});
