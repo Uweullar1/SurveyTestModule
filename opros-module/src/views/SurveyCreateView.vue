@@ -163,18 +163,26 @@
             return
         }
 
-        // Загружаем варианты ответов для всех вопросов
+        // Загружаем ВСЕ choices для этих вопросов
         const questionIds = questionsData.map(q => q.id)
-        const { data: choicesData, error: choicesError } = await supabase
-            .from('choices')
-            .select('*')
-            .in('question_id', questionIds)
-            .order('order')
+        let choicesData = []
 
-        if (choicesError) {
-            console.error('Ошибка загрузки вариантов:', choicesError)
-            return
+        if (questionIds.length > 0) {
+            const { data: choices, error: choicesError } = await supabase
+                .from('choices')
+                .select('*')
+                .in('question_id', questionIds)
+                .order('order')
+
+            if (choicesError) {
+                console.error('Ошибка загрузки вариантов:', choicesError)
+            } else {
+                choicesData = choices || []
+            }
         }
+
+        console.log('Загруженные вопросы:', questionsData)
+        console.log('Загруженные варианты:', choicesData)
 
         // Заполняем форму
         survey.value.title = surveyData.title || ''
@@ -185,21 +193,27 @@
         survey.value.max_responses = surveyData.max_responses || 0
         survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
 
-        // Собираем вопросы с их вариантами
+        // Собираем вопросы с вариантами
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
                 .filter(c => c.question_id === q.id)
                 .map(c => ({
                     id: c.id,
                     text: c.text || '',
-                    is_correct: c.is_correct === true
+                    is_correct: c.is_correct === true || c.is_correct === 'true'
                 }))
+
+            console.log(`Вопрос ${q.id}:`, questionChoices)
 
             return {
                 id: q.id,
                 text: q.text || '',
                 type: q.question_type || 'radio',
-                choices: questionChoices.length > 0 ? questionChoices : [{ text: '', is_correct: false }]
+                choices: questionChoices.length > 0
+                    ? questionChoices
+                    : (q.question_type === 'radio' || q.question_type === 'checkbox'
+                        ? [{ text: '', is_correct: false }]
+                        : [])
             }
         })
     }
@@ -260,6 +274,7 @@
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
                 is_private: !!survey.value.is_private,
+                is_public: !survey.value.is_private, // ← ВАЖНО! Добавляем
                 show_correct_answers: !!survey.value.show_correct_answers,
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,

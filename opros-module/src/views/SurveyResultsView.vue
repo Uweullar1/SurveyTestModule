@@ -54,6 +54,13 @@
                                 <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
                             </div>
 
+                            <div v-if="q.question_type === 'radio' || q.question_type === 'checkbox'" class="correct-answer mb-3">
+                                <div class="answer-label">Правильный ответ:</div>
+                                <div class="answer-text correct">
+                                    {{ getCorrectAnswers(q) }}
+                                </div>
+                            </div>
+
                             <div v-if="q.question_type === 'text'" class="admin-eval-box mt-3 p-3 rounded-4">
                                 <div class="row g-3">
                                     <div class="col-md-3">
@@ -213,34 +220,67 @@
     }
 
     const formatAnswer = (q, responseId) => {
-        const ans = allAnswers.value.find(
+        const answers = allAnswers.value.filter(
             a => a.question_id === q.id && a.response_id === responseId
         )
-        if (!ans) return '—'
 
-        if (q.question_type === 'text') return ans.text_answer || '—'
-        if (q.question_type === 'scale') return ans.scale_value || '—'
+        if (answers.length === 0) return '—'
 
-        // Для radio - ищем choice_id
-        if (ans.choice_id) {
-            const choice = q.choices.find(c => c.id === ans.choice_id)
-            return choice ? choice.text : 'Ответ не найден'
+        if (q.question_type === 'text') {
+            return answers[0].text_answer || '—'
         }
 
-        // Для checkbox - парсим JSON массив
-        if (ans.text_answer) {
-            try {
-                const selectedIds = JSON.parse(ans.text_answer)
-                const texts = q.choices
-                    .filter(c => selectedIds.includes(c.id))
-                    .map(c => c.text)
-                return texts.length ? texts.join(', ') : 'Ответ не найден'
-            } catch {
-                return ans.text_answer
+        if (q.question_type === 'scale') {
+            return answers[0].scale_value || '—'
+        }
+
+        // Для radio и checkbox
+        if (q.question_type === 'radio') {
+            // Ищем answer с choice_id
+            const answer = answers.find(a => a.choice_id)
+            if (answer?.choice_id) {
+                const choice = q.choices.find(c => c.id === answer.choice_id)
+                return choice?.text || 'Ответ не найден'
             }
+            return '—'
+        }
+
+        if (q.question_type === 'checkbox') {
+            // Собираем все выбранные choice_id
+            const selectedIds = answers
+                .filter(a => a.choice_id)
+                .map(a => a.choice_id)
+
+            if (selectedIds.length === 0) {
+                // Может быть сохранено в text_answer как JSON
+                const textAnswer = answers.find(a => a.text_answer)
+                if (textAnswer?.text_answer) {
+                    try {
+                        const parsed = JSON.parse(textAnswer.text_answer)
+                        const texts = q.choices
+                            .filter(c => parsed.includes(c.id))
+                            .map(c => c.text)
+                        return texts.length ? texts.join(', ') : '—'
+                    } catch {
+                        return textAnswer.text_answer
+                    }
+                }
+                return '—'
+            }
+
+            const texts = q.choices
+                .filter(c => selectedIds.includes(c.id))
+                .map(c => c.text)
+            return texts.length ? texts.join(', ') : '—'
         }
 
         return '—'
+    }
+    const getCorrectAnswers = (q) => {
+        const correct = q.choices
+            .filter(c => c.is_correct)
+            .map(c => c.text)
+        return correct.length ? correct.join(', ') : 'Не указан'
     }
 
     const formatDate = (date) => new Date(date).toLocaleString('ru-RU')
