@@ -2,8 +2,7 @@
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
-            "destination": "/api/supabase-proxy"
+            "destination": "/opros-modul/api/supabase-proxy.js"
         }
     ]
-}
 }
