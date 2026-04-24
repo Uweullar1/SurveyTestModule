@@ -15,5 +15,11 @@
             "src": "/.*",
             "dest": "/opros-module/dist/index.html"
         }
+    ],
+    "rewrites": [
+        {
+            "source": "/api/supabase-proxy/(.*)",
+            "destination": "/api/supabase-proxy"
+        }
     ]
 }
