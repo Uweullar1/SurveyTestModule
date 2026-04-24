@@ -32,50 +32,69 @@ export default async function handler(req, res) {
     const targetUrl = `${SUPABASE_URL}${path}`;
 
     try {
+        // Базовые заголовки
         const fetchHeaders = {
             'apikey': SUPABASE_KEY,
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': req.headers['content-type'] || 'application/json',
-            // ВАЖНО! Говорим Supabase не сжимать ответ
             'Accept-Encoding': 'identity',
         };
 
+        // Для загрузки файлов НЕ ставим Content-Type: application/json
+        if (req.headers['content-type'] &&
+            req.headers['content-type'].includes('multipart/form-data')) {
+            // Для файлов - не трогаем Content-Type
+            fetchHeaders['Content-Type'] = req.headers['content-type'];
+        } else {
+            fetchHeaders['Content-Type'] = req.headers['content-type'] || 'application/json';
+        }
+
         if (req.headers.prefer) fetchHeaders['Prefer'] = req.headers.prefer;
+        if (req.headers['x-upsert']) fetchHeaders['x-upsert'] = req.headers['x-upsert'];
 
         const fetchOptions = {
             method: req.method,
             headers: fetchHeaders,
-            // Отключаем сжатие
             compress: false,
         };
 
+        // Body - для файлов передаем как есть, для JSON - строкой
         if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
             fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Получаем текст
-        const responseText = await response.text();
+        // Для бинарных данных (storage) - возвращаем как буфер
+        const contentType = response.headers.get('content-type') || '';
 
-        // Устанавливаем ТОЛЬКО нужные заголовки (без Content-Encoding)
-        const allowedHeaders = [
-            'content-type',
-            'content-length',
-            'date',
-            'x-supabase-api-version'
-        ];
+        if (contentType.includes('image/') ||
+            contentType.includes('application/octet-stream') ||
+            path.includes('/storage/')) {
+            // Бинарный ответ - получаем как буфер
+            const buffer = await response.arrayBuffer();
+            const bufferBase64 = Buffer.from(buffer).toString('base64');
 
-        response.headers.forEach((value, key) => {
-            if (allowedHeaders.includes(key.toLowerCase())) {
-                res.setHeader(key, value);
-            }
-        });
+            // Копируем заголовки
+            response.headers.forEach((value, key) => {
+                if (!['transfer-encoding', 'connection', 'keep-alive', 'content-encoding'].includes(key.toLowerCase())) {
+                    res.setHeader(key, value);
+                }
+            });
 
-        // Явно указываем НЕ сжатый ответ
-        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
+            return res.status(response.status).send(Buffer.from(bufferBase64, 'base64'));
+        } else {
+            // Текстовый ответ (JSON)
+            const responseText = await response.text();
 
-        return res.status(response.status).send(responseText);
+            // Копируем заголовки
+            response.headers.forEach((value, key) => {
+                if (!['transfer-encoding', 'connection', 'keep-alive', 'content-encoding'].includes(key.toLowerCase())) {
+                    res.setHeader(key, value);
+                }
+            });
+
+            return res.status(response.status).send(responseText);
+        }
 
     } catch (error) {
         console.error('Proxy error:', error.message);
