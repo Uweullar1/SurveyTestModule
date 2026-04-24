@@ -9,5 +9,26 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true
-    }
+    },
+    global: {
+        fetch: async (url, options = {}) => {
+            let fetchUrl = url;
+
+            // Меняем URL Supabase на прокси
+            if (fetchUrl.includes('supabase.co')) {
+                const urlObj = new URL(fetchUrl);
+                fetchUrl = `${window.location.origin}/api/supabase-proxy${urlObj.pathname}${urlObj.search}`;
+            }
+
+            // Убираем заголовки, которые Supabase добавляет автоматически
+            const cleanHeaders = { ...options.headers };
+            delete cleanHeaders['X-JS-Supabase-Version'];
+            delete cleanHeaders['Accept-Encoding'];
+
+            return fetch(fetchUrl, {
+                ...options,
+                headers: cleanHeaders,
+            });
+        },
+    },
 })
