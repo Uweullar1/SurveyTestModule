@@ -1,14 +1,17 @@
 {
     "version": 2,
-    "functions": {
-        "api/supabase-proxy.js": {
-            "runtime": "@vercel/node@20"
-        }
-    },
     "rewrites": [
         {
-            "source": "/api/supabase-proxy/(.*)",
-            "destination": "/api/supabase-proxy?path=$1"
+            "source": "/api/supabase-proxy",
+            "destination": "/api/supabase-proxy"
+        },
+        {
+            "source": "/api/supabase-proxy/:path*",
+            "destination": "/api/supabase-proxy?path=:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }
