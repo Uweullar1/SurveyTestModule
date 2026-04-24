@@ -1,18 +1,14 @@
 {
     "version": 2,
     "functions": {
-        "opros-modul/api/supabase-proxy.js": {
-            "runtime": "vercel-nodejs@20"
+        "api/supabase-proxy.js": {
+            "runtime": "@vercel/node@20"
         }
     },
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
             "destination": "/api/supabase-proxy?path=$1"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/opros-modul/dist/index.html"
         }
     ]
 }
