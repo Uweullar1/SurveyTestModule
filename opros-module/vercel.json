@@ -1,7 +1,4 @@
 {
-    "version": 2,
-    "buildCommand": "cd opros-module && npm install && npm run build",
-    "outputDirectory": "opros-module/dist",
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
@@ -13,7 +10,7 @@
         },
         {
             "source": "/(.*)",
-            "destination": "/opros-module/dist/index.html"
+            "destination": "/index.html"
         }
     ]
 }
