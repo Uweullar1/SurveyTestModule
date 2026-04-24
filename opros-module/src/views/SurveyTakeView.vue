@@ -160,48 +160,48 @@
     }
 
     onMounted(async () => {
-    const surveyId = route.params.id
-    if (!surveyId) {
-        error.value = 'ID опроса не найден'
-        loading.value = false
-        return
-    }
-
-    // 1. Проверяем авторизацию
-    const isAuthenticated = await checkAuth()
-    if (!isAuthenticated) return
-
-    try {
-        // Загружаем опрос
-        const { data, error: sErr } = await supabase
-            .from('surveys')
-            .select('*, user_id, questions(*, choices(*))')
-            .eq('id', surveyId)
-            .single()
-
-        if (sErr) throw sErr
-        if (!data) throw new Error('Опрос не найден')
-
-        survey.value = data
-
-        if (survey.value.is_private) {
-            const { data: { user } } = await supabase.auth.getUser()
-
-            if (user?.id !== survey.value.user_id) {
-                alert('Этот опрос доступен только по прямой ссылке и только для тех, кому автор дал ссылку.')
-                router.push('/')
-                return
-            }
+        const surveyId = route.params.id
+        if (!surveyId) {
+            error.value = 'ID опроса не найден'
+            loading.value = false
+            return
         }
 
-        // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
-        if (data.is_closed) {
-            const { data: { user } } = await supabase.auth.getUser()
-            const isCreator = user && user.id === data.user_id
+        // 1. Проверяем авторизацию
+        const isAuthenticated = await checkAuth()
+        if (!isAuthenticated) return
 
-            if (!isCreator) {
-                // Красивое уведомление для обычных пользователей
-                const closedMessage = `
+        try {
+            // Загружаем опрос
+            const { data, error: sErr } = await supabase
+                .from('surveys')
+                .select('*, user_id, questions(*, choices(*))')
+                .eq('id', surveyId)
+                .single()
+
+            if (sErr) throw sErr
+            if (!data) throw new Error('Опрос не найден')
+
+            survey.value = data
+
+            if (survey.value.is_private) {
+                const { data: { user } } = await supabase.auth.getUser()
+
+                if (user?.id !== survey.value.user_id) {
+                    alert('Этот опрос доступен только по прямой ссылке и только для тех, кому автор дал ссылку.')
+                    router.push('/')
+                    return
+                }
+            }
+
+            // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
+            if (data.is_closed) {
+                const { data: { user } } = await supabase.auth.getUser()
+                const isCreator = user && user.id === data.user_id
+
+                if (!isCreator) {
+                    // Красивое уведомление для обычных пользователей
+                    const closedMessage = `
                     <div style="text-align: center; padding: 20px;">
                         <h2 style="color: #DF2935; margin-bottom: 15px;">⛔ Опрос закрыт</h2>
                         <p style="font-size: 1.1rem; color: #212844;">
@@ -210,52 +210,52 @@
                         </p>
                     </div>
                 `
-                alert('Этот опрос был закрыт автором и недоступен для прохождения.')
-                // Можно заменить на более красивый модальный диалог позже
-                router.push('/')
-                return
-            } else {
-                // Для создателя — мягкое уведомление
-                alert('Этот опрос закрыт. Его могут видеть только вы.')
+                    alert('Этот опрос был закрыт автором и недоступен для прохождения.')
+                    // Можно заменить на более красивый модальный диалог позже
+                    router.push('/')
+                    return
+                } else {
+                    // Для создателя — мягкое уведомление
+                    alert('Этот опрос закрыт. Его могут видеть только вы.')
+                }
             }
-        }
 
-        // 2. Проверка лимита прохождений
-        const canProceed = await checkMaxResponsesLimit(surveyId)
-        if (!canProceed) return
+            // 2. Проверка лимита прохождений
+            const canProceed = await checkMaxResponsesLimit(surveyId)
+            if (!canProceed) return
 
-        // 3. Загружаем вопросы
-        const { data: qData, error: qErr } = await supabase
-            .from('questions')
-            .select(`
+            // 3. Загружаем вопросы
+            const { data: qData, error: qErr } = await supabase
+                .from('questions')
+                .select(`
                 id, text, question_type, order, required,
                 choices (id, text, is_correct)
             `)
-            .eq('survey_id', surveyId)
-            .order('order')
+                .eq('survey_id', surveyId)
+                .order('order')
 
-        if (qErr) throw qErr
+            if (qErr) throw qErr
 
-        questions.value = qData || []
+            questions.value = qData || []
 
-        // Инициализация ответов
-        questions.value.forEach(q => {
-            if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
-                responses.value[q.id] = []
-            } else if (q.question_type === 'scale') {
-                responses.value[q.id] = 5
-            } else {
-                responses.value[q.id] = null
-            }
-        })
+            // Инициализация ответов
+            questions.value.forEach(q => {
+                if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
+                    responses.value[q.id] = []
+                } else if (q.question_type === 'scale') {
+                    responses.value[q.id] = 5
+                } else {
+                    responses.value[q.id] = null
+                }
+            })
 
-    } catch (err) {
-        console.error(err)
-        error.value = 'Ошибка загрузки опроса: ' + (err.message || 'Неизвестная ошибка')
-    } finally {
-        loading.value = false
-    }
-})
+        } catch (err) {
+            console.error(err)
+            error.value = 'Ошибка загрузки опроса: ' + (err.message || 'Неизвестная ошибка')
+        } finally {
+            loading.value = false
+        }
+    })
 
     const submitResponses = async () => {
         if (submitting.value) return

@@ -86,7 +86,6 @@
                 })
 
                 if (error) throw error
-
                 router.push('/')
             } else {
                 // === РЕГИСТРАЦИЯ ===

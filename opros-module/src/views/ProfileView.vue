@@ -480,6 +480,7 @@
         font-weight: 600;
         color: #212844;
     }
+
     .profile-input,
     .input-wrapper.dashed {
         width: 100%;
@@ -655,6 +656,7 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
     }
+
     .error-message {
         color: #DF2935;
         font-size: 0.85rem;

@@ -18,7 +18,7 @@ const routes = [
         path: '/create',
         name: 'survey-create',
         component: () => import('../views/SurveyCreateView.vue'),
-        meta: { requiresAuth: true } 
+        meta: { requiresAuth: true }
     },
     {
         path: '/edit/:id',

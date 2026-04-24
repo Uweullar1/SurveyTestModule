@@ -1,28 +1,28 @@
 {
-  "name": "opros-module",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
-    "axios": "^1.13.6",
-    "bootstrap": "^5.3.8",
-    "ogl": "^1.0.11",
-    "pinia": "^3.0.4",
-    "vue": "^3.5.25",
-    "vue-router": "^4.6.4"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.2",
-    "eslint": "^10.0.2",
-    "vite": "^8.0.0-beta.13"
-  },
-  "overrides": {
-    "vite": "^8.0.0-beta.13"
-  }
+    "name": "opros-module",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.98.0",
+        "axios": "^1.13.6",
+        "bootstrap": "^5.3.8",
+        "ogl": "^1.0.11",
+        "pinia": "^3.0.4",
+        "vue": "^3.5.25",
+        "vue-router": "^4.6.4"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.2",
+        "eslint": "^10.0.2",
+        "vite": "^8.0.0-beta.13"
+    },
+    "overrides": {
+        "vite": "^8.0.0-beta.13"
+    }
 }
