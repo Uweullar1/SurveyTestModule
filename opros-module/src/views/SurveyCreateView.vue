@@ -57,8 +57,13 @@
                     <div v-if="question.type === 'radio' || question.type === 'checkbox'" class="options-container">
                         <div v-for="(choice, cIndex) in question.choices" :key="cIndex" class="option-row">
                             <label class="custom-check-container">
-                                <input :type="question.type === 'radio' ? 'radio' : 'checkbox'"
+                                <input v-if="question.type === 'radio'"
+                                       type="radio"
                                        :name="'correct-' + qIndex"
+                                       :checked="choice.is_correct"
+                                       @change="setCorrectChoice(qIndex, cIndex)">
+                                <input v-else
+                                       type="checkbox"
                                        v-model="choice.is_correct">
                                 <span class="checkmark"></span>
                             </label>
@@ -137,7 +142,6 @@
         isEditMode.value = true
         surveyId.value = id
 
-        // Загружаем опрос
         const { data: surveyData, error: surveyError } = await supabase
             .from('surveys')
             .select('*')
@@ -145,13 +149,11 @@
             .single()
 
         if (surveyError || !surveyData) {
-            console.error('Ошибка загрузки опроса:', surveyError)
             alert('Опрос не найден')
             router.push('/my-surveys')
             return
         }
 
-        // Загружаем вопросы
         const { data: questionsData, error: questionsError } = await supabase
             .from('questions')
             .select('*')
@@ -163,7 +165,6 @@
             return
         }
 
-        // Загружаем ВСЕ choices для этих вопросов
         const questionIds = questionsData.map(q => q.id)
         let choicesData = []
 
@@ -174,17 +175,11 @@
                 .in('question_id', questionIds)
                 .order('order')
 
-            if (choicesError) {
-                console.error('Ошибка загрузки вариантов:', choicesError)
-            } else {
+            if (!choicesError) {
                 choicesData = choices || []
             }
         }
 
-        console.log('Загруженные вопросы:', questionsData)
-        console.log('Загруженные варианты:', choicesData)
-
-        // Заполняем форму
         survey.value.title = surveyData.title || ''
         survey.value.description = surveyData.description || ''
         survey.value.is_private = !!surveyData.is_private
@@ -193,7 +188,6 @@
         survey.value.max_responses = surveyData.max_responses || 0
         survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
 
-        // Собираем вопросы с вариантами
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
                 .filter(c => c.question_id === q.id)
@@ -203,7 +197,15 @@
                     is_correct: c.is_correct === true || c.is_correct === 'true'
                 }))
 
-            console.log(`Вопрос ${q.id}:`, questionChoices)
+            // ВАЖНО: Для radio типа убеждаемся что только один правильный
+            if (q.question_type === 'radio' && questionChoices.length > 0) {
+                const correctIndex = questionChoices.findIndex(c => c.is_correct)
+                if (correctIndex >= 0) {
+                    questionChoices.forEach((c, i) => {
+                        c.is_correct = (i === correctIndex)
+                    })
+                }
+            }
 
             return {
                 id: q.id,
@@ -211,9 +213,7 @@
                 type: q.question_type || 'radio',
                 choices: questionChoices.length > 0
                     ? questionChoices
-                    : (q.question_type === 'radio' || q.question_type === 'checkbox'
-                        ? [{ text: '', is_correct: false }]
-                        : [])
+                    : [{ text: '', is_correct: false }]
             }
         })
     }
@@ -274,7 +274,7 @@
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
                 is_private: !!survey.value.is_private,
-                is_public: !survey.value.is_private, // ← ВАЖНО! Добавляем
+                is_public: !survey.value.is_private,
                 show_correct_answers: !!survey.value.show_correct_answers,
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
@@ -284,7 +284,6 @@
             let savedId = surveyId.value
 
             if (isEditMode.value) {
-                // Обновляем опрос
                 const { error: updateError } = await supabase
                     .from('surveys')
                     .update(surveyData)
@@ -292,7 +291,6 @@
 
                 if (updateError) throw updateError
 
-                // Удаляем старые вопросы (каскадно удалятся и choices)
                 const { error: deleteError } = await supabase
                     .from('questions')
                     .delete()
@@ -300,7 +298,6 @@
 
                 if (deleteError) throw deleteError
             } else {
-                // Создаем новый опрос
                 const { data, error: insertError } = await supabase
                     .from('surveys')
                     .insert({ ...surveyData, user_id: user.value.id })
@@ -311,7 +308,7 @@
                 savedId = data.id
             }
 
-            // Создаем новые вопросы с вариантами
+            // Создаем вопросы с вариантами
             for (const [order, q] of survey.value.questions.entries()) {
                 if (!q.text?.trim()) continue
 
@@ -328,16 +325,28 @@
 
                 if (qError) throw qError
 
-                // Сохраняем варианты ответов (только для radio и checkbox)
+                // Сохраняем варианты ответов
                 if (q.choices && q.choices.length > 0) {
                     const choicesToInsert = q.choices
                         .filter(c => c.text?.trim())
-                        .map((c, i) => ({
-                            question_id: qData.id,
-                            text: c.text.trim(),
-                            is_correct: Boolean(c.is_correct),
-                            order: i
-                        }))
+                        .map((c, i) => {
+                            // ВАЖНО: Для radio только первый отмеченный правильный
+                            let isCorrect = false
+                            if (q.type === 'radio') {
+                                // Для radio - только один правильный (первый отмеченный)
+                                isCorrect = (i === q.choices.findIndex(ch => ch.is_correct))
+                            } else if (q.type === 'checkbox') {
+                                // Для checkbox - все отмеченные правильные
+                                isCorrect = Boolean(c.is_correct)
+                            }
+
+                            return {
+                                question_id: qData.id,
+                                text: c.text.trim(),
+                                is_correct: isCorrect,
+                                order: i
+                            }
+                        })
 
                     if (choicesToInsert.length > 0) {
                         const { error: choicesError } = await supabase
@@ -358,6 +367,12 @@
         } finally {
             loading.value = false
         }
+    }
+    const setCorrectChoice = (qIndex, cIndex) => {
+        // Для radio - сбрасываем все и ставим только выбранный
+        survey.value.questions[qIndex].choices.forEach((c, i) => {
+            c.is_correct = (i === cIndex)
+        })
     }
 </script>
 
