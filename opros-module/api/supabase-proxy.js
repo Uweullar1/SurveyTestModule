@@ -2,8 +2,11 @@ export default async function handler(req, res) {
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-    // Отрезаем всё, что до /rest/v1 или /auth/v1
-    const path = req.url.split('/api/supabase-proxy')[1] || '/';
+    // Берем путь либо из query (от vercel.json), либо из самого URL
+    const queryPath = req.query.path;
+    const urlPath = req.url.split('/api/supabase-proxy')[1];
+    const path = queryPath ? `/${queryPath}` : (urlPath || '/');
+
     const fullUrl = `${SUPABASE_URL}${path}`;
 
     try {
@@ -15,12 +18,19 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json',
                 'Prefer': req.headers.prefer || ''
             },
-            body: (req.method !== 'GET' && req.method !== 'HEAD') ? JSON.stringify(req.body) : undefined
+            body: (req.method !== 'GET' && req.method !== 'HEAD')
+                ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+                : undefined
         });
 
-        const data = await response.json();
-        res.status(response.status).json(data);
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            return res.status(response.status).json(data);
+        } catch (e) {
+            return res.status(response.status).send(text);
+        }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message, target: fullUrl });
     }
 }
