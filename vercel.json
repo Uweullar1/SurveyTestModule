@@ -2,11 +2,8 @@
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
-            "destination": "/opros-modul/api/supabase-proxy.js"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/opros-modul/dist/index.html"
+            "destination": "/api/supabase-proxy"
         }
     ]
+}
 }
