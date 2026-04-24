@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     }
     path = '/' + path;
 
-    // Добавляем query параметры (кроме path)
+    // Добавляем query параметры
     const searchParams = new URLSearchParams();
     for (const [key, value] of Object.entries(req.query)) {
         if (key !== 'path') {
@@ -32,19 +32,21 @@ export default async function handler(req, res) {
     const targetUrl = `${SUPABASE_URL}${path}`;
 
     try {
-        // Заголовки запроса к Supabase
         const fetchHeaders = {
             'apikey': SUPABASE_KEY,
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
             'Content-Type': req.headers['content-type'] || 'application/json',
+            // ВАЖНО! Говорим Supabase не сжимать ответ
+            'Accept-Encoding': 'identity',
         };
 
         if (req.headers.prefer) fetchHeaders['Prefer'] = req.headers.prefer;
-        if (req.headers['x-client-info']) fetchHeaders['x-client-info'] = req.headers['x-client-info'];
 
         const fetchOptions = {
             method: req.method,
             headers: fetchHeaders,
+            // Отключаем сжатие
+            compress: false,
         };
 
         if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
@@ -53,18 +55,26 @@ export default async function handler(req, res) {
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Копируем ВСЕ заголовки ответа
+        // Получаем текст
+        const responseText = await response.text();
+
+        // Устанавливаем ТОЛЬКО нужные заголовки (без Content-Encoding)
+        const allowedHeaders = [
+            'content-type',
+            'content-length',
+            'date',
+            'x-supabase-api-version'
+        ];
+
         response.headers.forEach((value, key) => {
-            // Не копируем проблемные заголовки
-            if (!['transfer-encoding', 'connection', 'keep-alive'].includes(key.toLowerCase())) {
+            if (allowedHeaders.includes(key.toLowerCase())) {
                 res.setHeader(key, value);
             }
         });
 
-        // Получаем тело ответа
-        const responseText = await response.text();
+        // Явно указываем НЕ сжатый ответ
+        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
 
-        // Отправляем ответ с правильным статусом
         return res.status(response.status).send(responseText);
 
     } catch (error) {
