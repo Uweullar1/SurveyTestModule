@@ -7,12 +7,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: {
         fetch: async (url, options) => {
-            // Магия: заменяем домен Supabase на наш локальный путь прокси
+            // Подставляем ВЕСЬ путь нашего прокси
             const proxyUrl = url.replace(
                 'https://vojascpwckvikdqlbfvy.supabase.co',
                 window.location.origin + '/api/supabase-proxy'
             );
-
             return fetch(proxyUrl, options);
         },
     },
