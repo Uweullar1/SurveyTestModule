@@ -1,25 +1,12 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "opros-module/package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "opros-module/dist"
-            }
-        }
-    ],
-    "routes": [
-        { "handle": "filesystem" },
-        {
-            "src": "/.*",
-            "dest": "/opros-module/dist/index.html"
-        }
-    ],
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
             "destination": "/api/supabase-proxy"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }

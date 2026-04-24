@@ -19,10 +19,13 @@ export default async function handler(req, res) {
                 'apikey': SUPABASE_KEY,
                 'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
                 'Content-Type': 'application/json',
-                // Передаем Prefer заголовки, если они есть (нужно для Supabase)
                 'Prefer': req.headers.prefer || ''
             },
-            body: (req.method !== 'GET' && req.method !== 'HEAD') ? JSON.stringify(req.body) : undefined
+            // Если тело уже объект (Vercel это делает сам), превращаем в строку.
+            // Если тела нет — оставляем undefined.
+            body: (req.method !== 'GET' && req.method !== 'HEAD')
+                ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+                : undefined
         });
 
         // Пытаемся получить данные. Если Supabase вернул не JSON, берем как текст
