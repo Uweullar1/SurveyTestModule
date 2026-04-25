@@ -2,6 +2,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Expose-Headers', 'content-range, content-length, x-supabase-api-version');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -20,37 +21,54 @@ export default async function handler(req, res) {
         const headers = {
             'apikey': SUPABASE_KEY,
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
-            // ЗАПРЕЩАЕМ сжатие!
-            'Accept-Encoding': 'identity',
         };
 
-        if (req.headers['content-type']) {
-            headers['Content-Type'] = req.headers['content-type'];
-        }
-        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
+        // Копируем все важные заголовки
+        ['content-type', 'prefer', 'x-upsert', 'accept'].forEach(h => {
+            if (req.headers[h]) headers[h] = req.headers[h];
+        });
 
         const fetchOptions = {
             method: req.method,
             headers: headers,
         };
 
-        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.body) {
-            fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        // Передаем тело запроса
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+            if (req.body) {
+                // Для multipart/form-data передаем как есть
+                if (typeof req.body === 'string') {
+                    fetchOptions.body = req.body;
+                } else {
+                    fetchOptions.body = JSON.stringify(req.body);
+                    headers['Content-Type'] = 'application/json';
+                }
+            }
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Получаем ТЕКСТ ответа
+        // Получаем ответ как текст
         const text = await response.text();
 
-        // Устанавливаем ТОЛЬКО нужные заголовки
-        res.setHeader('Content-Type', 'application/json');
-        // НЕ копируем Content-Encoding!
+        // Копируем заголовки ответа
+        const responseHeaders = [
+            'content-type', 'content-range', 'content-length',
+            'x-supabase-api-version', 'location'
+        ];
+
+        responseHeaders.forEach(h => {
+            const val = response.headers.get(h);
+            if (val) res.setHeader(h, val);
+        });
 
         return res.status(response.status).send(text);
 
     } catch (error) {
-        console.error('Proxy error:', error);
-        return res.status(500).json({ error: error.message });
+        console.error('Proxy error:', error.message, targetUrl);
+        return res.status(500).json({
+            error: error.message,
+            url: targetUrl
+        });
     }
 }
