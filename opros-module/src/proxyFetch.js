@@ -7,11 +7,9 @@ window.fetch = async function (input, init) {
     if (input instanceof Request) {
         url = input.url;
         options.method = options.method || input.method;
-        // Сохраняем тело запроса
         if (input.body && !options.body) {
             options.body = input.body;
         }
-        // Сохраняем заголовки
         const reqHeaders = {};
         input.headers.forEach((val, key) => {
             if (!options.headers || !options.headers[key]) {
@@ -31,11 +29,18 @@ window.fetch = async function (input, init) {
         url = `${window.location.origin}/api/supabase-proxy${path}`;
     }
 
-    // Не устанавливаем Content-Type для FormData (браузер сам добавит с boundary)
+    // ВАЖНО: Для FormData не трогаем Content-Type!
     if (options.body instanceof FormData) {
-        const cleanHeaders = { ...options.headers };
-        delete cleanHeaders['Content-Type'];
-        options.headers = cleanHeaders;
+        // Удаляем Content-Type, браузер сам установит с boundary
+        if (options.headers) {
+            const cleanHeaders = {};
+            for (const key in options.headers) {
+                if (key.toLowerCase() !== 'content-type') {
+                    cleanHeaders[key] = options.headers[key];
+                }
+            }
+            options.headers = cleanHeaders;
+        }
     }
 
     return originalFetch(url, options);

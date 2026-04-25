@@ -2,7 +2,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Expose-Headers', 'content-range, content-length, x-supabase-api-version');
+    res.setHeader('Access-Control-Expose-Headers', '*');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -23,24 +23,27 @@ export default async function handler(req, res) {
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
         };
 
-        // Копируем все важные заголовки
-        ['content-type', 'prefer', 'x-upsert', 'accept'].forEach(h => {
-            if (req.headers[h]) headers[h] = req.headers[h];
-        });
+        // Копируем Content-Type (важно для multipart/form-data с boundary!)
+        if (req.headers['content-type']) {
+            headers['Content-Type'] = req.headers['content-type'];
+        }
+
+        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
+        if (req.headers['x-upsert']) headers['x-upsert'] = req.headers['x-upsert'];
 
         const fetchOptions = {
             method: req.method,
             headers: headers,
         };
 
-        // Передаем тело запроса
-        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-            if (req.body) {
-                // Для multipart/form-data передаем как есть
-                if (typeof req.body === 'string') {
-                    fetchOptions.body = req.body;
-                } else {
-                    fetchOptions.body = JSON.stringify(req.body);
+        // Передаем body
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.body) {
+            // Для FormData/файлов - передаем как сырые данные
+            if (typeof req.body === 'string') {
+                fetchOptions.body = req.body;
+            } else {
+                fetchOptions.body = JSON.stringify(req.body);
+                if (!headers['Content-Type']) {
                     headers['Content-Type'] = 'application/json';
                 }
             }
@@ -48,27 +51,19 @@ export default async function handler(req, res) {
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Получаем ответ как текст
-        const text = await response.text();
+        const buffer = await response.arrayBuffer();
 
         // Копируем заголовки ответа
-        const responseHeaders = [
-            'content-type', 'content-range', 'content-length',
-            'x-supabase-api-version', 'location'
-        ];
-
-        responseHeaders.forEach(h => {
-            const val = response.headers.get(h);
-            if (val) res.setHeader(h, val);
+        response.headers.forEach((value, key) => {
+            if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+                res.setHeader(key, value);
+            }
         });
 
-        return res.status(response.status).send(text);
+        return res.status(response.status).send(Buffer.from(buffer));
 
     } catch (error) {
-        console.error('Proxy error:', error.message, targetUrl);
-        return res.status(500).json({
-            error: error.message,
-            url: targetUrl
-        });
+        console.error('Proxy error:', error.message);
+        return res.status(500).json({ error: error.message });
     }
 }
