@@ -2,7 +2,6 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Expose-Headers', '*');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -21,49 +20,37 @@ export default async function handler(req, res) {
         const headers = {
             'apikey': SUPABASE_KEY,
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
+            // ЗАПРЕЩАЕМ сжатие!
+            'Accept-Encoding': 'identity',
         };
 
-        // Копируем Content-Type (важно для multipart/form-data с boundary!)
         if (req.headers['content-type']) {
             headers['Content-Type'] = req.headers['content-type'];
         }
-
         if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
-        if (req.headers['x-upsert']) headers['x-upsert'] = req.headers['x-upsert'];
 
         const fetchOptions = {
             method: req.method,
             headers: headers,
         };
 
-        // Передаем body
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.body) {
-            // Для FormData/файлов - передаем как сырые данные
-            if (typeof req.body === 'string') {
-                fetchOptions.body = req.body;
-            } else {
-                fetchOptions.body = JSON.stringify(req.body);
-                if (!headers['Content-Type']) {
-                    headers['Content-Type'] = 'application/json';
-                }
-            }
+            fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        const buffer = await response.arrayBuffer();
+        // Получаем ТЕКСТ ответа
+        const text = await response.text();
 
-        // Копируем заголовки ответа
-        response.headers.forEach((value, key) => {
-            if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-                res.setHeader(key, value);
-            }
-        });
+        // Устанавливаем ТОЛЬКО нужные заголовки
+        res.setHeader('Content-Type', 'application/json');
+        // НЕ копируем Content-Encoding!
 
-        return res.status(response.status).send(Buffer.from(buffer));
+        return res.status(response.status).send(text);
 
     } catch (error) {
-        console.error('Proxy error:', error.message);
+        console.error('Proxy error:', error);
         return res.status(500).json({ error: error.message });
     }
 }
