@@ -12,11 +12,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         detectSessionInUrl: true
     }
 })
-
-// Отдельный клиент ТОЛЬКО для storage (прямые запросы)
-export const supabaseStorage = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-    }
-})
