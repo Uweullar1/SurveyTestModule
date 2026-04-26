@@ -1,15 +1,17 @@
 const originalFetch = window.fetch;
 
-window.fetch = function (input, init) {
+window.fetch = async function (input, init) {
     let url;
     let options = { ...init };
 
     if (input instanceof Request) {
         url = input.url;
         options.method = options.method || input.method;
+        // Сохраняем тело запроса
         if (input.body && !options.body) {
             options.body = input.body;
         }
+        // Сохраняем заголовки
         const reqHeaders = {};
         input.headers.forEach((val, key) => {
             if (!options.headers || !options.headers[key]) {
@@ -23,12 +25,21 @@ window.fetch = function (input, init) {
         url = input.url || input.href;
     }
 
-    // Проксируем ВСЕ запросы к Supabase, включая storage
-    if (url.includes('supabase.co')) {
+        // НЕ проксируем storage запросы (для загрузки файлов)
+    if (url.includes('supabase.co') && !url.includes('/storage/')) {
         const urlObj = new URL(url);
         const path = urlObj.pathname + urlObj.search;
         url = `${window.location.origin}/api/supabase-proxy${path}`;
     }
+
+    // Не устанавливаем Content-Type для FormData (браузер сам добавит с boundary)
+    if (options.body instanceof FormData) {
+        const cleanHeaders = { ...options.headers };
+        delete cleanHeaders['Content-Type'];
+        options.headers = cleanHeaders;
+    }
+
+
 
     return originalFetch(url, options);
 };
