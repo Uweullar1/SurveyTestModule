@@ -10,11 +10,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         autoRefreshToken: true,
         detectSessionInUrl: true
     }
-});
-export const getAvatarUrl = (path) => {
-    if (!path) return null
-    // Если это уже полный URL с прокси — возвращаем как есть
-    if (path.includes('/api/supabase-proxy')) return path
-    // Иначе проксируем
-    return `${window.location.origin}/api/supabase-proxy/storage/v1/object/public/${path}`
-}
+})
