@@ -48,6 +48,15 @@ export default async function handler(req, res) {
 
         const response = await fetch(targetUrl, fetchOptions);
 
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('image/')) {
+            const buffer = await response.arrayBuffer();
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
+            return res.status(response.status).send(Buffer.from(buffer));
+        }
+
         // Получаем ответ как текст
         const text = await response.text();
 
