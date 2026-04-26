@@ -25,7 +25,8 @@ window.fetch = async function (input, init) {
         url = input.url || input.href;
     }
 
-    if (url.includes('supabase.co')) {
+    // НЕ проксируем storage запросы (для загрузки файлов)
+    if (url.includes('supabase.co') && !url.includes('/storage/')) {
         const urlObj = new URL(url);
         const path = urlObj.pathname + urlObj.search;
         url = `${window.location.origin}/api/supabase-proxy${path}`;
@@ -37,6 +38,8 @@ window.fetch = async function (input, init) {
         delete cleanHeaders['Content-Type'];
         options.headers = cleanHeaders;
     }
+
+
 
     return originalFetch(url, options);
 };
