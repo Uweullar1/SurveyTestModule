@@ -1,9 +1,8 @@
 export default async function handler(req, res) {
-    // CORS заголовки для всех
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Expose-Headers', 'content-type, content-length, content-range');
+    res.setHeader('Access-Control-Expose-Headers', '*');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -17,6 +16,7 @@ export default async function handler(req, res) {
     if (!path || path === '/') path = '/';
 
     const targetUrl = `${SUPABASE_URL}${path}`;
+    const isStorageRequest = path.includes('/storage/');
 
     try {
         const headers = {
@@ -24,14 +24,10 @@ export default async function handler(req, res) {
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
         };
 
-        // Копируем нужные заголовки
-        if (req.headers['content-type']) headers['Content-Type'] = req.headers['content-type'];
-        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
-
-        // Для GET запросов изображений не шлем Content-Type
-        if (req.method === 'GET') {
-            delete headers['Content-Type'];
+        if (req.headers['content-type']) {
+            headers['Content-Type'] = req.headers['content-type'];
         }
+        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
 
         const fetchOptions = {
             method: req.method,
@@ -43,30 +39,19 @@ export default async function handler(req, res) {
         }
 
         const response = await fetch(targetUrl, fetchOptions);
+        const responseContentType = response.headers.get('content-type') || '';
 
-        // Получаем тип контента
-        const contentType = response.headers.get('content-type') || 'application/json';
-
-        // Для изображений и файлов - возвращаем бинарный ответ
-        if (contentType.includes('image/') ||
-            contentType.includes('application/pdf') ||
-            contentType.includes('application/octet-stream') ||
-            path.includes('/storage/v1/object/')) {
-
+        // Для изображений — бинарный ответ
+        if (isStorageRequest && responseContentType.includes('image/')) {
             const buffer = await response.arrayBuffer();
-
-            // Устанавливаем правильные заголовки для кеширования
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-            res.setHeader('Content-Length', buffer.byteLength);
-
+            res.setHeader('Content-Type', responseContentType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
             return res.status(response.status).send(Buffer.from(buffer));
         }
 
-        // Для JSON ответов
+        // Для всего остального — текст
         const text = await response.text();
-        res.setHeader('Content-Type', contentType);
-
+        res.setHeader('Content-Type', responseContentType || 'application/json');
         return res.status(response.status).send(text);
 
     } catch (error) {
