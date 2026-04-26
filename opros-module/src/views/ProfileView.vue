@@ -197,78 +197,52 @@
 
 
     //Загрузка аватарок
-    const uploadAvatar = async (event) => {
-        const file = event.target.files[0]
-        if (!file) return
-
-        console.log('Выбран файл:', file.name, 'тип:', file.type)
-
-        // Строгая проверка на изображение
-        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png']
-        const allowedExtensions = ['jpg', 'jpeg', 'png']
-
-        if (!allowedMimeTypes.includes(file.type)) {
-            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png')
-            event.target.value = ''
-            return
-        }
-
-        const fileExt = file.name.split('.').pop().toLowerCase()
-        if (!allowedExtensions.includes(fileExt)) {
-            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png')
-            event.target.value = ''
-            return
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Файл слишком большой. Максимальный размер — 5 МБ')
-            event.target.value = ''
-            return
-        }
-
+    const uploadAvatar = async (file) => {
         try {
-            const { data: { user: currentUser } } = await supabase.auth.getUser()
-            if (!currentUser) {
-                alert('Вы должны быть авторизованы')
-                return
+            // Конвертируем файл в base64
+            const reader = new FileReader()
+
+            reader.onload = async (e) => {
+                const base64 = e.target.result.split(',')[1]
+                const fileName = `${Date.now()}-${file.name}`
+
+                // Загружаем через прокси как обычный JSON с base64
+                const response = await fetch(
+                    `${window.location.origin}/api/supabase-proxy/storage/v1/object/avatars/${fileName}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                        },
+                        body: JSON.stringify({
+                            file: base64,
+                            contentType: file.type
+                        })
+                    }
+                )
+
+                if (!response.ok) throw new Error('Upload failed')
+
+                // Получаем публичный URL
+                const avatarUrl = `${window.location.origin}/api/supabase-proxy/storage/v1/object/public/avatars/${fileName}`
+
+                // Обновляем профиль
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: avatarUrl })
+                    .eq('id', user.value.id)
+
+                if (updateError) throw updateError
+
+                profile.value.avatar_url = avatarUrl
             }
 
-            // Очищаем имя файла от опасных символов
-            const safeFileName = `${Date.now()}-${file.name
-                .replace(/[^a-zA-Z0-9.-]/g, '_')   // заменяем все плохие символы на _
-                .toLowerCase()}`
+            reader.readAsDataURL(file)
 
-            // Загружаем файл
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(safeFileName, file, {
-                    cacheControl: '3600',
-                    upsert: true
-                })
-
-            if (uploadError) throw uploadError
-
-            // Получаем публичный URL
-            const { data: urlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(safeFileName)
-
-            // Обновляем профиль
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ avatar_url: urlData.publicUrl })
-                .eq('id', currentUser.id)
-
-            if (updateError) throw updateError
-
-            alert('Аватарка успешно обновлена!')
-
-            // Обновляем превью сразу
-            avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
-
-        } catch (err) {
-            console.error('Ошибка загрузки аватарки:', err)
-            alert('Не удалось загрузить аватарку: ' + (err.message || 'Неизвестная ошибка'))
+        } catch (error) {
+            console.error('Ошибка загрузки аватарки:', error)
+            alert('Не удалось загрузить аватарку: ' + error.message)
         }
     }
 
