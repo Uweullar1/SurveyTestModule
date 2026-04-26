@@ -1,8 +1,9 @@
 export default async function handler(req, res) {
+    // CORS заголовки для всех
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Expose-Headers', 'content-range, content-length, x-supabase-api-version');
+    res.setHeader('Access-Control-Expose-Headers', 'content-type, content-length, content-range');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -23,61 +24,53 @@ export default async function handler(req, res) {
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
         };
 
-        // Копируем все важные заголовки
-        ['content-type', 'prefer', 'x-upsert', 'accept'].forEach(h => {
-            if (req.headers[h]) headers[h] = req.headers[h];
-        });
+        // Копируем нужные заголовки
+        if (req.headers['content-type']) headers['Content-Type'] = req.headers['content-type'];
+        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
+
+        // Для GET запросов изображений не шлем Content-Type
+        if (req.method === 'GET') {
+            delete headers['Content-Type'];
+        }
 
         const fetchOptions = {
             method: req.method,
             headers: headers,
         };
 
-        // Передаем тело запроса
-        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-            if (req.body) {
-                // Для multipart/form-data передаем как есть
-                if (typeof req.body === 'string') {
-                    fetchOptions.body = req.body;
-                } else {
-                    fetchOptions.body = JSON.stringify(req.body);
-                    headers['Content-Type'] = 'application/json';
-                }
-            }
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.body) {
+            fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        const contentType = response.headers.get('content-type') || '';
+        // Получаем тип контента
+        const contentType = response.headers.get('content-type') || 'application/json';
 
-        if (contentType.includes('image/')) {
+        // Для изображений и файлов - возвращаем бинарный ответ
+        if (contentType.includes('image/') ||
+            contentType.includes('application/pdf') ||
+            contentType.includes('application/octet-stream') ||
+            path.includes('/storage/v1/object/')) {
+
             const buffer = await response.arrayBuffer();
+
+            // Устанавливаем правильные заголовки для кеширования
             res.setHeader('Content-Type', contentType);
-            res.setHeader('Cache-Control', 'public, max-age=31536000');
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.setHeader('Content-Length', buffer.byteLength);
+
             return res.status(response.status).send(Buffer.from(buffer));
         }
 
-        // Получаем ответ как текст
+        // Для JSON ответов
         const text = await response.text();
-
-        // Копируем заголовки ответа
-        const responseHeaders = [
-            'content-type', 'content-range', 'content-length',
-            'x-supabase-api-version', 'location'
-        ];
-
-        responseHeaders.forEach(h => {
-            const val = response.headers.get(h);
-            if (val) res.setHeader(h, val);
-        });
+        res.setHeader('Content-Type', contentType);
 
         return res.status(response.status).send(text);
 
     } catch (error) {
-        console.error('Proxy error:', error.message, targetUrl);
-        return res.status(500).json({
-            error: error.message,
-            url: targetUrl
-        });
+        console.error('Proxy error:', error.message);
+        return res.status(500).json({ error: error.message });
     }
 }
