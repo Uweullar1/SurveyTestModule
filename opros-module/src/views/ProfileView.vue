@@ -120,7 +120,7 @@
 
 <script setup>
     import { ref, onMounted, computed } from 'vue'
-    import { supabase, supabaseStorage } from '../supabase'
+    import { supabase } from '../supabase'
     import { useRouter } from 'vue-router'
     import { profileRules } from '../utils/validation.js'
 
@@ -239,7 +239,7 @@
                 .toLowerCase()}`
 
             // Загружаем файл
-            const { error: uploadError } = await supabaseStorage.storage
+            const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(safeFileName, file, {
                     cacheControl: '3600',
@@ -249,7 +249,7 @@
             if (uploadError) throw uploadError
 
             // Получаем публичный URL
-            const { data: urlData } = supabaseStorage.storage
+            const { data: urlData } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(safeFileName)
 

@@ -2,7 +2,6 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Expose-Headers', 'content-range, content-length, x-supabase-api-version');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -23,52 +22,59 @@ export default async function handler(req, res) {
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
         };
 
-        // Копируем все важные заголовки
-        ['content-type', 'prefer', 'x-upsert', 'accept'].forEach(h => {
-            if (req.headers[h]) headers[h] = req.headers[h];
-        });
+        // Для загрузки файлов важно передать правильный Content-Type
+        if (req.headers['content-type']) {
+            headers['Content-Type'] = req.headers['content-type'];
+        }
+        if (req.headers.prefer) headers['Prefer'] = req.headers.prefer;
+        if (req.headers['x-upsert']) headers['x-upsert'] = req.headers['x-upsert'];
+        // Важно для загрузки файлов
+        if (req.headers['cache-control']) headers['Cache-Control'] = req.headers['cache-control'];
+        if (req.headers['content-length']) headers['Content-Length'] = req.headers['content-length'];
 
         const fetchOptions = {
             method: req.method,
             headers: headers,
         };
 
-        // Передаем тело запроса
+        // Для запросов с телом
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
             if (req.body) {
-                // Для multipart/form-data передаем как есть
+                // Если это строка (JSON) - передаем как есть
                 if (typeof req.body === 'string') {
                     fetchOptions.body = req.body;
-                } else {
+                }
+                // Если это объект (распаршенный JSON) - преобразуем обратно
+                else if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
                     fetchOptions.body = JSON.stringify(req.body);
                     headers['Content-Type'] = 'application/json';
+                }
+                // Если это Buffer или что-то еще - передаем как есть
+                else {
+                    fetchOptions.body = req.body;
                 }
             }
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Получаем ответ как текст
+        const contentType = response.headers.get('content-type') || '';
+
+        // Для изображений возвращаем бинарные данные
+        if (contentType.includes('image/') || contentType.includes('application/octet-stream')) {
+            const buffer = await response.arrayBuffer();
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
+            return res.status(response.status).send(Buffer.from(buffer));
+        }
+
+        // Для всего остального
         const text = await response.text();
-
-        // Копируем заголовки ответа
-        const responseHeaders = [
-            'content-type', 'content-range', 'content-length',
-            'x-supabase-api-version', 'location'
-        ];
-
-        responseHeaders.forEach(h => {
-            const val = response.headers.get(h);
-            if (val) res.setHeader(h, val);
-        });
-
+        res.setHeader('Content-Type', contentType || 'application/json');
         return res.status(response.status).send(text);
 
     } catch (error) {
-        console.error('Proxy error:', error.message, targetUrl);
-        return res.status(500).json({
-            error: error.message,
-            url: targetUrl
-        });
+        console.error('Proxy error:', error);
+        return res.status(500).json({ error: error.message });
     }
 }
