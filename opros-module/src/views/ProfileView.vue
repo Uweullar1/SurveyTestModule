@@ -52,12 +52,15 @@
                 </div>
                 <div class="form-group">
                     <label>Департамент</label>
-                    <select v-model="profile.department_id" class="minimal-input">
-                        <option value="">Не выбран</option>
-                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                            {{ dept.name }}
-                        </option>
-                    </select>
+                    <div class="select-wrapper">
+                        <select v-model="profile.department_id" class="profile-select">
+                            <option value="">Не выбран</option>
+                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                                {{ dept.name }}
+                            </option>
+                        </select>
+                        <span class="select-arrow">▾</span>
+                    </div>
                 </div>
                 <!-- Email -->
                 <div class="form-group">
@@ -711,5 +714,59 @@
         border-radius: 8px;
         font-size: 0.9rem;
         cursor: pointer;
+    }
+
+    /* Обертка селекта */
+    .select-wrapper {
+        position: relative;
+        width: 100%;
+        height: 60px;
+    }
+
+    .profile-select {
+        width: 100%;
+        height: 60px;
+        padding: 0 50px 0 20px;
+        border: 3px solid #212844;
+        border-radius: 20px;
+        background: #FDFDF1;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #212844;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        .profile-select:focus {
+            outline: none;
+            border-color: #DF2935;
+            box-shadow: 4px 4px 0px rgba(33, 40, 68, 0.1);
+        }
+
+        .profile-select option {
+            background: #FDFDF1;
+            color: #212844;
+            font-weight: 600;
+            padding: 12px;
+        }
+
+    /* Стрелка */
+    .select-arrow {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 1.2rem;
+        color: #212844;
+        font-weight: 900;
+        transition: transform 0.2s;
+    }
+
+    .select-wrapper:hover .select-arrow {
+        transform: translateY(-50%) rotate(180deg);
     }
 </style>
