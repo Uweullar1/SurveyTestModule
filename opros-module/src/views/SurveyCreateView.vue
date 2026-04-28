@@ -128,9 +128,10 @@
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
-    import DepartmentSelect from '../components/DepartmentSelect.vue'
 
     const router = useRouter()
+    const route = useRoute()  // ← ДОБАВЬ ЭТО
+
     const departments = ref([])
     const loading = ref(false)
     const isEditMode = ref(false)
@@ -148,6 +149,12 @@
         department_id: '',
         questions: []
     })
+
+    // Загрузка департаментов
+    const loadDepartments = async () => {
+        const { data } = await supabase.from('departments').select('*').order('name')
+        departments.value = data || []
+    }
 
     // Загрузка опроса для редактирования
     const loadSurveyForEdit = async () => {
@@ -213,7 +220,6 @@
                     is_correct: c.is_correct === true || c.is_correct === 'true'
                 }))
 
-            // ВАЖНО: Для radio типа убеждаемся что только один правильный
             if (q.question_type === 'radio' && questionChoices.length > 0) {
                 const correctIndex = questionChoices.findIndex(c => c.is_correct)
                 if (correctIndex >= 0) {
@@ -232,13 +238,14 @@
                     : [{ text: '', is_correct: false }]
             }
         })
-
     }
 
     onMounted(async () => {
         const { data: { user: u } } = await supabase.auth.getUser()
         user.value = u
         if (!u) return router.push('/login')
+
+        await loadDepartments()  // ← ВЫЗЫВАЕМ здесь
 
         if (route.params.id) {
             await loadSurveyForEdit()
@@ -250,13 +257,8 @@
                 choices: [{ text: '', is_correct: false }]
             }]
         }
-        const loadDepartments = async () => {
-            const { data } = await supabase.from('departments').select('*').order('name')
-            departments.value = data || []
-        }
     })
 
-    // Добавление вопроса
     const addQuestion = (type) => {
         survey.value.questions.push({
             id: Date.now() + Math.random(),
@@ -266,23 +268,25 @@
         })
     }
 
-    // Удаление вопроса
     const removeQuestion = (index) => {
         if (survey.value.questions.length > 1) survey.value.questions.splice(index, 1)
     }
 
-    // Добавление варианта ответа
     const addChoice = (qIndex) => {
         survey.value.questions[qIndex].choices.push({ text: '', is_correct: false })
     }
 
-    // Удаление варианта ответа
     const removeChoice = (qIndex, cIndex) => {
         if (survey.value.questions[qIndex].choices.length > 1)
             survey.value.questions[qIndex].choices.splice(cIndex, 1)
     }
 
-    // Сохранение опроса
+    const setCorrectChoice = (qIndex, cIndex) => {
+        survey.value.questions[qIndex].choices.forEach((c, i) => {
+            c.is_correct = (i === cIndex)
+        })
+    }
+
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
 
@@ -301,7 +305,7 @@
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
                 is_closed: !!survey.value.is_closed,
-                department_id: survey.value.department_id || null 
+                department_id: survey.value.department_id || null
             }
 
             let savedId = surveyId.value
@@ -331,7 +335,6 @@
                 savedId = data.id
             }
 
-            // Создаем вопросы с вариантами
             for (const [order, q] of survey.value.questions.entries()) {
                 if (!q.text?.trim()) continue
 
@@ -348,21 +351,16 @@
 
                 if (qError) throw qError
 
-                // Сохраняем варианты ответов
                 if (q.choices && q.choices.length > 0) {
                     const choicesToInsert = q.choices
                         .filter(c => c.text?.trim())
                         .map((c, i) => {
-                            // ВАЖНО: Для radio только первый отмеченный правильный
                             let isCorrect = false
                             if (q.type === 'radio') {
-                                // Для radio - только один правильный (первый отмеченный)
                                 isCorrect = (i === q.choices.findIndex(ch => ch.is_correct))
                             } else if (q.type === 'checkbox') {
-                                // Для checkbox - все отмеченные правильные
                                 isCorrect = Boolean(c.is_correct)
                             }
-
                             return {
                                 question_id: qData.id,
                                 text: c.text.trim(),
@@ -390,12 +388,6 @@
         } finally {
             loading.value = false
         }
-    }
-    const setCorrectChoice = (qIndex, cIndex) => {
-        // Для radio - сбрасываем все и ставим только выбранный
-        survey.value.questions[qIndex].choices.forEach((c, i) => {
-            c.is_correct = (i === cIndex)
-        })
     }
 </script>
 
