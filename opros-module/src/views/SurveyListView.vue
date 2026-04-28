@@ -12,7 +12,7 @@
                     <div class="survey-card" @click="handleCardClick(survey)">
                         <div class="card-deco"></div>
                         <div class="card-content">
-                            <span class="badge">ОПРОС</span>
+                            <span class="badge">ОПРОС {{ survey.departments.name }}</span>
                             <span v-if="survey.departments?.name" class="badge bg-light text-dark border">
                                 {{ survey.departments.name }}
                             </span>
