@@ -21,7 +21,9 @@
 
                             <div class="card-footer">
                                 <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-
+                                <span v-if="survey.departments?.name" class="badge bg-secondary ms-2">
+                                    {{ survey.departments.name }}
+                                </span>
                                 <button v-if="user && survey.user_id === user.id"
                                         @click.stop="goToResults(survey.id)"
                                         class="admin-btn">
@@ -50,8 +52,8 @@
     const user = ref(null)
     const surveys = ref([])
     const loading = ref(true)
-    
-    const selectedDepartment = ref('')
+    const userDepartmentId = ref(null)
+
 
     const goToLogin = () => router.push('/login')
 
@@ -93,30 +95,55 @@
             loading.value = false
         }
     }
-    // ← Следим за изменением фильтра
-    watch(selectedDepartment, () => loadSurveys())
 
     onMounted(async () => {
-        // Получаем текущего пользователя
         const { data: { session } } = await supabase.auth.getSession()
         user.value = session?.user ?? null
 
-        // Если пользователь НЕ авторизован — сразу отправляем на страницу входа
         if (!user.value) {
             router.push('/login')
             return
         }
 
+        loading.value = true
+
         try {
-            // Загружаем опросы: публичные + свои (включая приватные)
-            const { data, error } = await supabase
+            // Получаем департамент пользователя
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('department_id')
+                .eq('id', user.value.id)
+                .single()
+
+            userDepartmentId.value = profile?.department_id || null
+
+            // Загружаем опросы:
+            // 1. Все публичные опросы своего департамента
+            // 2. Все свои опросы (включая приватные)
+            let query = supabase
                 .from('surveys')
-                .select('*')
-                .or(`is_private.eq.false, user_id.eq.${user.value?.id || '00000000-0000-0000-0000-000000000000'}`)
+                .select(`
+                *,
+                departments (name)
+            `)
                 .order('created_at', { ascending: false })
 
-            if (error) throw error
+            if (userDepartmentId.value) {
+                // Показываем опросы своего департамента (публичные) ИЛИ свои опросы
+                query = query.or(
+                    `and(is_private.eq.false,department_id.eq.${userDepartmentId.value}),` +
+                    `user_id.eq.${user.value.id}`
+                )
+            } else {
+                // Если департамент не указан — показываем все публичные + свои
+                query = query.or(
+                    `is_private.eq.false,user_id.eq.${user.value.id}`
+                )
+            }
 
+            const { data, error } = await query
+
+            if (error) throw error
             surveys.value = data || []
         } catch (e) {
             console.error('Ошибка загрузки опросов:', e)
