@@ -12,10 +12,12 @@
                     <div class="survey-card" @click="handleCardClick(survey)">
                         <div class="card-deco"></div>
                         <div class="card-content">
-                            <span class="badge">ОПРОС {{ survey.departments.name }}</span>
-                            <span v-if="survey.departments?.name" class="badge bg-light text-dark border">
-                                {{ survey.departments.name }}
-                            </span>
+                            <div class="title-row">
+                                <span class="survey-label">ОПРОС</span>
+                                <span v-if="survey.departments?.name" class="department-badge">
+                                    {{ survey.departments.name }}
+                                </span>
+                            </div>
                                 <h3 class="survey-title">{{ survey.title }}</h3>
                                 <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
@@ -200,6 +202,31 @@
                 background: #F2C4CE; /* Можно менять цвет тени при наведении для фана */
             }
 
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .survey-label {
+        font-size: 0.65rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        color: #212844;
+        opacity: 0.5;
+    }
+    .department-badge {
+        background: #B0D7FF;
+        color: #212844;
+        border: 1.5px solid #212844;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
     .card-deco {
         position: absolute;
         top: 10px;
