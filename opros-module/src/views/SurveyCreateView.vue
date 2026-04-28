@@ -131,8 +131,7 @@
     import DepartmentSelect from '../components/DepartmentSelect.vue'
 
     const router = useRouter()
-    const route = useRoute()
-
+    const departments = ref([])
     const loading = ref(false)
     const isEditMode = ref(false)
     const surveyId = ref(null)
@@ -233,6 +232,7 @@
                     : [{ text: '', is_correct: false }]
             }
         })
+
     }
 
     onMounted(async () => {
@@ -249,6 +249,10 @@
                 type: 'radio',
                 choices: [{ text: '', is_correct: false }]
             }]
+        }
+        const loadDepartments = async () => {
+            const { data } = await supabase.from('departments').select('*').order('name')
+            departments.value = data || []
         }
     })
 
