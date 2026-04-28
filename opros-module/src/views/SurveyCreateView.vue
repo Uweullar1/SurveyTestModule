@@ -35,6 +35,12 @@
             </div>
         </div>
 
+        <!-- Департамент -->
+        <div class="settings-section">
+            <h3 class="section-title">Привязка к департаменту</h3>
+            <DepartmentSelect v-model="survey.department_id" />
+        </div>
+
         <!-- Вопросы -->
         <div class="questions-list">
             <div v-for="(question, qIndex) in survey.questions" :key="question.id" class="question-item">
@@ -114,6 +120,7 @@
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
+    import DepartmentSelect from '../components/DepartmentSelect.vue'
 
     const router = useRouter()
     const route = useRoute()
@@ -131,6 +138,7 @@
         is_closed: false,
         max_responses: 0,
         expires_at: null,
+        department_id: '',
         questions: []
     })
 
@@ -187,6 +195,7 @@
         survey.value.is_closed = !!surveyData.is_closed
         survey.value.max_responses = surveyData.max_responses || 0
         survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
+        survey.value.department_id = surveyData.department_id || ''
 
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
@@ -279,7 +288,8 @@
                 show_correct_answers: !!survey.value.show_correct_answers,
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
-                is_closed: !!survey.value.is_closed
+                is_closed: !!survey.value.is_closed,
+                department_id: survey.value.department_id || null 
             }
 
             let savedId = surveyId.value

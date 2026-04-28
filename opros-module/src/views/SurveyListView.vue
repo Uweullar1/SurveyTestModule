@@ -13,6 +13,9 @@
                         <div class="card-deco"></div>
                         <div class="card-content">
                             <span class="badge">ОПРОС</span>
+                            <div class="filter-bar mb-4">
+                                <DepartmentSelect v-model="selectedDepartment" />
+                            </div>
                             <h3 class="survey-title">{{ survey.title }}</h3>
                             <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
@@ -38,15 +41,17 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, watch } from 'vue'
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
+    import DepartmentSelect from '../components/DepartmentSelect.vue'
 
     const router = useRouter()
     const user = ref(null)
     const surveys = ref([])
     const loading = ref(true)
-
+    
+    const selectedDepartment = ref('')
 
     const goToLogin = () => router.push('/login')
 
@@ -65,6 +70,31 @@
             router.push(`/take/${survey.id}`)
         }
     }
+    const loadSurveys = async () => {
+        loading.value = true
+        try {
+            let query = supabase
+                .from('surveys')
+                .select('*')
+                .or(`is_private.eq.false, user_id.eq.${user.value?.id || '00000000-0000-0000-0000-000000000000'}`)
+                .order('created_at', { ascending: false })
+
+            // ← Фильтр по департаменту
+            if (selectedDepartment.value) {
+                query = query.eq('department_id', selectedDepartment.value)
+            }
+
+            const { data, error } = await query
+            if (error) throw error
+            surveys.value = data || []
+        } catch (e) {
+            console.error('Ошибка загрузки опросов:', e)
+        } finally {
+            loading.value = false
+        }
+    }
+    // ← Следим за изменением фильтра
+    watch(selectedDepartment, () => loadSurveys())
 
     onMounted(async () => {
         // Получаем текущего пользователя

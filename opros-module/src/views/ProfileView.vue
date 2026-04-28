@@ -50,7 +50,15 @@
                         {{ formErrors.username }}
                     </div>
                 </div>
-
+                <div class="form-group">
+                    <label>Департамент</label>
+                    <select v-model="profile.department_id" class="minimal-input">
+                        <option value="">Не выбран</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                            {{ dept.name }}
+                        </option>
+                    </select>
+                </div>
                 <!-- Email -->
                 <div class="form-group">
                     <label>Email</label>
@@ -124,12 +132,15 @@
     import { useRouter } from 'vue-router'
     import { profileRules } from '../utils/validation.js'
 
+    const departments = ref([])
+
     const router = useRouter()
 
     const profile = ref({
         first_name: '',
         last_name: '',
-        username: ''
+        username: '',
+        department_id: ''
     })
 
     const currentEmail = ref('')
@@ -167,7 +178,7 @@
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('first_name, last_name, username, avatar_url')
+                .select('first_name, last_name, username, avatar_url, department_id') 
                 .eq('id', user.id)
                 .single()
 
@@ -186,13 +197,18 @@
                 profile.value.first_name = data.first_name || ''
                 profile.value.last_name = data.last_name || ''
                 profile.value.username = data.username || ''
+                profile.value.department_id = data.department_id || ''
                 if (data.avatar_url) avatarPreview.value = data.avatar_url
             }
+            const { data: depts } = await supabase.from('departments').select('*')
+            departments.value = depts || []
+
         } catch (err) {
             console.error(err)
             alert('Ошибка загрузки профиля')
             router.push('/login')
         }
+
     })
 
 
@@ -297,6 +313,7 @@
                     first_name: profile.value.first_name.trim(),
                     last_name: profile.value.last_name.trim(),
                     username: profile.value.username.trim()
+                    department_id: profile.value.department_id || null
                 })
                 .eq('id', user.id)
 
