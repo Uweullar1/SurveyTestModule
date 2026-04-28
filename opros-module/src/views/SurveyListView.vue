@@ -13,27 +13,24 @@
                         <div class="card-deco"></div>
                         <div class="card-content">
                             <span class="badge">ОПРОС</span>
-                            <div class="filter-bar mb-4">
-                                <DepartmentSelect v-model="selectedDepartment" />
-                            </div>
-                            <h3 class="survey-title">{{ survey.title }}</h3>
-                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                            <span v-if="survey.departments?.name" class="badge bg-light text-dark border">
+                                {{ survey.departments.name }}
+                            </span>
+                                <h3 class="survey-title">{{ survey.title }}</h3>
+                                <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
-                            <div class="card-footer">
-                                <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                <span v-if="survey.departments?.name" class="badge bg-secondary ms-2">
-                                    {{ survey.departments.name }}
-                                </span>
-                                <button v-if="user && survey.user_id === user.id"
-                                        @click.stop="goToResults(survey.id)"
-                                        class="admin-btn">
-                                    Результаты
-                                </button>
+                                <div class="card-footer">
+                                    <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                    <button v-if="user && survey.user_id === user.id"
+                                            @click.stop="goToResults(survey.id)"
+                                            class="admin-btn">
+                                        Результаты
+                                    </button>
 
-                                <span v-else class="open-btn">
-                                    Открыть →
-                                </span>
-                            </div>
+                                    <span v-else class="open-btn">
+                                        Открыть →
+                                    </span>
+                                </div>
                         </div>
                     </div>
                 </div>
