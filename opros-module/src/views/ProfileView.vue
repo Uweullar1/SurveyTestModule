@@ -312,7 +312,7 @@
                 .update({
                     first_name: profile.value.first_name.trim(),
                     last_name: profile.value.last_name.trim(),
-                    username: profile.value.username.trim()
+                    username: profile.value.username.trim(),
                     department_id: profile.value.department_id || null
                 })
                 .eq('id', user.id)
