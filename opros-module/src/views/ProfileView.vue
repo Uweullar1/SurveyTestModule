@@ -727,7 +727,7 @@
         width: 100%;
         height: 60px;
         padding: 0 50px 0 20px;
-        border: 3px solid #212844;
+        border: 2px solid #212844;
         border-radius: 20px;
         background: #FDFDF1;
         font-size: 1.1rem;

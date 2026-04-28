@@ -16,6 +16,20 @@
         <!-- Настройки -->
         <div class="settings-section">
             <h3 class="section-title">Настройки публикации и доступа</h3>
+
+            <div class="setting-row dept-row">
+                <label class="setting-label">Департамент</label>
+                <div class="dept-select-wrapper">
+                    <select v-model="survey.department_id" class="dept-select">
+                        <option value="">Все департаменты</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                            {{ dept.name }}
+                        </option>
+                    </select>
+                    <span class="dept-arrow">▾</span>
+                </div>
+            </div>
+
             <div class="setting-row">
                 <label><input type="checkbox" v-model="survey.is_private"> Приватный опрос (доступен только по прямой ссылке)</label>
             </div>
@@ -33,12 +47,6 @@
             <div class="setting-row">
                 <label><input type="checkbox" v-model="survey.is_closed"> Закрыть опрос (никто не сможет его пройти, кроме создателя)</label>
             </div>
-        </div>
-
-        <!-- Департамент -->
-        <div class="settings-section">
-            <h3 class="section-title">Привязка к департаменту</h3>
-            <DepartmentSelect v-model="survey.department_id" />
         </div>
 
         <!-- Вопросы -->
@@ -716,4 +724,68 @@
             font-weight: 600;
             color: #212844;
         }
+
+    .dept-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 8px;
+        margin-bottom: 22px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid rgba(33, 40, 68, 0.1);
+    }
+
+    .setting-label {
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: #212844;
+        opacity: 0.7;
+    }
+
+    .dept-select-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .dept-select {
+        width: 100%;
+        height: 48px;
+        padding: 0 40px 0 16px;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        background: white;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #212844;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        .dept-select:focus {
+            outline: none;
+            border-color: #DF2935;
+            box-shadow: 3px 3px 0px rgba(33, 40, 68, 0.08);
+        }
+
+        .dept-select option {
+            background: white;
+            color: #212844;
+            font-weight: 500;
+        }
+
+    .dept-arrow {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.9rem;
+        color: #212844;
+        font-weight: 900;
+    }
 </style>
