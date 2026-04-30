@@ -56,8 +56,7 @@
                     <div class="select-wrapper">
                         <select v-model="profile.department_id"
                                 class="profile-select"
-                                :disabled="!isAdmin"  <!-- ← Только админ может менять -->
-        >
+                                :disabled="!isAdmin">
                         <option value="">Не выбран</option>
                         <option v-for="dept in departments" :key="dept.id" :value="dept.id">
                             {{ dept.name }}
@@ -211,14 +210,12 @@
             const { data: depts } = await supabase.from('departments').select('*')
             departments.value = depts || []
 
-            const checkAdmin = async () => {
-                const { data } = await supabase
-                    .from('admins')
-                    .select('user_id')
-                    .eq('user_id', user.id)
-                    .single()
-                isAdmin.value = !!data
-            }
+            const { data: adminData } = await supabase
+                .from('admins')
+                .select('user_id')
+                .eq('user_id', user.id)
+                .single()
+            isAdmin.value = !!adminData
 
         } catch (err) {
             console.error(err)
