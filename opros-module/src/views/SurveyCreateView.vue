@@ -195,7 +195,6 @@
     const applyTemplate = (tmpl) => {
         if (!confirm(`Применить шаблон "${tmpl.title}"?\nТекущие вопросы будут заменены.`)) return
 
-        // Если questions уже объект — используем как есть, иначе парсим
         const questions = typeof tmpl.questions === 'string'
             ? JSON.parse(tmpl.questions)
             : tmpl.questions
@@ -203,16 +202,25 @@
         survey.value.title = tmpl.title
         survey.value.description = tmpl.description || ''
         survey.value.department_id = tmpl.department_id || ''
+
         survey.value.questions = questions.map(q => ({
             id: Date.now() + Math.random(),
             text: q.text,
             type: q.type,
-            choices: q.choices?.map(c => ({
-                id: Date.now() + Math.random(),
-                text: c.text,
-                is_correct: c.is_correct || false
-            })) || []
+            choices: q.choices && q.choices.length > 0
+                ? q.choices.map(c => ({
+                    id: Date.now() + Math.random(),
+                    text: c.text,
+                    // ВАЖНО: сохраняем is_correct как есть (для чекбоксов все, для radio первый)
+                    is_correct: q.type === 'radio'
+                        ? (q.choices.findIndex(ch => ch.is_correct) === q.choices.indexOf(c))
+                        : (c.is_correct === true || c.is_correct === 'true')
+                }))
+                : (q.type === 'radio' || q.type === 'checkbox'
+                    ? [{ text: '', is_correct: false }]
+                    : [])
         }))
+
         showTemplates.value = false
     }
 
