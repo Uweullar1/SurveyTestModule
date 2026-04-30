@@ -7,6 +7,20 @@
             </div>
         </div>
 
+        <div v-if="!isEditMode" class="template-section">
+            <button @click="showTemplates = !showTemplates" class="btn-template">
+                📋 {{ showTemplates ? 'Скрыть шаблоны' : 'Выбрать готовый шаблон' }}
+            </button>
+
+            <div v-if="showTemplates" class="templates-grid">
+                <div v-for="tmpl in templates" :key="tmpl.id" class="template-card" @click="applyTemplate(tmpl)">
+                    <h4>{{ tmpl.title }}</h4>
+                    <p>{{ tmpl.description }}</p>
+                    <span class="template-questions">{{ JSON.parse(tmpl.questions).length }} вопросов</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Основная информация -->
         <div class="base-info-section">
             <input v-model="survey.title" type="text" placeholder="Заголовок опроса *" class="minimal-input title-field">
@@ -130,8 +144,10 @@
     import { supabase } from '../supabase'
 
     const router = useRouter()
-    const route = useRoute()  // ← ДОБАВЬ ЭТО
+    const route = useRoute() 
 
+    const templates = ref([])
+    const showTemplates = ref(false)
     const departments = ref([])
     const loading = ref(false)
     const isEditMode = ref(false)
@@ -149,6 +165,30 @@
         department_id: '',
         questions: []
     })
+
+    const loadTemplates = async () => {
+        const { data } = await supabase.from('templates').select('*')
+        templates.value = data || []
+    }
+    const applyTemplate = (tmpl) => {
+        if (!confirm(`Применить шаблон "${tmpl.title}"?\nТекущие вопросы будут заменены.`)) return
+
+        const questions = JSON.parse(tmpl.questions)
+        survey.value.title = tmpl.title
+        survey.value.description = tmpl.description || ''
+        survey.value.department_id = tmpl.department_id || ''
+        survey.value.questions = questions.map(q => ({
+            id: Date.now() + Math.random(),
+            text: q.text,
+            type: q.type,
+            choices: q.choices?.map(c => ({
+                id: Date.now() + Math.random(),
+                text: c.text,
+                is_correct: c.is_correct || false
+            })) || []
+        }))
+        showTemplates.value = false
+    }
 
     // Загрузка департаментов
     const loadDepartments = async () => {
@@ -246,6 +286,7 @@
         if (!u) return router.push('/login')
 
         await loadDepartments()  // ← ВЫЗЫВАЕМ здесь
+        await loadTemplates()
 
         if (route.params.id) {
             await loadSurveyForEdit()
@@ -783,5 +824,96 @@
         font-size: 0.9rem;
         color: #212844;
         font-weight: 900;
+    }
+    /* ===== ШАБЛОНЫ ===== */
+
+    /* Секция шаблонов */
+    .template-section {
+        margin-bottom: 50px;
+    }
+
+    .btn-template {
+        width: 100%;
+        background: white;
+        border: 2px dashed #212844;
+        padding: 16px 24px;
+        border-radius: 16px;
+        font-weight: 800;
+        font-size: 1rem;
+        color: #212844;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        letter-spacing: 0.3px;
+    }
+
+        .btn-template:hover {
+            border-style: solid;
+            background: #FDFDF1;
+            transform: translateY(-1px);
+        }
+
+    /* Сетка шаблонов */
+    .templates-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+        .templates-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Карточка шаблона */
+    .template-card {
+        position: relative;
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 18px;
+        padding: 22px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+        .template-card:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: 5px 5px 0px #B0D7FF;
+        }
+
+        .template-card h4 {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #212844;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+        }
+
+        .template-card p {
+            color: #666;
+            font-size: 0.8rem;
+            margin: 0 0 14px 0;
+            line-height: 1.4;
+            opacity: 0.7;
+        }
+
+    /* Счетчик вопросов */
+    .template-questions {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 900;
+        color: #212844;
+        opacity: 0.4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(33, 40, 68, 0.05);
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+
+    /* Кнопка сворачивания шаблонов */
+    .template-card:active {
+        transform: scale(0.98);
     }
 </style>
