@@ -199,27 +199,33 @@
             ? JSON.parse(tmpl.questions)
             : tmpl.questions
 
+        console.log('Шаблон questions:', JSON.stringify(questions, null, 2))
+
         survey.value.title = tmpl.title
         survey.value.description = tmpl.description || ''
         survey.value.department_id = tmpl.department_id || ''
 
-        survey.value.questions = questions.map(q => ({
-            id: Date.now() + Math.random(),
-            text: q.text,
-            type: q.type,
-            choices: q.choices && q.choices.length > 0
-                ? q.choices.map(c => ({
-                    id: Date.now() + Math.random(),
-                    text: c.text,
-                    // ВАЖНО: сохраняем is_correct как есть (для чекбоксов все, для radio первый)
-                    is_correct: q.type === 'radio'
-                        ? (q.choices.findIndex(ch => ch.is_correct) === q.choices.indexOf(c))
-                        : (c.is_correct === true || c.is_correct === 'true')
-                }))
-                : (q.type === 'radio' || q.type === 'checkbox'
-                    ? [{ text: '', is_correct: false }]
-                    : [])
-        }))
+        survey.value.questions = questions.map((q, qi) => {
+            console.log(`Вопрос ${qi}:`, q.text, 'тип:', q.type, 'choices:', q.choices)
+
+            return {
+                id: Date.now() + Math.random(),
+                text: q.text,
+                type: q.type,
+                choices: q.choices && q.choices.length > 0
+                    ? q.choices.map((c, ci) => {
+                        console.log(`  Вариант ${ci}:`, c.text, 'is_correct:', c.is_correct, typeof c.is_correct)
+                        return {
+                            id: Date.now() + Math.random(),
+                            text: c.text,
+                            is_correct: Boolean(c.is_correct)
+                        }
+                    })
+                    : (q.type === 'radio' || q.type === 'checkbox'
+                        ? [{ text: '', is_correct: false }]
+                        : [])
+            }
+        })
 
         showTemplates.value = false
     }
