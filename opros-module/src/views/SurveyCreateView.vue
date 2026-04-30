@@ -7,16 +7,38 @@
             </div>
         </div>
 
+        <!-- Выбор шаблона -->
         <div v-if="!isEditMode" class="template-section">
             <button @click="showTemplates = !showTemplates" class="btn-template">
-                📋 {{ showTemplates ? 'Скрыть шаблоны' : 'Выбрать готовый шаблон' }}
+                <span class="btn-template-icon">{{ showTemplates ? '✕' : '📋' }}</span>
+                <span>Выбрать готовый шаблон</span>
             </button>
 
-            <div v-if="showTemplates" class="templates-grid">
-                <div v-for="tmpl in templates" :key="tmpl.id" class="template-card" @click="applyTemplate(tmpl)">
-                    <h4>{{ tmpl.title }}</h4>
-                    <p>{{ tmpl.description }}</p>
-                    <span class="template-questions">{{ JSON.parse(tmpl.questions).length }} вопросов</span>
+            <!-- Выпадающая панель с шаблонами -->
+            <div v-if="showTemplates" class="templates-panel">
+                <p class="templates-hint">Выберите шаблон — заголовок, департамент и вопросы заполнятся автоматически</p>
+                <div class="templates-grid">
+                    <div v-for="tmpl in templates"
+                         :key="tmpl.id"
+                         class="template-card"
+                         @click="applyTemplate(tmpl)">
+                        <div class="template-card-header">
+                            <span class="template-icon">
+                                {{ tmpl.department_id ? '🏢' : '📝' }}
+                            </span>
+                            <span class="template-badge">
+                                {{ getDepartmentName(tmpl.department_id) || 'Общий' }}
+                            </span>
+                        </div>
+                        <h4 class="template-title">{{ tmpl.title }}</h4>
+                        <p class="template-desc">{{ tmpl.description || 'Нет описания' }}</p>
+                        <div class="template-footer">
+                            <span class="template-count">
+                                {{ typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions).length : tmpl.questions.length }} вопросов
+                            </span>
+                            <span class="template-arrow">→</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -173,7 +195,11 @@
     const applyTemplate = (tmpl) => {
         if (!confirm(`Применить шаблон "${tmpl.title}"?\nТекущие вопросы будут заменены.`)) return
 
-        const questions = JSON.parse(tmpl.questions)
+        // Если questions уже объект — используем как есть, иначе парсим
+        const questions = typeof tmpl.questions === 'string'
+            ? JSON.parse(tmpl.questions)
+            : tmpl.questions
+
         survey.value.title = tmpl.title
         survey.value.description = tmpl.description || ''
         survey.value.department_id = tmpl.department_id || ''
@@ -299,6 +325,12 @@
             }]
         }
     })
+
+    const getDepartmentName = (deptId) => {
+        if (!deptId) return null
+        const dept = departments.value.find(d => d.id === deptId)
+        return dept?.name || null
+    }
 
     const addQuestion = (type) => {
         survey.value.questions.push({
@@ -826,15 +858,17 @@
         font-weight: 900;
     }
     /* ===== ШАБЛОНЫ ===== */
-
-    /* Секция шаблонов */
     .template-section {
-        margin-bottom: 50px;
+        margin-bottom: 40px;
     }
 
     .btn-template {
         width: 100%;
-        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: #FDFDF1;
         border: 2px dashed #212844;
         padding: 16px 24px;
         border-radius: 16px;
@@ -843,21 +877,34 @@
         color: #212844;
         cursor: pointer;
         transition: all 0.2s ease;
-        letter-spacing: 0.3px;
     }
 
         .btn-template:hover {
             border-style: solid;
-            background: #FDFDF1;
+            background: white;
             transform: translateY(-1px);
         }
 
-    /* Сетка шаблонов */
+    .btn-template-icon {
+        font-size: 1.2rem;
+    }
+
+    .templates-hint {
+        font-size: 0.8rem;
+        color: #888;
+        margin: 16px 0 4px 4px;
+        font-style: italic;
+    }
+
+    .templates-panel {
+        margin-top: 16px;
+    }
+
     .templates-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-        margin-top: 20px;
+        gap: 14px;
+        margin-top: 12px;
     }
 
     @media (max-width: 600px) {
@@ -866,54 +913,91 @@
         }
     }
 
-    /* Карточка шаблона */
     .template-card {
-        position: relative;
         background: white;
         border: 2px solid #212844;
         border-radius: 18px;
-        padding: 22px;
+        padding: 20px;
         cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        flex-direction: column;
     }
 
         .template-card:hover {
-            transform: translate(-3px, -3px);
-            box-shadow: 5px 5px 0px #B0D7FF;
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px #B0D7FF;
         }
 
-        .template-card h4 {
-            font-weight: 800;
-            font-size: 1rem;
-            color: #212844;
-            margin: 0 0 6px 0;
-            line-height: 1.3;
+        .template-card:active {
+            transform: scale(0.98);
         }
 
-        .template-card p {
-            color: #666;
-            font-size: 0.8rem;
-            margin: 0 0 14px 0;
-            line-height: 1.4;
-            opacity: 0.7;
-        }
-
-    /* Счетчик вопросов */
-    .template-questions {
-        display: inline-block;
-        font-size: 0.7rem;
-        font-weight: 900;
-        color: #212844;
-        opacity: 0.4;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: rgba(33, 40, 68, 0.05);
-        padding: 4px 10px;
-        border-radius: 6px;
+    .template-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
     }
 
-    /* Кнопка сворачивания шаблонов */
-    .template-card:active {
-        transform: scale(0.98);
+    .template-icon {
+        font-size: 1.3rem;
+    }
+
+    .template-badge {
+        font-size: 0.6rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #212844;
+        opacity: 0.4;
+        background: rgba(33, 40, 68, 0.05);
+        padding: 3px 8px;
+        border-radius: 5px;
+    }
+
+    .template-title {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #212844;
+        margin: 0 0 6px 0;
+        line-height: 1.3;
+    }
+
+    .template-desc {
+        color: #888;
+        font-size: 0.75rem;
+        margin: 0 0 14px 0;
+        line-height: 1.4;
+        flex-grow: 1;
+    }
+
+    .template-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid rgba(33, 40, 68, 0.08);
+        padding-top: 10px;
+    }
+
+    .template-count {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #212844;
+        opacity: 0.5;
+    }
+
+    .template-arrow {
+        font-size: 1rem;
+        color: #212844;
+        font-weight: 700;
+        opacity: 0;
+        transform: translateX(-5px);
+        transition: all 0.2s;
+    }
+
+    .template-card:hover .template-arrow {
+        opacity: 1;
+        transform: translateX(0);
     }
 </style>
