@@ -50,18 +50,23 @@
                         {{ formErrors.username }}
                     </div>
                 </div>
+                <!-- Департамент -->
                 <div class="form-group">
                     <label>Департамент</label>
                     <div class="select-wrapper">
-                        <select v-model="profile.department_id" class="profile-select">
-                            <option value="">Не выбран</option>
-                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                                {{ dept.name }}
-                            </option>
+                        <select v-model="profile.department_id"
+                                class="profile-select"
+                                :disabled="!isAdmin"  <!-- ← Только админ может менять -->
+        >
+                        <option value="">Не выбран</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                            {{ dept.name }}
+                        </option>
                         </select>
-                        <span class="select-arrow">▾</span>
-                    </div>
-                </div>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+                                <p v-if="!isAdmin" class="dept-hint">Только администратор может изменить департамент</p>
+                     </div>
                 <!-- Email -->
                 <div class="form-group">
                     <label>Email</label>
@@ -136,7 +141,7 @@
     import { profileRules } from '../utils/validation.js'
 
     const departments = ref([])
-
+    const isAdmin = ref(false)
     const router = useRouter()
 
     const profile = ref({
@@ -205,6 +210,15 @@
             }
             const { data: depts } = await supabase.from('departments').select('*')
             departments.value = depts || []
+
+            const checkAdmin = async () => {
+                const { data } = await supabase
+                    .from('admins')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .single()
+                isAdmin.value = !!data
+            }
 
         } catch (err) {
             console.error(err)
@@ -768,5 +782,17 @@
 
     .select-wrapper:hover .select-arrow {
         transform: translateY(-50%) rotate(180deg);
+    }
+    .dept-hint {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 6px;
+        font-style: italic;
+    }
+
+    .profile-select:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        background: #f0f0f0;
     }
 </style>
