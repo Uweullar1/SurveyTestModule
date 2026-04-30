@@ -16,6 +16,18 @@
 
                             <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
                             <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
+
+                            <!-- Выбор департамента -->
+                            <div class="dept-select-wrapper">
+                                <select v-model="departmentId" class="auth-input auth-select">
+                                    <option value="">Выберите департамент</option>
+                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                                        {{ dept.name }}
+                                    </option>
+                                </select>
+                                <span class="dept-arrow">▾</span>
+                            </div>
+                            <div v-if="formErrors.departmentId" class="error-message">{{ formErrors.departmentId }}</div>
                         </template>
 
                         <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
@@ -23,6 +35,7 @@
 
                         <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
                         <div v-if="formErrors.password" class="error-message">{{ formErrors.password }}</div>
+
 
                         <div class="btn-container">
                             <button type="submit" class="btn-submit">
@@ -41,10 +54,10 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
-    import { profileRules } from '../utils/validation.js'   // ← Эта строка была пропущена
+    import { profileRules } from '../utils/validation.js'
 
     const router = useRouter()
 
@@ -55,31 +68,39 @@
     const username = ref('')
     const email = ref('')
     const password = ref('')
+    const departmentId = ref('')
+    const departments = ref([])
 
     const formErrors = ref({})
 
+    onMounted(async () => {
+        const { data } = await supabase.from('departments').select('*').order('name')
+        departments.value = data || []
+    })
+
     const handleAuth = async () => {
-        formErrors.value = {} // очищаем старые ошибки
+        formErrors.value = {}
 
         if (!isLogin.value) {
-            // Регистрация — проверяем все поля
             formErrors.value.firstName = profileRules.firstName(firstName.value)
             formErrors.value.lastName = profileRules.lastName(lastName.value)
             formErrors.value.username = profileRules.username(username.value)
+
+            // Проверка департамента
+            if (!departmentId.value) {
+                formErrors.value.departmentId = 'Выберите департамент'
+            }
         }
 
-        // Проверяем email и пароль всегда
         formErrors.value.email = profileRules.email(email.value)
         formErrors.value.password = profileRules.password(password.value)
 
-        // Если есть ошибки — останавливаемся
-        if (Object.values(formErrors.value).some(err => err !== '')) {
+        if (Object.values(formErrors.value).some(err => err !== '' && err !== undefined)) {
             return
         }
 
         try {
             if (isLogin.value) {
-                // === ВХОД ===
                 const { error } = await supabase.auth.signInWithPassword({
                     email: email.value.trim(),
                     password: password.value
@@ -88,7 +109,6 @@
                 if (error) throw error
                 router.push('/')
             } else {
-                // === РЕГИСТРАЦИЯ ===
                 const { data, error } = await supabase.auth.signUp({
                     email: email.value.trim(),
                     password: password.value
@@ -96,19 +116,19 @@
 
                 if (error) throw error
 
-                // Создаём профиль
                 if (data.user) {
                     await supabase.from('profiles').insert({
                         id: data.user.id,
                         first_name: firstName.value.trim(),
                         last_name: lastName.value.trim(),
                         username: username.value.trim(),
+                        department_id: departmentId.value,
                         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
                     })
                 }
 
                 alert('Регистрация прошла успешно!\nПроверьте почту для подтверждения аккаунта.')
-                isLogin.value = true // переключаем на форму входа
+                isLogin.value = true
             }
         } catch (err) {
             alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'))
@@ -229,5 +249,30 @@
         font-weight: 700;
         margin-top: -10px; /* Притягиваем ошибку к инпуту */
         margin-bottom: 5px;
+    }
+    /* Обертка селекта департамента */
+    .dept-select-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .auth-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+        padding-right: 40px;
+    }
+
+    .dept-arrow {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #212844;
+        font-weight: 900;
+        font-size: 1rem;
     }
 </style>
