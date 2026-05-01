@@ -25,6 +25,19 @@
                 <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
             </div>
         </div>
+        <!-- ДЛЯ ТЕКСТОВЫХ ВОПРОСОВ: показываем баллы и фидбек -->
+        <div v-if="q.question_type === 'text'" class="feedback-block mt-3 p-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="feedback-score">
+                    <span class="feedback-label">Баллы</span>
+                    <span class="feedback-value">{{ getScore(q) }}/10</span>
+                </div>
+                <div class="feedback-comment">
+                    <span class="feedback-label">Комментарий проверяющего</span>
+                    <span class="feedback-value">{{ getFeedback(q) || 'Ещё не проверено' }}</span>
+                </div>
+            </div>
+        </div>
 
         <div class="publish-bottom">
             <button @click="goBack" class="btn btn-dark px-5 shadow">
@@ -140,17 +153,16 @@
             const ansList = allAnswers.value.filter(a => a.question_id === q.id)
             if (ansList.length === 0) return
 
-            // Если это открытый вопрос (text) — проверяем, есть ли ручная оценка
+            // Для текстовых — берем ручную оценку админа
             if (q.question_type === 'text') {
                 const ans = ansList[0]
-                // Если админ поставил балл > 0 — засчитываем
-                if (ans.score && Number(ans.score) > 0) {
-                    score++
+                if (ans.score) {
+                    score += Number(ans.score)
                 }
                 return
             }
 
-            // Для single / multiple — автоматическая проверка
+            // Для выбора — автоматическая проверка
             const correctIds = q.choices.filter(c => c.is_correct === true).map(c => String(c.id))
             const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
 
@@ -173,6 +185,16 @@
         return formatUserAnswer(q) === getCorrectAnswerText(q)
             ? 'correct-ans-block'
             : 'user-ans-block';
+    }
+
+    const getScore = (q) => {
+        const ans = allAnswers.value.find(a => a.question_id === q.id)
+        return ans?.score ?? '—'
+    }
+
+    const getFeedback = (q) => {
+        const ans = allAnswers.value.find(a => a.question_id === q.id)
+        return ans?.feedback || ''
     }
 </script>
 
@@ -250,4 +272,35 @@
             background-color: #1a2036;
             color: #F2C4CE;
         }
+
+    .feedback-block {
+        background: rgba(242, 196, 206, 0.15);
+        border: 1px solid #F2C4CE;
+        border-radius: 12px;
+    }
+
+    .feedback-score {
+        flex: 0 0 80px;
+    }
+
+    .feedback-comment {
+        flex: 1;
+        text-align: left;
+    }
+
+    .feedback-label {
+        display: block;
+        font-size: 0.65rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 800;
+        opacity: 0.5;
+        margin-bottom: 4px;
+    }
+
+    .feedback-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #212844;
+    }
 </style>

@@ -61,15 +61,16 @@
                                 </div>
                             </div>
 
-                            <div v-if="q.question_type === 'text'" class="admin-eval-box mt-3 p-3 rounded-4">
-                                <div class="row g-3">
+                            <!-- ДЛЯ ТЕКСТОВЫХ: показываем баллы и фидбек -->
+                            <div v-if="q.question_type === 'text'" class="feedback-block mt-3 p-3">
+                                <div class="row">
                                     <div class="col-md-3">
-                                        <label class="small fw-bold opacity-50">Баллы</label>
-                                        <input type="number" v-model="editData[q.id].score" class="form-control admin-input" placeholder="0-10">
+                                        <div class="feedback-label">Баллы</div>
+                                        <div class="feedback-value">{{ getScore(q) }}/10</div>
                                     </div>
                                     <div class="col-md-9">
-                                        <label class="small fw-bold opacity-50">Комментарий</label>
-                                        <input type="text" v-model="editData[q.id].feedback" class="form-control admin-input" placeholder="Напишите фидбек...">
+                                        <div class="feedback-label">Комментарий проверяющего</div>
+                                        <div class="feedback-value">{{ getFeedback(q) || 'Не проверено' }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -453,5 +454,25 @@
         padding: 6px 16px;
         border-radius: 50px;
         font-weight: bold;
+    }
+    .feedback-block {
+        background: rgba(242, 196, 206, 0.15);
+        border: 1px solid #F2C4CE;
+        border-radius: 14px;
+    }
+
+    .feedback-label {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 800;
+        opacity: 0.5;
+        margin-bottom: 4px;
+    }
+
+    .feedback-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #212844;
     }
 </style>
