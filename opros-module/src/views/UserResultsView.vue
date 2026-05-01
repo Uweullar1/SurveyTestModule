@@ -53,11 +53,12 @@
     import { supabase } from '../supabase'
 
     const route = useRoute()
-    const router = useRouter()   // ← добавили router
+    const router = useRouter()
 
     const surveyTitle = ref('Опрос')
     const questions = ref([])
     const allAnswers = ref([])
+    const loading = ref(true)
 
     const goBack = () => {
         router.push('/my-history')
@@ -67,6 +68,7 @@
         const responseId = route.params.id
         if (!responseId) {
             console.log("Нет responseId в URL")
+            loading.value = false
             return
         }
 
@@ -81,7 +83,7 @@
 
             if (respError || !responseData) {
                 console.error("Ошибка получения response:", respError)
-                console.log("Прохождение не найдено для responseId:", responseId)
+                loading.value = false
                 return
             }
 
@@ -93,17 +95,25 @@
                 .from('surveys')
                 .select('title')
                 .eq('id', surveyId)
+                .single()
 
-            surveyTitle.value = sData?.[0]?.title || 'Опрос'
+            surveyTitle.value = sData?.title || 'Опрос'
 
             // Вопросы
-            const { data: qData } = await supabase
+            const { data: qData, error: qError } = await supabase
                 .from('questions')
                 .select('id, text, question_type, choices(id, text, is_correct)')
                 .eq('survey_id', surveyId)
                 .order('order')
 
-            questions.value = qData || []
+            if (qError) {
+                console.error("Ошибка загрузки вопросов:", qError)
+                loading.value = false
+                return
+            }
+
+            // Фильтруем null/undefined
+            questions.value = (qData || []).filter(q => q && q.id)
 
             // Ответы
             const { data: aData } = await supabase
@@ -113,23 +123,27 @@
 
             allAnswers.value = aData || []
 
+            console.log("Загружено вопросов:", questions.value.length)
             console.log("Загружено ответов:", allAnswers.value.length)
 
         } catch (err) {
             console.error('Общая ошибка загрузки результатов:', err)
+        } finally {
+            loading.value = false
         }
     })
 
     const formatUserAnswer = (q) => {
+        if (!q) return '—'
         const ansList = allAnswers.value.filter(a => a.question_id === q.id)
         if (ansList.length === 0) return '—'
 
         if (q.question_type === 'text') return ansList[0].text_answer || '—'
-        if (q.question_type === 'scale') return (ansList[0].scale_value || ansList[0].text_answer) + '/10'
+        if (q.question_type === 'scale') return (ansList[0].scale_value || ansList[0].text_answer || '—') + '/10'
 
         const ids = ansList.map(a => a.choice_id).filter(id => id != null)
 
-        const texts = q.choices
+        const texts = (q.choices || [])
             .filter(c => ids.some(id => String(id) === String(c.id)))
             .map(c => c.text)
 
@@ -137,33 +151,46 @@
     }
 
     const getCorrectAnswerText = (q) => {
-        if (!q.choices) return '—'
+        if (!q || !q.choices) return '—'
         const correct = q.choices.filter(c => c.is_correct === true).map(c => c.text)
         return correct.length ? correct.join(', ') : '—'
     }
 
-    const maxScore = computed(() => questions.value.filter(q => q.question_type !== 'scale').length)
+    const getScore = (q) => {
+        if (!q) return '—'
+        const ans = allAnswers.value.find(a => a.question_id === q.id)
+        return ans?.score ?? '—'
+    }
+
+    const getFeedback = (q) => {
+        if (!q) return ''
+        const ans = allAnswers.value.find(a => a.question_id === q.id)
+        return ans?.feedback || ''
+    }
+
+    const maxScore = computed(() => {
+        return questions.value.filter(q => q && q.question_type && q.question_type !== 'scale').length
+    })
 
     const totalScore = computed(() => {
         let score = 0
 
         questions.value.forEach(q => {
+            if (!q || !q.question_type) return
             if (q.question_type === 'scale') return
 
             const ansList = allAnswers.value.filter(a => a.question_id === q.id)
             if (ansList.length === 0) return
 
-            // Для текстовых — берем ручную оценку админа
             if (q.question_type === 'text') {
                 const ans = ansList[0]
-                if (ans.score) {
+                if (ans.score && Number(ans.score) > 0) {
                     score += Number(ans.score)
                 }
                 return
             }
 
-            // Для выбора — автоматическая проверка
-            const correctIds = q.choices.filter(c => c.is_correct === true).map(c => String(c.id))
+            const correctIds = (q.choices || []).filter(c => c.is_correct === true).map(c => String(c.id))
             const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
 
             if (correctIds.length > 0 && userIds.length === correctIds.length &&
@@ -176,25 +203,13 @@
     })
 
     const getAnswerClass = (q) => {
-        // Если это текст или шкала — возвращаем нейтральный серый стиль без цвета
+        if (!q || !q.question_type) return 'neutral-ans-block'
         if (q.question_type === 'text' || q.question_type === 'scale') {
-            return 'neutral-ans-block';
+            return 'neutral-ans-block'
         }
-
-        // Для тестов: если совпало с правильным — зеленый, если нет — розовый
         return formatUserAnswer(q) === getCorrectAnswerText(q)
             ? 'correct-ans-block'
-            : 'user-ans-block';
-    }
-
-    const getScore = (q) => {
-        const ans = allAnswers.value.find(a => a.question_id === q.id)
-        return ans?.score ?? '—'
-    }
-
-    const getFeedback = (q) => {
-        const ans = allAnswers.value.find(a => a.question_id === q.id)
-        return ans?.feedback || ''
+            : 'user-ans-block'
     }
 </script>
 
