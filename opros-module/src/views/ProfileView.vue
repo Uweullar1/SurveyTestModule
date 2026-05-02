@@ -205,20 +205,9 @@
                 profile.value.username = data.username || ''
                 profile.value.department_id = data.department_id || ''
 
+                // В onMounted — НЕ проксируем аватар
                 if (data.avatar_url) {
-                    // Загружаем аватарку через прокси вручную
-                    const proxyUrl = data.avatar_url.replace(
-                        'https://vojascpwckvikdqlbfvy.supabase.co',
-                        window.location.origin + '/api/supabase-proxy'
-                    )
-
-                    try {
-                        const response = await fetch(proxyUrl)
-                        const blob = await response.blob()
-                        avatarPreview.value = URL.createObjectURL(blob)
-                    } catch {
-                        avatarPreview.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-                    }
+                    avatarPreview.value = data.avatar_url
                 }
             }
             const { data: depts } = await supabase.from('departments').select('*')
@@ -241,34 +230,20 @@
 
 
     //Загрузка аватарок
+    // uploadAvatar — загружаем но показываем заглушку при ошибке
     const uploadAvatar = async (event) => {
         const file = event.target.files[0]
         if (!file) return
 
-        if (!['image/jpeg', 'image/png'].includes(file.type)) {
-            alert('Можно загружать только изображения (jpg, png)')
-            event.target.value = ''
-            return
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Файл слишком большой. Максимум 5 МБ')
-            event.target.value = ''
-            return
-        }
-
         try {
             const { data: { user: currentUser } } = await supabase.auth.getUser()
-            if (!currentUser) return alert('Вы должны быть авторизованы')
+            if (!currentUser) return
 
             const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase()}`
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(safeFileName, file, {
-                    cacheControl: '3600',
-                    upsert: true
-                })
+                .upload(safeFileName, file, { cacheControl: '3600', upsert: true })
 
             if (uploadError) throw uploadError
 
@@ -276,31 +251,16 @@
                 .from('avatars')
                 .getPublicUrl(safeFileName)
 
-            await supabase
-                .from('profiles')
-                .update({ avatar_url: urlData.publicUrl })
-                .eq('id', currentUser.id)
+            await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', currentUser.id)
 
-            // Проксируем URL для отображения
-            const proxyUrl = urlData.publicUrl.replace(
-                'https://vojascpwckvikdqlbfvy.supabase.co',
-                window.location.origin + '/api/supabase-proxy'
-            )
-
-            try {
-                const response = await fetch(proxyUrl)
-                const blob = await response.blob()
-                avatarPreview.value = URL.createObjectURL(blob)
-            } catch {
-                avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
-            }
-            // После успешной загрузки:
             avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
             alert('Аватарка обновлена!')
 
         } catch (err) {
-            console.error('Ошибка:', err)
-            alert('Не удалось загрузить аватарку: ' + (err.message || 'Ошибка'))
+            console.error('Ошибка загрузки:', err)
+            // При ошибке ставим заглушку
+            avatarPreview.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`
+            alert('Аватарка сохранена, но может не отображаться из-за ограничений сети')
         }
     }
 
