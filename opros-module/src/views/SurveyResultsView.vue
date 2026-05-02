@@ -29,7 +29,7 @@
                                     class="user-nav-card"
                                     :class="{ active: selectedResponse?.id === resp.id }">
                                 <div class="fw-bold">
-                                    {{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}
+                                    {{ getParticipantName(resp) }}
                                 </div>
                                 <small class="d-block opacity-75">{{ formatDate(resp.submitted_at) }}</small>
                             </button>
@@ -41,7 +41,7 @@
                     <div v-if="selectedResponse" class="results-container">
                         <div class="user-info-header mb-5">
                             <h2 class="fw-bold mb-3">
-                                Ответы: {{ selectedResponse.profiles?.full_name || `Участник #${allResponses.length - allResponses.indexOf(selectedResponse)}` }}
+                                Ответы: {{ getParticipantName(selectedResponse) }}
                             </h2>
                             <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
                         </div>
@@ -61,16 +61,15 @@
                                 </div>
                             </div>
 
-                            <!-- ДЛЯ ТЕКСТОВЫХ: показываем баллы и фидбек -->
-                            <div v-if="q.question_type === 'text'" class="feedback-block mt-3 p-3">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="feedback-label">Баллы</div>
-                                        <div class="feedback-value">{{ getScore(q) }}/10</div>
-                                    </div>
-                                    <div class="col-md-9">
-                                        <div class="feedback-label">Комментарий проверяющего</div>
-                                        <div class="feedback-value">{{ getFeedback(q) || 'Не проверено' }}</div>
+                            <!-- Фидбек для текстовых -->
+                            <div v-if="q.question_type === 'text'" class="eval-box mt-3 p-3">
+                                <div class="eval-row">
+                                    <label class="eval-check">
+                                        <input type="checkbox" v-model="editData[q.id].passed">
+                                        <span class="eval-check-text">Зачтено</span>
+                                    </label>
+                                    <div class="eval-comment">
+                                        <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий (необязательно)...">
                                     </div>
                                 </div>
                             </div>
@@ -108,6 +107,7 @@
     const allAnswers = ref([])
     const selectedResponse = ref(null)
     const editData = reactive({})
+    const profiles = ref({}) // храним профили участников
 
     onMounted(async () => {
         const surveyId = route.params.id
@@ -120,7 +120,7 @@
         try {
             loading.value = true
 
-            // Загружаем заголовок опроса
+            // Заголовок опроса
             const { data: sData } = await supabase
                 .from('surveys')
                 .select('title')
@@ -129,23 +129,17 @@
 
             surveyTitle.value = sData?.title || 'Опрос без названия'
 
-            // Загружаем вопросы с вариантами
+            // Вопросы
             const { data: qData, error: qError } = await supabase
                 .from('questions')
-                .select(`
-                id,
-                text,
-                question_type,
-                order,
-                choices (id, text, is_correct)
-            `)
+                .select(`id, text, question_type, order, choices (id, text, is_correct)`)
                 .eq('survey_id', surveyId)
                 .order('order')
 
             if (qError) throw qError
             questions.value = qData || []
 
-            // Загружаем ответы пользователей
+            // Ответы пользователей
             const { data: rData, error: rError } = await supabase
                 .from('responses')
                 .select('*')
@@ -155,8 +149,23 @@
             if (rError) throw rError
             allResponses.value = rData || []
 
-            // Загружаем все answers
+            // Загружаем профили участников
             if (allResponses.value.length > 0) {
+                const userIds = [...new Set(allResponses.value.map(r => r.user_id).filter(Boolean))]
+                if (userIds.length > 0) {
+                    const { data: profilesData } = await supabase
+                        .from('profiles')
+                        .select('id, first_name, last_name')
+                        .in('id', userIds)
+
+                    if (profilesData) {
+                        profilesData.forEach(p => {
+                            profiles.value[p.id] = p
+                        })
+                    }
+                }
+
+                // Ответы
                 const respIds = allResponses.value.map(r => r.id)
                 const { data: aData, error: aError } = await supabase
                     .from('answers')
@@ -179,16 +188,27 @@
         }
     })
 
+    // Получить имя участника
+    const getParticipantName = (resp) => {
+        if (!resp) return 'Неизвестный участник'
+        const profile = profiles.value[resp.user_id]
+        if (profile) {
+            const lastName = profile.last_name || ''
+            const firstInitial = lastName ? lastName.charAt(0).toUpperCase() + '.' : ''
+            return `${profile.first_name || 'Участник'} ${firstInitial}`.trim()
+        }
+        return `Участник #${allResponses.value.indexOf(resp) + 1}`
+    }
+
     const selectUser = (resp) => {
         selectedResponse.value = resp
-
         questions.value.forEach(q => {
             const existing = allAnswers.value.find(
                 a => a.question_id === q.id && a.response_id === resp.id
             )
             editData[q.id] = {
                 id: existing?.id,
-                score: existing?.score || 0,
+                passed: existing?.score > 0 || false,  // если score > 0 — зачтено
                 feedback: existing?.feedback || ''
             }
         })
@@ -203,11 +223,10 @@
                     const { error } = await supabase
                         .from('answers')
                         .update({
-                            score: Number(item.score) || 0,
+                            score: item.passed ? 1 : 0,  // 1 = зачтено, 0 = не зачтено
                             feedback: item.feedback || ''
                         })
                         .eq('id', item.id)
-
                     if (error) throw error
                 }
             }
@@ -224,63 +243,43 @@
         const answers = allAnswers.value.filter(
             a => a.question_id === q.id && a.response_id === responseId
         )
-
         if (answers.length === 0) return '—'
 
-        if (q.question_type === 'text') {
-            return answers[0].text_answer || '—'
-        }
+        if (q.question_type === 'text') return answers[0].text_answer || '—'
+        if (q.question_type === 'scale') return answers[0].scale_value || '—'
 
-        if (q.question_type === 'scale') {
-            return answers[0].scale_value || '—'
-        }
-
-        // Для radio и checkbox
         if (q.question_type === 'radio') {
-            // Ищем answer с choice_id
             const answer = answers.find(a => a.choice_id)
             if (answer?.choice_id) {
-                const choice = q.choices.find(c => c.id === answer.choice_id)
+                const choice = q.choices?.find(c => c.id === answer.choice_id)
                 return choice?.text || 'Ответ не найден'
             }
             return '—'
         }
 
         if (q.question_type === 'checkbox') {
-            // Собираем все выбранные choice_id
-            const selectedIds = answers
-                .filter(a => a.choice_id)
-                .map(a => a.choice_id)
-
+            const selectedIds = answers.filter(a => a.choice_id).map(a => a.choice_id)
             if (selectedIds.length === 0) {
-                // Может быть сохранено в text_answer как JSON
                 const textAnswer = answers.find(a => a.text_answer)
                 if (textAnswer?.text_answer) {
                     try {
                         const parsed = JSON.parse(textAnswer.text_answer)
-                        const texts = q.choices
-                            .filter(c => parsed.includes(c.id))
-                            .map(c => c.text)
-                        return texts.length ? texts.join(', ') : '—'
+                        const texts = q.choices?.filter(c => parsed.includes(c.id)).map(c => c.text)
+                        return texts?.length ? texts.join(', ') : '—'
                     } catch {
                         return textAnswer.text_answer
                     }
                 }
                 return '—'
             }
-
-            const texts = q.choices
-                .filter(c => selectedIds.includes(c.id))
-                .map(c => c.text)
-            return texts.length ? texts.join(', ') : '—'
+            const texts = q.choices?.filter(c => selectedIds.includes(c.id)).map(c => c.text)
+            return texts?.length ? texts.join(', ') : '—'
         }
-
         return '—'
     }
+
     const getCorrectAnswers = (q) => {
-        const correct = q.choices
-            .filter(c => c.is_correct)
-            .map(c => c.text)
+        const correct = (q.choices || []).filter(c => c.is_correct).map(c => c.text)
         return correct.length ? correct.join(', ') : 'Не указан'
     }
 
@@ -294,7 +293,6 @@
         color: #212844;
     }
 
-    /* Заголовки */
     .survey-title {
         color: #212844;
         font-size: 2.2rem;
@@ -320,12 +318,11 @@
             color: #F2C4CE;
         }
 
-    /* Боковое меню */
     .participants-sidebar {
         background: rgba(255, 255, 255, 0.4);
         border-radius: 24px;
         border: 1px solid rgba(33, 40, 68, 0.05);
-        margin-top: 20px; /* Отступ от кнопки назад */
+        margin-top: 20px;
     }
 
     .sidebar-label {
@@ -365,7 +362,6 @@
             box-shadow: 0 8px 15px rgba(33, 40, 68, 0.15);
         }
 
-    /* Основной контент */
     .results-container {
         padding-bottom: 100px;
     }
@@ -379,7 +375,6 @@
         margin-bottom: 15px;
     }
 
-    /* УБРАЛИ БЕЛУЮ ПОДЛОЖКУ */
     .answer-display {
         padding: 15px 20px;
         background: rgba(255, 255, 255, 0.2);
@@ -401,16 +396,18 @@
         font-weight: 600;
     }
 
-    /* Ввод админа */
     .admin-input {
-        border: 2px solid white;
+        border: 2px solid #dee2e6;
         border-radius: 12px;
         background: white;
+        padding: 10px 14px;
+        font-weight: 600;
     }
 
         .admin-input:focus {
             border-color: #212844;
             box-shadow: none;
+            outline: none;
         }
 
     .auto-status {
@@ -419,12 +416,6 @@
         margin-top: 10px;
     }
 
-    .admin-eval-box {
-        background: rgba(242, 196, 206, 0.2); /* Твой soft pink с прозрачностью */
-        border: 1px solid #F2C4CE;
-    }
-
-    /* Кнопка */
     .btn-save-final {
         background-color: #212844;
         color: #F2C4CE;
@@ -455,24 +446,72 @@
         border-radius: 50px;
         font-weight: bold;
     }
-    .feedback-block {
-        background: rgba(242, 196, 206, 0.15);
-        border: 1px solid #F2C4CE;
+
+    .eval-box {
+        background: white;
+        border: 2px solid #dee2e6;
         border-radius: 14px;
+        transition: border-color 0.2s;
     }
 
-    .feedback-label {
-        font-size: 0.7rem;
-        letter-spacing: 1px;
-        text-transform: uppercase;
+        .eval-box:has(input:checked) {
+            border-color: #198754;
+            background: rgba(25, 135, 84, 0.03);
+        }
+
+    .eval-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .eval-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+        .eval-check input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: #198754;
+            cursor: pointer;
+        }
+
+    .eval-check-text {
         font-weight: 800;
-        opacity: 0.5;
-        margin-bottom: 4px;
+        font-size: 0.85rem;
+        color: #212844;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .feedback-value {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #212844;
+    .eval-comment {
+        flex: 1;
+        min-width: 0;
     }
+
+    .eval-input {
+        width: 100%;
+        border: none;
+        border-bottom: 1px solid rgba(33, 40, 68, 0.15);
+        padding: 8px 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #212844;
+        background: transparent;
+        transition: border-color 0.2s;
+    }
+
+        .eval-input:focus {
+            outline: none;
+            border-bottom-color: #212844;
+        }
+
+        .eval-input::placeholder {
+            color: #adb5bd;
+            font-weight: 400;
+        }
 </style>

@@ -32,10 +32,7 @@
                 <!-- Фидбек для текстовых -->
                 <div v-if="q?.question_type === 'text'" class="feedback-block mt-3 p-3">
                     <div class="d-flex justify-content-between align-items-start">
-                        <div class="feedback-score">
-                            <span class="feedback-label">Баллы</span>
-                            <span class="feedback-value">{{ getScore(q) }}/10</span>
-                        </div>
+
                         <div class="feedback-comment">
                             <span class="feedback-label">Комментарий проверяющего</span>
                             <span class="feedback-value">{{ getFeedback(q) || 'Ещё не проверено' }}</span>
@@ -311,10 +308,6 @@
         background: rgba(242, 196, 206, 0.15);
         border: 1px solid #F2C4CE;
         border-radius: 12px;
-    }
-
-    .feedback-score {
-        flex: 0 0 80px;
     }
 
     .feedback-comment {
