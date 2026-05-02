@@ -206,8 +206,19 @@
                 profile.value.department_id = data.department_id || ''
 
                 if (data.avatar_url) {
-                    // Оставляем прямой URL, не проксируем для <img>
-                    avatarPreview.value = data.avatar_url
+                    // Загружаем аватарку через прокси вручную
+                    const proxyUrl = data.avatar_url.replace(
+                        'https://vojascpwckvikdqlbfvy.supabase.co',
+                        window.location.origin + '/api/supabase-proxy'
+                    )
+
+                    try {
+                        const response = await fetch(proxyUrl)
+                        const blob = await response.blob()
+                        avatarPreview.value = URL.createObjectURL(blob)
+                    } catch {
+                        avatarPreview.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                    }
                 }
             }
             const { data: depts } = await supabase.from('departments').select('*')
@@ -275,6 +286,14 @@
                 'https://vojascpwckvikdqlbfvy.supabase.co',
                 window.location.origin + '/api/supabase-proxy'
             )
+
+            try {
+                const response = await fetch(proxyUrl)
+                const blob = await response.blob()
+                avatarPreview.value = URL.createObjectURL(blob)
+            } catch {
+                avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
+            }
             // После успешной загрузки:
             avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
             alert('Аватарка обновлена!')
