@@ -171,7 +171,6 @@
             formErrors.value[field] = ''
         }
     }
-    я
     // Загрузка профиля
     onMounted(async () => {
         try {
