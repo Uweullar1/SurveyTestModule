@@ -15,6 +15,25 @@ export default async function handler(req, res) {
     let path = url.pathname.replace('/api/supabase-proxy', '') + url.search;
     if (!path || path === '/') path = '/';
 
+    // В начале handler после получения path:
+    if (path.startsWith('/storage/v1/object/public/')) {
+        // Для публичных файлов — редиректим напрямую
+        const targetUrl = `${SUPABASE_URL}${path}`
+        try {
+            const response = await fetch(targetUrl, {
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            })
+            const buffer = await response.arrayBuffer()
+            res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg')
+            res.setHeader('Cache-Control', 'public, max-age=31536000')
+            return res.status(response.status).send(Buffer.from(buffer))
+        } catch (error) {
+            return res.status(500).json({ error: error.message })
+        }
+    }
+
     const targetUrl = `${SUPABASE_URL}${path}`;
 
     try {
