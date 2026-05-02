@@ -1,8 +1,3 @@
-export const config = {
-    api: {
-        bodyParser: false,  // ← отключаем парсер, чтобы файлы приходили как есть
-    },
-}
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,19 +17,24 @@ export default async function handler(req, res) {
     if (!path || path === '/') path = '/';
 
     // В начале handler после получения path:
-    if (path.startsWith('/storage/v1/object/public/')) {
-        // Для публичных файлов — редиректим напрямую
+    // Загрузка файла через base64
+    if (path.startsWith('/storage/v1/object/') && req.method === 'POST') {
         const targetUrl = `${SUPABASE_URL}${path}`
         try {
+            const { file, contentType } = req.body
+            const buffer = Buffer.from(file, 'base64')
+
             const response = await fetch(targetUrl, {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
-                }
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': contentType || 'image/jpeg',
+                },
+                body: buffer
             })
-            const buffer = await response.arrayBuffer()
-            res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg')
-            res.setHeader('Cache-Control', 'public, max-age=31536000')
-            return res.status(response.status).send(Buffer.from(buffer))
+
+            const result = await response.json()
+            return res.status(response.status).json(result)
         } catch (error) {
             return res.status(500).json({ error: error.message })
         }

@@ -236,78 +236,65 @@
         const file = event.target.files[0]
         if (!file) return
 
-        console.log('Выбран файл:', file.name, 'тип:', file.type)
-
-        // Строгая проверка на изображение
-        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png']
-        const allowedExtensions = ['jpg', 'jpeg', 'png']
-
-        if (!allowedMimeTypes.includes(file.type)) {
-            alert('Можно загружать только изображения!\nРазрешены: jpg, jpeg, png')
-            event.target.value = ''
-            return
-        }
-
-        const fileExt = file.name.split('.').pop().toLowerCase()
-        if (!allowedExtensions.includes(fileExt)) {
-            alert('Можно загружать только изображения с расширениями: jpg, jpeg, png')
-            event.target.value = ''
+        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+            alert('Можно загружать только изображения (jpg, png)')
             return
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('Файл слишком большой. Максимальный размер — 5 МБ')
-            event.target.value = ''
+            alert('Файл слишком большой. Максимум 5 МБ')
             return
         }
 
         try {
             const { data: { user: currentUser } } = await supabase.auth.getUser()
-            if (!currentUser) {
-                alert('Вы должны быть авторизованы')
-                return
+            if (!currentUser) return alert('Вы должны быть авторизованы')
+
+            // Читаем файл как base64
+            const reader = new FileReader()
+
+            reader.onload = async (e) => {
+                const base64 = e.target.result.split(',')[1] // убираем data:image/...;base64,
+                const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase()}`
+
+                // Загружаем через прокси вручную
+                const response = await fetch(
+                    `${window.location.origin}/api/supabase-proxy/storage/v1/object/avatars/${safeFileName}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            file: base64,
+                            contentType: file.type
+                        })
+                    }
+                )
+
+                if (!response.ok) {
+                    const err = await response.json()
+                    throw new Error(err.error || 'Ошибка загрузки')
+                }
+
+                // Обновляем профиль
+                const publicUrl = `https://vojascpwckvikdqlbfvy.supabase.co/storage/v1/object/public/avatars/${safeFileName}`
+                const proxyUrl = `${window.location.origin}/api/supabase-proxy/storage/v1/object/public/avatars/${safeFileName}`
+
+                await supabase
+                    .from('profiles')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', currentUser.id)
+
+                avatarPreview.value = proxyUrl + '?t=' + Date.now()
+                alert('Аватарка обновлена!')
             }
 
-            // Очищаем имя файла от опасных символов
-            const safeFileName = `${Date.now()}-${file.name
-                .replace(/[^a-zA-Z0-9.-]/g, '_')   // заменяем все плохие символы на _
-                .toLowerCase()}`
-
-            // Загружаем файл
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(safeFileName, file, {
-                    cacheControl: '3600',
-                    upsert: true
-                })
-
-            if (uploadError) throw uploadError
-
-            // Получаем публичный URL
-            const { data: urlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(safeFileName)
-
-            // Обновляем профиль
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ avatar_url: urlData.publicUrl })
-                .eq('id', currentUser.id)
-
-            if (updateError) throw updateError
-
-            alert('Аватарка успешно обновлена!')
-
-            // Обновляем превью сразу
-            const proxyUrl = urlData.publicUrl.replace(
-                'https://vojascpwckvikdqlbfvy.supabase.co',
-                window.location.origin + '/api/supabase-proxy'
-            )
-            avatarPreview.value = proxyUrl + '?t=' + Date.now()
+            reader.readAsDataURL(file)
 
         } catch (err) {
-            console.error('Ошибка загрузки аватарки:', err)
-            alert('Не удалось загрузить аватарку: ' + (err.message || 'Неизвестная ошибка'))
+            console.error('Ошибка:', err)
+            alert('Не удалось загрузить аватарку: ' + (err.message || 'Ошибка'))
         }
     }
 

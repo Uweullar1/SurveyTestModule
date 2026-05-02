@@ -1,32 +1,46 @@
 const originalFetch = window.fetch;
 
-window.fetch = function (input, init) {
+window.fetch = async function (input, init) {
     let url;
-    let options = init || {};
+    let options = { ...init };
 
-    if (typeof input === 'string') {
-        url = input;
-    } else if (input instanceof Request) {
+    if (input instanceof Request) {
         url = input.url;
-        if (!options.method) options.method = input.method;
-        if (!options.body) options.body = input.body;
+        options.method = options.method || input.method;
+        // Сохраняем тело запроса
+        if (input.body && !options.body) {
+            options.body = input.body;
+        }
+        // Сохраняем заголовки
+        const reqHeaders = {};
+        input.headers.forEach((val, key) => {
+            if (!options.headers || !options.headers[key]) {
+                reqHeaders[key] = val;
+            }
+        });
+        options.headers = { ...reqHeaders, ...options.headers };
+    } else if (typeof input === 'string') {
+        url = input;
     } else {
         url = input.url || input.href;
     }
 
-    // Проксируем всё кроме storage upload
-    if (url.includes('supabase.co')) {
-        // НЕ проксируем запросы на storage/v1/object (загрузка файлов)
-        if (url.includes('/storage/v1/object/') && options.method !== 'GET') {
-            // Прямой запрос
-            return originalFetch(url, options);
-        }
-
-        // Остальное — через прокси
+        // НЕ проксируем storage запросы (для загрузки файлов)
+    if (url.includes('supabase.co') && !url.includes('/storage/')) {
         const urlObj = new URL(url);
         const path = urlObj.pathname + urlObj.search;
         url = `${window.location.origin}/api/supabase-proxy${path}`;
     }
+
+    // Не устанавливаем Content-Type для FormData (браузер сам добавит с boundary)
+    if (options.body instanceof FormData) {
+        const cleanHeaders = { ...options.headers };
+        delete cleanHeaders['Content-Type'];
+        options.headers = cleanHeaders;
+    }
+
+
+
 
     return originalFetch(url, options);
 };
