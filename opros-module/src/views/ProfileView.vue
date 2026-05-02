@@ -171,7 +171,7 @@
             formErrors.value[field] = ''
         }
     }
-
+    я
     // Загрузка профиля
     onMounted(async () => {
         try {
@@ -205,7 +205,12 @@
                 profile.value.last_name = data.last_name || ''
                 profile.value.username = data.username || ''
                 profile.value.department_id = data.department_id || ''
-                if (data.avatar_url) avatarPreview.value = data.avatar_url
+                if (data.avatar_url) {
+                    avatarPreview.value = data.avatar_url.replace(
+                        'https://vojascpwckvikdqlbfvy.supabase.co',
+                        window.location.origin + '/api/supabase-proxy'
+                    )
+                }
             }
             const { data: depts } = await supabase.from('departments').select('*')
             departments.value = depts || []
@@ -214,7 +219,7 @@
                 .from('admins')
                 .select('user_id')
                 .eq('user_id', user.id)
-                .single()
+                .maybeSingle()
             isAdmin.value = !!adminData
 
         } catch (err) {
@@ -294,7 +299,11 @@
             alert('Аватарка успешно обновлена!')
 
             // Обновляем превью сразу
-            avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
+            const proxyUrl = urlData.publicUrl.replace(
+                'https://vojascpwckvikdqlbfvy.supabase.co',
+                window.location.origin + '/api/supabase-proxy'
+            )
+            avatarPreview.value = proxyUrl + '?t=' + Date.now()
 
         } catch (err) {
             console.error('Ошибка загрузки аватарки:', err)
