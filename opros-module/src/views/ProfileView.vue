@@ -238,11 +238,13 @@
 
         if (!['image/jpeg', 'image/png'].includes(file.type)) {
             alert('Можно загружать только изображения (jpg, png)')
+            event.target.value = ''
             return
         }
 
         if (file.size > 5 * 1024 * 1024) {
             alert('Файл слишком большой. Максимум 5 МБ')
+            event.target.value = ''
             return
         }
 
@@ -250,47 +252,33 @@
             const { data: { user: currentUser } } = await supabase.auth.getUser()
             if (!currentUser) return alert('Вы должны быть авторизованы')
 
-            // Читаем файл как base64
-            const reader = new FileReader()
+            const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase()}`
 
-            reader.onload = async (e) => {
-                const base64 = e.target.result.split(',')[1] // убираем data:image/...;base64,
-                const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase()}`
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(safeFileName, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                })
 
-                // Загружаем через прокси вручную
-                const response = await fetch(
-                    `${window.location.origin}/api/supabase-proxy/storage/v1/object/avatars/${safeFileName}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            file: base64,
-                            contentType: file.type
-                        })
-                    }
-                )
+            if (uploadError) throw uploadError
 
-                if (!response.ok) {
-                    const err = await response.json()
-                    throw new Error(err.error || 'Ошибка загрузки')
-                }
+            const { data: urlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(safeFileName)
 
-                // Обновляем профиль
-                const publicUrl = `https://vojascpwckvikdqlbfvy.supabase.co/storage/v1/object/public/avatars/${safeFileName}`
-                const proxyUrl = `${window.location.origin}/api/supabase-proxy/storage/v1/object/public/avatars/${safeFileName}`
+            await supabase
+                .from('profiles')
+                .update({ avatar_url: urlData.publicUrl })
+                .eq('id', currentUser.id)
 
-                await supabase
-                    .from('profiles')
-                    .update({ avatar_url: publicUrl })
-                    .eq('id', currentUser.id)
-
-                avatarPreview.value = proxyUrl + '?t=' + Date.now()
-                alert('Аватарка обновлена!')
-            }
-
-            reader.readAsDataURL(file)
+            // Проксируем URL для отображения
+            const proxyUrl = urlData.publicUrl.replace(
+                'https://vojascpwckvikdqlbfvy.supabase.co',
+                window.location.origin + '/api/supabase-proxy'
+            )
+            avatarPreview.value = proxyUrl + '?t=' + Date.now()
+            alert('Аватарка обновлена!')
 
         } catch (err) {
             console.error('Ошибка:', err)

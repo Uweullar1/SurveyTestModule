@@ -1,3 +1,10 @@
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
+};
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,30 +23,6 @@ export default async function handler(req, res) {
     let path = url.pathname.replace('/api/supabase-proxy', '') + url.search;
     if (!path || path === '/') path = '/';
 
-    // В начале handler после получения path:
-    // Загрузка файла через base64
-    if (path.startsWith('/storage/v1/object/') && req.method === 'POST') {
-        const targetUrl = `${SUPABASE_URL}${path}`
-        try {
-            const { file, contentType } = req.body
-            const buffer = Buffer.from(file, 'base64')
-
-            const response = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': contentType || 'image/jpeg',
-                },
-                body: buffer
-            })
-
-            const result = await response.json()
-            return res.status(response.status).json(result)
-        } catch (error) {
-            return res.status(500).json({ error: error.message })
-        }
-    }
-
     const targetUrl = `${SUPABASE_URL}${path}`;
 
     try {
@@ -48,7 +31,7 @@ export default async function handler(req, res) {
             'Authorization': req.headers.authorization || `Bearer ${SUPABASE_KEY}`,
         };
 
-        // Копируем все важные заголовки
+        // Копируем заголовки
         ['content-type', 'prefer', 'x-upsert', 'accept'].forEach(h => {
             if (req.headers[h]) headers[h] = req.headers[h];
         });
@@ -58,31 +41,30 @@ export default async function handler(req, res) {
             headers: headers,
         };
 
-        // Передаем тело запроса
+        // Передаем body
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
             if (req.body) {
-                // Для multipart/form-data передаем как есть
-                if (typeof req.body === 'string') {
-                    fetchOptions.body = req.body;
-                } else {
-                    fetchOptions.body = JSON.stringify(req.body);
-                    headers['Content-Type'] = 'application/json';
-                }
+                fetchOptions.body = typeof req.body === 'string'
+                    ? req.body
+                    : JSON.stringify(req.body);
             }
         }
 
         const response = await fetch(targetUrl, fetchOptions);
 
-        // Получаем ответ как текст
+        // Для storage/public — бинарный ответ
+        if (path.includes('/storage/v1/object/public/')) {
+            const buffer = await response.arrayBuffer();
+            const contentType = response.headers.get('content-type') || 'image/jpeg';
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
+            return res.status(response.status).send(Buffer.from(buffer));
+        }
+
+        // Для storage upload — возвращаем JSON
         const text = await response.text();
 
-        // Копируем заголовки ответа
-        const responseHeaders = [
-            'content-type', 'content-range', 'content-length',
-            'x-supabase-api-version', 'location'
-        ];
-
-        responseHeaders.forEach(h => {
+        ['content-type', 'content-range', 'content-length', 'x-supabase-api-version', 'location'].forEach(h => {
             const val = response.headers.get(h);
             if (val) res.setHeader(h, val);
         });
@@ -91,9 +73,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Proxy error:', error.message, targetUrl);
-        return res.status(500).json({
-            error: error.message,
-            url: targetUrl
-        });
+        return res.status(500).json({ error: error.message, url: targetUrl });
     }
 }
