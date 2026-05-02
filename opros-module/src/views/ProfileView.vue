@@ -206,10 +206,8 @@
                 profile.value.department_id = data.department_id || ''
 
                 if (data.avatar_url) {
-                    avatarPreview.value = data.avatar_url.replace(
-                        'https://vojascpwckvikdqlbfvy.supabase.co',
-                        window.location.origin + '/api/supabase-proxy'
-                    )
+                    // Оставляем прямой URL, не проксируем для <img>
+                    avatarPreview.value = data.avatar_url
                 }
             }
             const { data: depts } = await supabase.from('departments').select('*')
@@ -277,7 +275,8 @@
                 'https://vojascpwckvikdqlbfvy.supabase.co',
                 window.location.origin + '/api/supabase-proxy'
             )
-            avatarPreview.value = proxyUrl + '?t=' + Date.now()
+            // После успешной загрузки:
+            avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
             alert('Аватарка обновлена!')
 
         } catch (err) {
