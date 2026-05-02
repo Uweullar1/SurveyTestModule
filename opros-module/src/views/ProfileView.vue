@@ -252,6 +252,7 @@
                 if (error) throw error
 
                 avatarPreview.value = base64
+                localStorage.setItem('avatar', base64)
                 alert('Аватарка обновлена!')
             }
 

@@ -39,14 +39,14 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, watch } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
 
     const router = useRouter()
 
     const isLoggedIn = ref(false)
-    const userAvatar = ref('https://api.dicebear.com/7.x/avataaars/svg?seed=default')
+    const userAvatar = ref(localStorage.getItem('avatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')
 
     const loadUserData = async () => {
         try {
@@ -55,7 +55,6 @@
             if (user) {
                 isLoggedIn.value = true
 
-                // Загружаем аватар из профиля
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('avatar_url')
@@ -63,40 +62,34 @@
                     .single()
 
                 if (profile?.avatar_url) {
-                    userAvatar.value = profile.avatar_url + '?t=' + Date.now()
-                } else {
-                    userAvatar.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || user.id}`
+                    // Если base64 — используем как есть
+                    if (profile.avatar_url.startsWith('data:')) {
+                        userAvatar.value = profile.avatar_url
+                        localStorage.setItem('avatar', profile.avatar_url)
+                    } else {
+                        // Обычный URL
+                        const url = profile.avatar_url + '?t=' + Date.now()
+                        userAvatar.value = url
+                        localStorage.setItem('avatar', url)
+                    }
                 }
             } else {
                 isLoggedIn.value = false
                 userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                localStorage.removeItem('avatar')
             }
         } catch (err) {
             console.error('Ошибка загрузки пользователя:', err)
-            isLoggedIn.value = false
         }
     }
 
-    // Обновляем навбар при каждом изменении состояния авторизации
     supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event) // для отладки
         loadUserData()
     })
 
     onMounted(() => {
         loadUserData()
     })
-
-    // Дополнительно обновляем при возвращении на страницу
-    watch(router.currentRoute, () => {
-        if (router.currentRoute.value.path !== '/login') {
-            loadUserData()
-        }
-    })
-
-    const onAvatarError = () => {
-        userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-    }
 </script>
 
 <style>
