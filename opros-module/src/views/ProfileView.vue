@@ -206,7 +206,10 @@
                 profile.value.department_id = data.department_id || ''
 
                 if (data.avatar_url) {
-                    avatarPreview.value = data.avatar_url + '?t=' + Date.now()
+                    avatarPreview.value = data.avatar_url.replace(
+                        'https://vojascpwckvikdqlbfvy.supabase.co',
+                        window.location.origin + '/api/supabase-proxy'
+                    )
                 }
             }
             const { data: depts } = await supabase.from('departments').select('*')
@@ -296,6 +299,10 @@
             alert('Аватарка успешно обновлена!')
 
             // Обновляем превью сразу
+            const proxyUrl = urlData.publicUrl.replace(
+                'https://vojascpwckvikdqlbfvy.supabase.co',
+                window.location.origin + '/api/supabase-proxy'
+            )
             avatarPreview.value = proxyUrl + '?t=' + Date.now()
 
         } catch (err) {
