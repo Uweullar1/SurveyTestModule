@@ -1,48 +1,61 @@
 <template>
     <div class="container py-5 text-center">
-        <h2 class="fw-bold mb-4">Результаты: {{ surveyTitle }}</h2>
-
-        <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
-            <div class="score-display fw-bold">
-                {{ totalScore }} <span style="font-size: 1.5rem; color: #6c757d;">из {{ maxScore }}</span>
-            </div>
-            <div class="text-muted fw-bold text-uppercase">Итоговый балл</div>
+        <!-- Загрузка -->
+        <div v-if="loading" class="text-center p-5">
+            <div class="spinner-border text-dark"></div>
+            <p class="mt-3">Загрузка результатов...</p>
         </div>
 
-        <div v-for="(q, i) in questions" :key="q.id" class="question-card shadow-sm">
-            <h5 class="fw-bold mb-3">
-                <span class="badge bg-dark me-2">{{ i + 1 }}</span> {{ q.text }}
-            </h5>
+        <div v-else>
+            <h2 class="fw-bold mb-4">Результаты: {{ surveyTitle }}</h2>
 
-            <div class="answer-section"
-                 :class="getAnswerClass(q)">
-                <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
-            </div>
-
-            <div v-if="q.question_type !== 'text' && q.question_type !== 'scale'"
-                 class="answer-section"
-                 :class="formatUserAnswer(q) === getCorrectAnswerText(q) ? 'correct-ans-block' : 'neutral-ans-block'">
-                <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
-            </div>
-        </div>
-        <!-- ДЛЯ ТЕКСТОВЫХ ВОПРОСОВ: показываем баллы и фидбек -->
-        <div v-if="q.question_type === 'text'" class="feedback-block mt-3 p-3">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="feedback-score">
-                    <span class="feedback-label">Баллы</span>
-                    <span class="feedback-value">{{ getScore(q) }}/10</span>
+            <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
+                <div class="score-display fw-bold">
+                    {{ totalScore }} <span style="font-size: 1.5rem; color: #6c757d;">из {{ maxScore }}</span>
                 </div>
-                <div class="feedback-comment">
-                    <span class="feedback-label">Комментарий проверяющего</span>
-                    <span class="feedback-value">{{ getFeedback(q) || 'Ещё не проверено' }}</span>
+                <div class="text-muted fw-bold text-uppercase">Итоговый балл</div>
+            </div>
+
+            <div v-if="questions.length === 0" class="text-muted p-5">
+                Вопросы не найдены
+            </div>
+
+            <div v-for="(q, i) in questions" :key="q?.id || i" class="question-card shadow-sm">
+                <h5 class="fw-bold mb-3">
+                    <span class="badge bg-dark me-2">{{ i + 1 }}</span> {{ q?.text || 'Вопрос без текста' }}
+                </h5>
+
+                <div class="answer-section" :class="getAnswerClass(q)">
+                    <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
+                </div>
+
+                <!-- Фидбек для текстовых -->
+                <div v-if="q?.question_type === 'text'" class="feedback-block mt-3 p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="feedback-score">
+                            <span class="feedback-label">Баллы</span>
+                            <span class="feedback-value">{{ getScore(q) }}/10</span>
+                        </div>
+                        <div class="feedback-comment">
+                            <span class="feedback-label">Комментарий проверяющего</span>
+                            <span class="feedback-value">{{ getFeedback(q) || 'Ещё не проверено' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Правильный ответ для выбора -->
+                <div v-if="q?.question_type !== 'text' && q?.question_type !== 'scale'"
+                     class="answer-section mt-2"
+                     :class="getCorrectClass(q)">
+                    <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
                 </div>
             </div>
-        </div>
 
-        <div class="publish-bottom">
-            <button @click="goBack" class="btn btn-dark px-5 shadow">
-                Вернуться в историю
-            </button>
+            <div class="publish-bottom">
+                <button @click="goBack" class="btn btn-dark px-5 shadow">
+                    Вернуться в историю
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -210,6 +223,12 @@
         return formatUserAnswer(q) === getCorrectAnswerText(q)
             ? 'correct-ans-block'
             : 'user-ans-block'
+    }
+    const getCorrectClass = (q) => {
+        if (!q) return 'neutral-ans-block'
+        return formatUserAnswer(q) === getCorrectAnswerText(q)
+            ? 'correct-ans-block'
+            : 'neutral-ans-block'
     }
 </script>
 
