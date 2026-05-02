@@ -230,37 +230,36 @@
 
 
     //Загрузка аватарок
-    // uploadAvatar — загружаем но показываем заглушку при ошибке
     const uploadAvatar = async (event) => {
         const file = event.target.files[0]
         if (!file) return
 
         try {
-            const { data: { user: currentUser } } = await supabase.auth.getUser()
-            if (!currentUser) return
+            const reader = new FileReader()
 
-            const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase()}`
+            reader.onload = async (e) => {
+                // Конвертируем в base64 и сохраняем прямо в профиль
+                const base64 = e.target.result
 
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(safeFileName, file, { cacheControl: '3600', upsert: true })
+                const { data: { user: currentUser } } = await supabase.auth.getUser()
+                if (!currentUser) return
 
-            if (uploadError) throw uploadError
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: base64 })
+                    .eq('id', currentUser.id)
 
-            const { data: urlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(safeFileName)
+                if (error) throw error
 
-            await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', currentUser.id)
+                avatarPreview.value = base64
+                alert('Аватарка обновлена!')
+            }
 
-            avatarPreview.value = urlData.publicUrl + '?t=' + Date.now()
-            alert('Аватарка обновлена!')
+            reader.readAsDataURL(file)
 
         } catch (err) {
-            console.error('Ошибка загрузки:', err)
-            // При ошибке ставим заглушку
-            avatarPreview.value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`
-            alert('Аватарка сохранена, но может не отображаться из-за ограничений сети')
+            console.error('Ошибка:', err)
+            alert('Не удалось обновить аватарку')
         }
     }
 
