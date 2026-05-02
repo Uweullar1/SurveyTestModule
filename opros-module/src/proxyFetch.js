@@ -25,13 +25,6 @@ window.fetch = async function (input, init) {
         url = input.url || input.href;
     }
 
-        // НЕ проксируем storage запросы (для загрузки файлов)
-    if (url.includes('supabase.co') && !url.includes('/storage/')) {
-        const urlObj = new URL(url);
-        const path = urlObj.pathname + urlObj.search;
-        url = `${window.location.origin}/api/supabase-proxy${path}`;
-    }
-
     // Не устанавливаем Content-Type для FormData (браузер сам добавит с boundary)
     if (options.body instanceof FormData) {
         const cleanHeaders = { ...options.headers };
