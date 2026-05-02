@@ -205,6 +205,7 @@
                 profile.value.last_name = data.last_name || ''
                 profile.value.username = data.username || ''
                 profile.value.department_id = data.department_id || ''
+
                 if (data.avatar_url) {
                     avatarPreview.value = data.avatar_url.replace(
                         'https://vojascpwckvikdqlbfvy.supabase.co',
