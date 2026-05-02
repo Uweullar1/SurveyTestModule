@@ -14,24 +14,18 @@ window.fetch = function (input, init) {
         url = input.url || input.href;
     }
 
-    // Проксируем ВСЕ запросы к supabase (включая storage!)
-    if (url.includes('vojascpwckvikdqlbfvy.supabase.co') || url.includes('supabase.co')) {
+    // Проксируем всё кроме storage upload
+    if (url.includes('supabase.co')) {
+        // НЕ проксируем запросы на storage/v1/object (загрузка файлов)
+        if (url.includes('/storage/v1/object/') && options.method !== 'GET') {
+            // Прямой запрос
+            return originalFetch(url, options);
+        }
+
+        // Остальное — через прокси
         const urlObj = new URL(url);
         const path = urlObj.pathname + urlObj.search;
         url = `${window.location.origin}/api/supabase-proxy${path}`;
-
-        // Для FormData не трогаем Content-Type
-        if (options.body instanceof FormData) {
-            if (options.headers) {
-                const cleanHeaders = {};
-                for (const key in options.headers) {
-                    if (key.toLowerCase() !== 'content-type') {
-                        cleanHeaders[key] = options.headers[key];
-                    }
-                }
-                options.headers = cleanHeaders;
-            }
-        }
     }
 
     return originalFetch(url, options);
