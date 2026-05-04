@@ -26,35 +26,27 @@
                 <div v-for="res in myResponses"
                      :key="res.id"
                      @click="goToResults(res.id)"
-                     class="response-card p-4 mb-3 shadow-sm">
+                     class="response-card">
 
                     <!-- Заголовок опроса -->
-                    <h5 class="fw-bold mb-2 card-survey-title">
-                        {{ res.survey_title || 'Завершенный опрос' }}
-                    </h5>
+                    <h5 class="card-survey-title">{{ res.survey_title || 'Завершенный опрос' }}</h5>
 
                     <!-- Дата -->
-                    <div class="text-muted small mb-2">
-                        <i class="bi bi-calendar3 me-2"></i>
+                    <div class="card-date">
+                        <i class="bi bi-calendar3 me-1"></i>
                         {{ formatDate(res.submitted_at) }}
                     </div>
 
-                    <!-- Результат и статус -->
-                    <div class="d-flex align-items-center justify-content-between mt-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <!-- Статус -->
+                    <!-- Нижняя строка: статус + баллы + кнопка -->
+                    <div class="card-bottom">
+                        <div class="card-info">
                             <span :class="res.passed ? 'badge-passed' : 'badge-failed'">
-                                {{ res.passed ? '✅ Сдано' : '❌ Не сдано' }}
+                                {{ res.passed ? 'Сдано' : 'Не сдано' }}
                             </span>
-                            <!-- Баллы -->
-                            <span class="score-text">
-                                {{ res.total_score }} / {{ res.max_score }}
-                            </span>
+                            <span class="score-text">{{ res.total_score }} / {{ res.max_score }}</span>
                         </div>
-
-                        <!-- Ссылка на результаты -->
-                        <span class="view-link fw-bold">
-                            Результаты <i class="bi bi-chevron-right ms-1"></i>
+                        <span class="view-link">
+                            Результаты →
                         </span>
                     </div>
                 </div>
@@ -177,20 +169,10 @@
 </script>
 
 <style scoped>
-    .history-page {
-        background-color: #FDFDF1;
-        min-height: 100vh;
-        padding-bottom: 2rem;
-    }
-
-    .survey-title {
-        color: #212844;
-    }
-
     .responses-list {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 12px;
     }
 
     .response-card {
@@ -198,76 +180,78 @@
         border-radius: 20px;
         border: 2px solid transparent;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        padding: 1.5rem 2rem !important;
+        transition: all 0.3s ease;
+        padding: 20px 24px !important;
     }
 
         .response-card:hover {
-            transform: translateX(8px);
+            transform: translateX(6px);
             border-color: #F2C4CE;
-            box-shadow: 0 10px 25px rgba(33, 40, 68, 0.1) !important;
+            box-shadow: 0 8px 20px rgba(33, 40, 68, 0.08);
         }
 
     .card-survey-title {
         color: #212844;
-        font-size: 1.15rem;
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 4px;
     }
 
-    /* Статусы */
+    .card-date {
+        color: #888;
+        font-size: 0.8rem;
+        margin-bottom: 14px;
+    }
+
+    .card-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
     .badge-passed {
         background: #d1e7dd;
         color: #0f5132;
-        padding: 5px 14px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .badge-failed {
         background: #F2C4CE;
         color: #212844;
-        padding: 5px 14px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .score-text {
         font-weight: 700;
         color: #212844;
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .view-link {
         color: #212844;
-        font-size: 0.9rem;
-        padding: 8px 18px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 6px 16px;
         background: #F2C4CE;
-        border-radius: 12px;
-        transition: all 0.2s ease;
+        border-radius: 10px;
+        transition: all 0.2s;
         white-space: nowrap;
     }
 
     .response-card:hover .view-link {
         background: #212844;
         color: #F2C4CE;
-    }
-
-    @media (max-width: 576px) {
-        .response-card {
-            padding: 1.2rem !important;
-        }
-    }
-
-    .custom-spinner {
-        color: #212844;
-    }
-
-    .alert-custom {
-        background-color: #F2C4CE;
-        color: #212844;
-        border: none;
-        border-radius: 15px;
-        padding: 1.5rem;
     }
 </style>
