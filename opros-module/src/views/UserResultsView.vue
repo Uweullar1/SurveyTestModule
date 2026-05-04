@@ -46,9 +46,6 @@
                 <div v-if="q?.question_type === 'text'" class="feedback-block">
                     <div class="feedback-header">
                         <span class="feedback-label">Комментарий проверяющего</span>
-                        <span :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
-                            {{ isCorrect(q) ? 'Зачтено' : 'Не зачтено' }}
-                        </span>
                     </div>
                     <div class="feedback-text" v-if="getFeedback(q)">
                         «{{ getFeedback(q) }}»
