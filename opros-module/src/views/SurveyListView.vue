@@ -376,7 +376,7 @@
         }
 
     .passed-badge {
-        background: green;
+        background: #F2C4CE;
         color: #212844;
         width: 22px;
         height: 22px;
