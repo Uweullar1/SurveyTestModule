@@ -301,7 +301,7 @@
 
     .feedback-block {
         background: #fff;
-        border: 2px solid #F2C4CE;
+        border: 2px solid #212844;
         border-radius: 14px;
         padding: 16px;
         margin-top: 14px;
