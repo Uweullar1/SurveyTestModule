@@ -155,10 +155,10 @@
     const getStatusLabel = (q) => {
         if (!q?.question_type) return ''
         if (q.question_type === 'text') {
-            return isCorrect(q) ? '✓ Зачтено' : '✗ Не зачтено'
+            return isCorrect(q) ? 'Зачтено' : 'Не зачтено'
         }
         if (q.question_type === 'scale') return '—'
-        return isCorrect(q) ? '✓ Верно' : '✗ Неверно'
+        return isCorrect(q) ? 'Верно' : 'Неверно'
     }
 
     const maxScore = computed(() => questions.value.filter(q => q?.question_type !== 'scale').length)
