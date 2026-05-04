@@ -6,9 +6,50 @@
                 <div class="line"></div>
             </div>
 
+            <!-- ПОИСК И ФИЛЬТРЫ -->
+            <div class="filters-bar">
+                <!-- Поиск -->
+                <div class="search-wrapper">
+                    <input v-model="searchQuery"
+                           type="text"
+                           placeholder="Поиск по названию..."
+                           class="search-input"
+                           @input="filterSurveys" />
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- Фильтр по департаменту -->
+                <div class="filter-select-wrapper">
+                    <select v-model="filterDepartment" class="filter-select" @change="filterSurveys">
+                        <option value="">Все департаменты</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                            {{ dept.name }}
+                        </option>
+                    </select>
+                    <span class="filter-arrow">▾</span>
+                </div>
+
+                <!-- Фильтр по статусу -->
+                <div class="filter-select-wrapper">
+                    <select v-model="filterPassed" class="filter-select" @change="filterSurveys">
+                        <option value="">Все</option>
+                        <option value="passed">Пройденные</option>
+                        <option value="not_passed">Не пройденные</option>
+                    </select>
+                    <span class="filter-arrow">▾</span>
+                </div>
+            </div>
+
             <div v-if="loading" class="loader">Загрузка...</div>
-            <div class="surveys-grid">
-                <div v-for="survey in surveys" :key="survey.id" class="survey-card-link">
+
+            <!-- Если ничего не найдено -->
+            <div v-else-if="filteredSurveys.length === 0" class="empty-state">
+                Ничего не найдено
+            </div>
+
+            <!-- Сетка опросов -->
+            <div v-else class="surveys-grid">
+                <div v-for="survey in filteredSurveys" :key="survey.id" class="survey-card-link">
                     <div class="survey-card" @click="handleCardClick(survey)">
                         <div class="card-deco"></div>
                         <div class="card-content">
@@ -17,22 +58,25 @@
                                 <span v-if="survey.departments?.name" class="department-badge">
                                     {{ survey.departments.name }}
                                 </span>
+                                <!-- Статус прохождения -->
+                                <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge">
+                                    ✓ Пройден
+                                </span>
                             </div>
-                                <h3 class="survey-title">{{ survey.title }}</h3>
-                                <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                            <h3 class="survey-title">{{ survey.title }}</h3>
+                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
 
-                                <div class="card-footer">
-                                    <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                    <button v-if="user && survey.user_id === user.id"
-                                            @click.stop="goToResults(survey.id)"
-                                            class="admin-btn">
-                                        Результаты
-                                    </button>
-
-                                    <span v-else class="open-btn">
-                                        Открыть →
-                                    </span>
-                                </div>
+                            <div class="card-footer">
+                                <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                <button v-if="user && survey.user_id === user.id"
+                                        @click.stop="goToResults(survey.id)"
+                                        class="admin-btn">
+                                    Результаты
+                                </button>
+                                <span v-else class="open-btn">
+                                    {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -42,17 +86,23 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, watch } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
-    import DepartmentSelect from '../components/DepartmentSelect.vue'
 
     const router = useRouter()
     const user = ref(null)
     const surveys = ref([])
+    const filteredSurveys = ref([])
     const loading = ref(true)
     const userDepartmentId = ref(null)
+    const departments = ref([])
+    const passedSurveyIds = ref([])
 
+    // Фильтры
+    const searchQuery = ref('')
+    const filterDepartment = ref('')
+    const filterPassed = ref('')
 
     const goToLogin = () => router.push('/login')
 
@@ -61,38 +111,32 @@
     }
 
     const handleCardClick = (survey) => {
-        const isOwner = user.value && survey.user_id === user.value.id
-
-        if (isOwner) {
-            // Владельца кидаем на результаты (или куда ты хочешь)
-            router.push(`/take/${survey.id}`)
-        } else {
-            // Остальных на прохождение
-            router.push(`/take/${survey.id}`)
-        }
+        router.push(`/take/${survey.id}`)
     }
-    const loadSurveys = async () => {
-        loading.value = true
-        try {
-            let query = supabase
-                .from('surveys')
-                .select('*')
-                .or(`is_private.eq.false, user_id.eq.${user.value?.id || '00000000-0000-0000-0000-000000000000'}`)
-                .order('created_at', { ascending: false })
 
-            // ← Фильтр по департаменту
-            if (selectedDepartment.value) {
-                query = query.eq('department_id', selectedDepartment.value)
-            }
+    // Фильтрация на клиенте
+    const filterSurveys = () => {
+        let result = [...surveys.value]
 
-            const { data, error } = await query
-            if (error) throw error
-            surveys.value = data || []
-        } catch (e) {
-            console.error('Ошибка загрузки опросов:', e)
-        } finally {
-            loading.value = false
+        // Поиск по названию
+        if (searchQuery.value.trim()) {
+            const q = searchQuery.value.toLowerCase()
+            result = result.filter(s => s.title?.toLowerCase().includes(q))
         }
+
+        // Фильтр по департаменту
+        if (filterDepartment.value) {
+            result = result.filter(s => s.department_id === filterDepartment.value)
+        }
+
+        // Фильтр по статусу
+        if (filterPassed.value === 'passed') {
+            result = result.filter(s => passedSurveyIds.value.includes(s.id))
+        } else if (filterPassed.value === 'not_passed') {
+            result = result.filter(s => !passedSurveyIds.value.includes(s.id))
+        }
+
+        filteredSurveys.value = result
     }
 
     onMounted(async () => {
@@ -107,6 +151,10 @@
         loading.value = true
 
         try {
+            // Загружаем департаменты для фильтра
+            const { data: depts } = await supabase.from('departments').select('*').order('name')
+            departments.value = depts || []
+
             // Получаем департамент пользователя
             const { data: profile } = await supabase
                 .from('profiles')
@@ -116,34 +164,35 @@
 
             userDepartmentId.value = profile?.department_id || null
 
-            // Загружаем опросы:
-            // 1. Все публичные опросы своего департамента
-            // 2. Все свои опросы (включая приватные)
+            // Загружаем опросы
             let query = supabase
                 .from('surveys')
-                .select(`
-                *,
-                departments (name)
-            `)
+                .select(`*, departments (name)`)
                 .order('created_at', { ascending: false })
 
             if (userDepartmentId.value) {
-                // Показываем опросы своего департамента (публичные) ИЛИ свои опросы
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                // Если департамент не указан — показываем все публичные + свои
-                query = query.or(
-                    `is_private.eq.false,user_id.eq.${user.value.id}`
-                )
+                query = query.or(`is_private.eq.false,user_id.eq.${user.value.id}`)
             }
 
             const { data, error } = await query
-
             if (error) throw error
             surveys.value = data || []
+
+            // Загружаем пройденные опросы
+            const { data: responses } = await supabase
+                .from('responses')
+                .select('survey_id')
+                .eq('user_id', user.value.id)
+
+            passedSurveyIds.value = (responses || []).map(r => r.survey_id)
+
+            // Применяем фильтры
+            filterSurveys()
         } catch (e) {
             console.error('Ошибка загрузки опросов:', e)
         } finally {
@@ -153,62 +202,147 @@
 </script>
 
 <style scoped>
-    /* Твои стили остаются без изменений */
+    /* ===== ФИЛЬТРЫ ===== */
+    .filters-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .search-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .search-input {
+        width: 100%;
+        height: 44px;
+        padding: 0 40px 0 16px;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #212844;
+        background: white;
+        transition: border-color 0.2s;
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #DF2935;
+        }
+
+    .search-icon {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.4;
+    }
+
+    .filter-select-wrapper {
+        position: relative;
+    }
+
+    .filter-select {
+        height: 44px;
+        padding: 0 36px 0 14px;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #212844;
+        background: white;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+    }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #DF2935;
+        }
+
+    .filter-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.7rem;
+        color: #212844;
+        font-weight: 900;
+    }
+
+    .passed-badge {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 800;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #888;
+        font-size: 1.1rem;
+    }
+
+    /* Остальные стили без изменений */
     .surveys-grid {
         display: grid;
-        /* Фиксируем 3 колонки для больших экранов */
         grid-template-columns: repeat(3, 1fr);
         gap: 30px;
         padding: 40px 0;
         width: 100%;
     }
 
-    /* Адаптив: если экран меньше 900px, переходим на 2 колонки */
     @media (max-width: 900px) {
         .surveys-grid {
             grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    /* Адаптив: если экран меньше 600px, в одну колонку */
     @media (max-width: 600px) {
         .surveys-grid {
             grid-template-columns: 1fr;
         }
     }
 
-    /* Важно: убедись, что у карточки нет фиксированной ширины, которая мешает ей влезть */
     .survey-card-link {
         text-decoration: none;
         color: inherit;
         display: block;
-        width: 100%; /* Карточка должна заполнять свою ячейку сетки */
+        width: 100%;
     }
 
     .survey-card {
         position: relative;
-        cursor: pointer; /* Добавляем указатель */
+        cursor: pointer;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-        /* Эффект "подпрыгивания" всей карточки при наведении */
         .survey-card:hover {
             transform: translate(-4px, -4px);
         }
 
-            /* Чтобы декоративный слой тоже реагировал красиво */
             .survey-card:hover .card-deco {
                 transform: translate(4px, 4px);
-                background: #F2C4CE; /* Можно менять цвет тени при наведении для фана */
+                background: #F2C4CE;
             }
-
 
     .title-row {
         display: flex;
         align-items: center;
         gap: 8px;
         margin-bottom: 8px;
+        flex-wrap: wrap;
     }
+
     .survey-label {
         font-size: 0.65rem;
         font-weight: 900;
@@ -216,6 +350,7 @@
         color: #212844;
         opacity: 0.5;
     }
+
     .department-badge {
         background: #B0D7FF;
         color: #212844;
@@ -224,9 +359,9 @@
         border-radius: 6px;
         font-size: 0.6rem;
         font-weight: 800;
-        letter-spacing: 0.5px;
         text-transform: uppercase;
     }
+
     .card-deco {
         position: absolute;
         top: 10px;
@@ -270,18 +405,6 @@
         overflow: hidden;
     }
 
-    .badge {
-        display: inline-block;
-        background: #212844;
-        color: white;
-        padding: 3px 10px;
-        border-radius: 6px;
-        font-size: 0.65rem;
-        font-weight: 900;
-        letter-spacing: 1px;
-        margin-bottom: 15px;
-    }
-
     .card-footer {
         display: flex;
         justify-content: space-between;
@@ -317,6 +440,5 @@
 
         .admin-btn:hover {
             transform: scale(1.05);
-            background: #F2C4CE;
         }
 </style>
