@@ -11,10 +11,10 @@
             <!-- Итоговый балл -->
             <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
                 <div class="score-display fw-bold">
-                    {{ totalScore }} <span style="font-size: 1.5rem; color: #6c757d;">из {{ maxScore }}</span>
-                </div>
-                <div :class="passed ? 'text-success' : 'text-danger'" class="fw-bold text-uppercase mt-1">
-                    {{ passed ? '✅ Сдано' : '❌ Не сдано' }}
+                    {{ totalScore }} / {{ maxScore }}
+                    <span :class="passed ? 'badge-pass' : 'badge-fail'">
+                        {{ passed ? 'Сдано' : 'Не сдано' }}
+                    </span>
                 </div>
             </div>
 
@@ -26,12 +26,11 @@
             <div v-for="(q, i) in questions" :key="q?.id || i" class="question-card">
 
                 <!-- Номер и текст вопроса -->
-                <div class="question-header mb-3">
+                <div class="question-header">
                     <span class="question-num">{{ i + 1 }}</span>
                     <span class="question-text">{{ q?.text || 'Вопрос без текста' }}</span>
-                    <!-- Статус -->
                     <span :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
-                        {{ isCorrect(q) ? '✓ Верно' : '✗ Неверно' }}
+                        {{ getStatusLabel(q) }}
                     </span>
                 </div>
 
@@ -42,9 +41,11 @@
 
                 <!-- Фидбек для текстовых -->
                 <div v-if="q?.question_type === 'text'" class="feedback-block">
-                    <div class="feedback-row">
-                        <span class="feedback-label">Оценка проверяющего</span>
-                        <span class="feedback-score">{{ getScore(q) }}/10</span>
+                    <div class="feedback-header">
+                        <span class="feedback-label">Комментарий проверяющего</span>
+                        <span :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
+                            {{ isCorrect(q) ? '✓ Зачтено' : '✗ Не зачтено' }}
+                        </span>
                     </div>
                     <div class="feedback-text" v-if="getFeedback(q)">
                         «{{ getFeedback(q) }}»
@@ -56,7 +57,7 @@
 
                 <!-- Правильный ответ (для выбора) -->
                 <div v-if="q?.question_type !== 'text' && q?.question_type !== 'scale'"
-                     class="correct-answer mt-3">
+                     class="correct-answer">
                     <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
                 </div>
             </div>
@@ -151,6 +152,15 @@
         return formatUserAnswer(q) === getCorrectAnswerText(q)
     }
 
+    const getStatusLabel = (q) => {
+        if (!q?.question_type) return ''
+        if (q.question_type === 'text') {
+            return isCorrect(q) ? '✓ Зачтено' : '✗ Не зачтено'
+        }
+        if (q.question_type === 'scale') return '—'
+        return isCorrect(q) ? '✓ Верно' : '✗ Неверно'
+    }
+
     const maxScore = computed(() => questions.value.filter(q => q?.question_type !== 'scale').length)
     const totalScore = computed(() => {
         let score = 0
@@ -184,8 +194,30 @@
     }
 
     .score-display {
-        font-size: 3rem;
+        font-size: 2.2rem;
         color: #212844;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+    }
+
+    .badge-pass {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .badge-fail {
+        background: #f8d7da;
+        color: #842029;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-size: 1rem;
+        font-weight: 700;
     }
 
     .question-card {
@@ -201,6 +233,7 @@
         display: flex;
         align-items: flex-start;
         gap: 12px;
+        margin-bottom: 14px;
     }
 
     .question-num {
@@ -240,8 +273,8 @@
     .answer-section {
         border-radius: 10px;
         padding: 12px 16px;
-        margin-top: 12px;
         font-size: 0.9rem;
+        margin-bottom: 14px;
     }
 
     .answer-correct {
@@ -258,8 +291,9 @@
         font-size: 0.85rem;
         color: #198754;
         background: #d1e7dd44;
-        padding: 8px 14px;
+        padding: 10px 14px;
         border-radius: 8px;
+        margin-top: 10px;
     }
 
     .feedback-block {
@@ -267,10 +301,10 @@
         border: 2px solid #F2C4CE;
         border-radius: 14px;
         padding: 16px;
-        margin-top: 12px;
+        margin-top: 14px;
     }
 
-    .feedback-row {
+    .feedback-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -282,12 +316,6 @@
         text-transform: uppercase;
         font-weight: 800;
         color: #888;
-    }
-
-    .feedback-score {
-        font-size: 1.2rem;
-        font-weight: 900;
-        color: #212844;
     }
 
     .feedback-text {
