@@ -73,7 +73,7 @@
                                 </span>
                                 <!-- Статус прохождения -->
                                 <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge">
-                                    ✓ Пройден
+                                    Пройден
                                 </span>
                             </div>
                             <h3 class="survey-title">{{ survey.title }}</h3>
@@ -374,6 +374,22 @@
         .filter-reset:hover {
             color: #DF2935;
         }
+
+    .passed-badge {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 800;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #888;
+        font-size: 1.1rem;
+    }
 
     /* Остальные стили без изменений */
     .surveys-grid {
