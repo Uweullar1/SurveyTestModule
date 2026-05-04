@@ -6,7 +6,10 @@
         </div>
 
         <div v-else>
-            <h2 class="fw-bold mb-4">Результаты: {{ surveyTitle }}</h2>
+            <h2 class="fw-bold mb-4">
+                Результаты: {{ surveyTitle }}
+                :
+            </h2>
 
             <!-- Итоговый балл -->
             <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
@@ -44,7 +47,7 @@
                     <div class="feedback-header">
                         <span class="feedback-label">Комментарий проверяющего</span>
                         <span :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
-                            {{ isCorrect(q) ? '✓ Зачтено' : '✗ Не зачтено' }}
+                            {{ isCorrect(q) ? 'Зачтено' : 'Не зачтено' }}
                         </span>
                     </div>
                     <div class="feedback-text" v-if="getFeedback(q)">
