@@ -72,8 +72,8 @@
                                     {{ survey.departments.name }}
                                 </span>
                                 <!-- Статус прохождения -->
-                                <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge">
-                                    Пройден
+                                <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">
+                                    ✓
                                 </span>
                             </div>
                             <h3 class="survey-title">{{ survey.title }}</h3>
@@ -376,12 +376,18 @@
         }
 
     .passed-badge {
-        background: #d1e7dd;
-        color: #0f5132;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 0.6rem;
-        font-weight: 800;
+        background: #F2C4CE;
+        color: #212844;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 0.65rem;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid #212844;
+        flex-shrink: 0;
     }
 
     .empty-state {
