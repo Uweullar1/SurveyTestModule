@@ -18,26 +18,39 @@
                     <span class="search-icon">🔍</span>
                 </div>
 
-                <!-- Фильтр по департаменту -->
-                <div class="filter-select-wrapper">
-                    <select v-model="filterDepartment" class="filter-select" @change="filterSurveys">
-                        <option value="">Все департаменты</option>
-                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                            {{ dept.name }}
-                        </option>
-                    </select>
-                    <span class="filter-arrow">▾</span>
+                <!-- Кнопка раскрытия фильтров -->
+                <button @click="showFilters = !showFilters" class="filter-toggle">
+                    <span>⚙ Фильтры</span>
+                    <span v-if="activeFiltersCount > 0" class="filter-count">{{ activeFiltersCount }}</span>
+                </button>
+            </div>
+
+            <!-- Выпадающая панель фильтров -->
+            <div v-if="showFilters" class="filters-panel">
+                <div class="filter-group">
+                    <label class="filter-label">Департамент</label>
+                    <div class="filter-select-wrapper">
+                        <select v-model="filterDepartment" class="filter-select" @change="filterSurveys">
+                            <option value="">Все департаменты</option>
+                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                                {{ dept.name }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Фильтр по статусу -->
-                <div class="filter-select-wrapper">
-                    <select v-model="filterPassed" class="filter-select" @change="filterSurveys">
-                        <option value="">Все</option>
-                        <option value="passed">Пройденные</option>
-                        <option value="not_passed">Не пройденные</option>
-                    </select>
-                    <span class="filter-arrow">▾</span>
+                <div class="filter-group">
+                    <label class="filter-label">Статус</label>
+                    <div class="filter-select-wrapper">
+                        <select v-model="filterPassed" class="filter-select" @change="filterSurveys">
+                            <option value="">Все</option>
+                            <option value="passed">Пройденные</option>
+                            <option value="not_passed">Не пройденные</option>
+                        </select>
+                    </div>
                 </div>
+
+                <button @click="resetFilters" class="filter-reset">Сбросить</button>
             </div>
 
             <div v-if="loading" class="loader">Загрузка...</div>
@@ -86,7 +99,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
 
@@ -100,6 +113,7 @@
     const passedSurveyIds = ref([])
 
     // Фильтры
+    const showFilters = ref(false)
     const searchQuery = ref('')
     const filterDepartment = ref('')
     const filterPassed = ref('')
@@ -137,6 +151,21 @@
         }
 
         filteredSurveys.value = result
+    }
+    
+    const activeFiltersCount = computed(() => {
+        let count = 0
+        if (filterDepartment.value) count++
+        if (filterPassed.value) count++
+        return count
+    })
+
+    const resetFilters = () => {
+        filterDepartment.value = ''
+        filterPassed.value = ''
+        searchQuery.value = ''
+        showFilters.value = false
+        filterSurveys()
     }
 
     onMounted(async () => {
@@ -205,20 +234,19 @@
     /* ===== ФИЛЬТРЫ ===== */
     .filters-bar {
         display: flex;
-        gap: 12px;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+        align-items: center;
     }
 
     .search-wrapper {
         position: relative;
         flex: 1;
-        min-width: 200px;
     }
 
     .search-input {
         width: 100%;
-        height: 44px;
+        height: 42px;
         padding: 0 40px 0 16px;
         border: 2px solid #212844;
         border-radius: 14px;
@@ -227,6 +255,7 @@
         color: #212844;
         background: white;
         transition: border-color 0.2s;
+        box-sizing: border-box;
     }
 
         .search-input:focus {
@@ -239,7 +268,71 @@
         right: 14px;
         top: 50%;
         transform: translateY(-50%);
-        opacity: 0.4;
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    .filter-toggle {
+        height: 42px;
+        padding: 0 16px;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        background: white;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #212844;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+        .filter-toggle:hover {
+            background: #FDFDF1;
+        }
+
+    .filter-count {
+        background: #DF2935;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Панель фильтров */
+    .filters-panel {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding: 16px;
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 16px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        font-size: 0.65rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #212844;
+        opacity: 0.5;
+        padding-left: 4px;
     }
 
     .filter-select-wrapper {
@@ -247,14 +340,14 @@
     }
 
     .filter-select {
-        height: 44px;
-        padding: 0 36px 0 14px;
+        height: 38px;
+        padding: 0 32px 0 12px;
         border: 2px solid #212844;
-        border-radius: 14px;
+        border-radius: 10px;
         font-size: 0.85rem;
         font-weight: 600;
         color: #212844;
-        background: white;
+        background: #FDFDF1;
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
@@ -265,32 +358,22 @@
             border-color: #DF2935;
         }
 
-    .filter-arrow {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        font-size: 0.7rem;
-        color: #212844;
-        font-weight: 900;
-    }
-
-    .passed-badge {
-        background: #d1e7dd;
-        color: #0f5132;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 0.6rem;
-        font-weight: 800;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
+    .filter-reset {
+        height: 38px;
+        padding: 0 14px;
+        border: none;
+        background: transparent;
         color: #888;
-        font-size: 1.1rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-left: auto;
     }
+
+        .filter-reset:hover {
+            color: #DF2935;
+        }
 
     /* Остальные стили без изменений */
     .surveys-grid {
