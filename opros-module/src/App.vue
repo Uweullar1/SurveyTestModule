@@ -8,10 +8,8 @@
                 </router-link>
 
                 <div class="nav-links">
-                    <router-link to="/my-history" class="nav-link">Мои ответы</router-link>
-                    <router-link to="/" class="nav-link">Опросы</router-link>
+                    <router-link to="/my-history" class="nav-link">История прохождений</router-link>
                     <router-link to="/my-surveys" class="nav-link">Мои опросы</router-link>
-                    <router-link to="/create" class="nav-link">Создать опрос</router-link>
                 </div>
 
                 <div class="nav-right">
