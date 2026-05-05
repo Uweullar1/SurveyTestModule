@@ -30,7 +30,7 @@
                                  class="user-avatar" />
                             <div>
                                 <div class="user-name">{{ profile.first_name }} {{ profile.last_name }}</div>
-                                <div class="user-email">{{ profile.id }}</div>
+                                <div class="user-email">{{ profile.username }}</div>
                             </div>
                         </div>
 
@@ -47,11 +47,11 @@
                             <div class="switches">
                                 <button @click="toggleCreate(profile)"
                                         :class="['switch-btn', { active: profile.can_create }]">
-                                    ✏️ Создатель
+                                    Создатель
                                 </button>
                                 <button @click="toggleAdmin(profile)"
                                         :class="['switch-btn', { active: adminIds.includes(profile.id) }]">
-                                    👑 Админ
+                                    Админ
                                 </button>
                             </div>
                         </div>
@@ -68,7 +68,7 @@
                         <div class="survey-admin-info">
                             <div class="survey-admin-title">{{ survey.title }}</div>
                             <div class="survey-admin-meta">
-                                {{ survey.departments?.name || 'Без департамента' }} ·
+                                {{ survey.departments?.name || 'Без департамента' }} · {{ survey.owner_name }}
                                 {{ survey.profiles?.first_name }} {{ survey.profiles?.last_name }}
                             </div>
                         </div>
@@ -130,7 +130,7 @@
 
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, avatar_url, department_id, can_create')  // ← убрал email
+            .select('id, first_name, last_name, avatar_url, department_id, can_create')
             .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
@@ -140,8 +140,16 @@
 
         const { data: surveys } = await supabase
             .from('surveys')
-            .select(`*, departments(name), profiles!surveys_user_id_fkey(first_name, last_name)`)
+            .select(`*, departments(name)`)
             .order('created_at', { ascending: false })
+
+        // Добавляем имена создателей
+        if (surveys) {
+            for (let s of surveys) {
+                const owner = users.value.find(u => u.id === s.user_id)
+                s.owner_name = owner ? `${owner.first_name} ${owner.last_name}` : '—'
+            }
+        }
         allSurveys.value = surveys || []
         loadingSurveys.value = false
     }
@@ -331,6 +339,4 @@
         .switch-btn:hover {
             transform: scale(1.03);
         }
-
-    /* Убираем старые стили для toggle-label, mini-select старый */
 </style>
