@@ -30,7 +30,7 @@
                                  class="user-avatar" />
                             <div>
                                 <div class="user-name">{{ profile.first_name }} {{ profile.last_name }}</div>
-                                <div class="user-email">{{ profile.email || profile.id }}</div>
+                                <div class="user-email">{{ profile.id }}</div>
                             </div>
                         </div>
 
@@ -132,7 +132,7 @@
 
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, email, avatar_url, department_id, can_create')
+            .select('id, first_name, last_name, avatar_url, department_id, can_create')  // ← убрал email
             .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
