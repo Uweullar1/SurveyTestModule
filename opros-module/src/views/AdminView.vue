@@ -157,28 +157,53 @@ const loadData = async () => {
 }
 
 // Обновить департамент
-const updateDepartment = async (profile) => {
-    await supabase.from('profiles').update({ department_id: profile.department_id }).eq('id', profile.id)
-}
+    const updateDepartment = async (profile) => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ department_id: profile.department_id })
+            .eq('id', profile.id)
+
+        if (error) {
+            console.error('Ошибка обновления департамента:', error)
+        }
+    }
 
 // Переключить права создателя
-const toggleCreate = async (profile) => {
-    const newVal = !profile.can_create
-    await supabase.from('profiles').update({ can_create: newVal }).eq('id', profile.id)
-    profile.can_create = newVal
-}
+    const toggleCreate = async (profile) => {
+        const newVal = !profile.can_create
+        const { error } = await supabase
+            .from('profiles')
+            .update({ can_create: newVal })
+            .eq('id', profile.id)
 
-// Переключить админа
-const toggleAdmin = async (profile) => {
-    const isAdmin = adminIds.value.includes(profile.id)
-    if (isAdmin) {
-        await supabase.from('admins').delete().eq('user_id', profile.id)
-        adminIds.value = adminIds.value.filter(id => id !== profile.id)
-    } else {
-        await supabase.from('admins').insert({ user_id: profile.id })
-        adminIds.value.push(profile.id)
+        if (!error) {
+            profile.can_create = newVal
+        }
     }
-}
+
+    // Переключить админа
+    const toggleAdmin = async (profile) => {
+        const isAdmin = adminIds.value.includes(profile.id)
+
+        if (isAdmin) {
+            const { error } = await supabase
+                .from('admins')
+                .delete()
+                .eq('user_id', profile.id)
+
+            if (!error) {
+                adminIds.value = adminIds.value.filter(id => id !== profile.id)
+            }
+        } else {
+            const { error } = await supabase
+                .from('admins')
+                .insert({ user_id: profile.id })
+
+            if (!error) {
+                adminIds.value.push(profile.id)
+            }
+        }
+    }
 
 // Редактировать опрос
 const editSurvey = (surveyId) => {
