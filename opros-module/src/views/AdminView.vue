@@ -64,27 +64,55 @@
 
             <!-- ===== ВКЛАДКА: ВСЕ ОПРОСЫ ===== -->
             <div v-if="activeTab === 'surveys'" class="tab-content">
-                <div v-if="loadingSurveys" class="text-center py-4">Загрузка...</div>
+                <div v-if="loadingSurveys" class="loader-wrapper">
+                    <div class="custom-spinner"></div>
+                    <p>Загружаем опросы...</p>
+                </div>
+
+                <div v-else-if="allSurveys.length === 0" class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h2>Нет опросов</h2>
+                    <p>В системе пока нет созданных опросов.</p>
+                </div>
 
                 <div v-else class="surveys-admin-grid">
-                    <div v-for="survey in allSurveys" :key="survey.id" class="survey-admin-card">
-                        <div class="card-deco"></div>
-                        <div class="card-content">
-                            <div class="title-row">
-                                <span class="survey-label">ОПРОС</span>
-                                <span v-if="survey.departments?.name" class="department-badge">
-                                    {{ survey.departments.name }}
+                    <div v-for="survey in allSurveys" :key="survey.id" class="survey-card">
+                        <div class="card-status" :class="{ 'closed': survey.is_closed }">
+                            {{ survey.is_closed ? 'Закрыт' : 'Активен' }}
+                        </div>
+
+                        <div class="card-main">
+                            <h3 class="survey-title">{{ survey.title }}</h3>
+                            <p class="survey-desc">
+                                {{ survey.description || 'Без описания' }}
+                            </p>
+
+                            <div class="survey-meta">
+                                <span class="meta-item">
+                                    📅 {{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}
+                                </span>
+                                <span v-if="survey.departments?.name" class="meta-dept">
+                                    🏢 {{ survey.departments.name }}
+                                </span>
+                                <span class="meta-owner">
+                                    👤 {{ survey.owner_name || '—' }}
                                 </span>
                             </div>
-                            <h3 class="survey-title">{{ survey.title }}</h3>
-                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
-                            <div class="card-footer">
-                                <span class="owner-name">{{ survey.owner_name || '—' }}</span>
-                                <div class="survey-admin-actions">
-                                    <button @click="editSurvey(survey.id)" class="btn-sm btn-edit">✏️</button>
-                                    <button @click="deleteSurvey(survey.id)" class="btn-sm btn-delete">🗑️</button>
-                                </div>
-                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">
+                                ✏️
+                            </button>
+                            <button @click="toggleSurveyStatus(survey)"
+                                    class="btn-action toggle"
+                                    :class="{ 'is-closed': survey.is_closed }"
+                                    :title="survey.is_closed ? 'Открыть' : 'Закрыть'">
+                                {{ survey.is_closed ? '🔓' : '🔒' }}
+                            </button>
+                            <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">
+                                🗑️
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -194,6 +222,18 @@
         await supabase.from('questions').delete().eq('survey_id', surveyId)
         await supabase.from('surveys').delete().eq('id', surveyId)
         allSurveys.value = allSurveys.value.filter(s => s.id !== surveyId)
+    }
+    const toggleSurveyStatus = async (survey) => {
+        const { error } = await supabase
+            .from('surveys')
+            .update({ is_closed: !survey.is_closed, is_active: survey.is_closed })
+            .eq('id', survey.id)
+
+        if (!error) {
+            survey.is_closed = !survey.is_closed
+        } else {
+            alert('Ошибка при изменении статуса')
+        }
     }
 </script>
 
@@ -367,145 +407,150 @@
             transform: scale(1.03);
         }
 
-    /* ===== КАРТОЧКИ ОПРОСОВ ===== */
+    /* ===== КАРТОЧКИ ОПРОСОВ (как в Мои опросы) ===== */
     .surveys-admin-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 24px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px;
     }
 
-    @media (max-width: 900px) {
-        .surveys-admin-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 600px) {
-        .surveys-admin-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .survey-admin-card {
-        position: relative;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        cursor: pointer;
-    }
-
-        .survey-admin-card:hover {
-            transform: translate(-4px, -4px);
-        }
-
-            .survey-admin-card:hover .card-deco {
-                transform: translate(4px, 4px);
-                background: #F2C4CE;
-            }
-
-    .card-deco {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        width: 100%;
-        height: 100%;
-        background: #B0D7FF;
-        border: 2px solid #212844;
-        border-radius: 20px;
-        z-index: 1;
-        transition: all 0.3s ease;
-    }
-
-    .card-content {
-        position: relative;
+    .survey-card {
         background: white;
-        border: 2px solid #212844;
-        border-radius: 20px;
-        padding: 22px;
-        z-index: 2;
-        min-height: 180px;
+        border: 3px solid #212844;
+        border-radius: 24px;
+        padding: 25px;
+        position: relative;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        transition: all 0.3s ease;
+        box-shadow: 6px 6px 0px rgba(33, 40, 68, 0.05);
     }
 
-    .title-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 6px;
-        flex-wrap: wrap;
-    }
+        .survey-card:hover {
+            box-shadow: 10px 10px 0px #212844;
+            transform: translate(-4px, -4px);
+        }
 
-    .survey-label {
-        font-size: 0.65rem;
-        font-weight: 900;
-        letter-spacing: 1px;
-        color: #212844;
-        opacity: 0.5;
-    }
-
-    .department-badge {
-        background: #B0D7FF;
-        color: #212844;
-        border: 1.5px solid #212844;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 0.6rem;
+    .card-status {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        background: #212844;
+        color: #FDFDF1;
+        padding: 4px 12px;
+        border-radius: 10px;
+        font-size: 0.75rem;
         font-weight: 800;
         text-transform: uppercase;
     }
 
+        .card-status.closed {
+            background: #DF2935;
+        }
+
     .survey-title {
-        font-size: 1.1rem;
+        font-size: 1.3rem;
         font-weight: 800;
-        margin-bottom: 6px;
         color: #212844;
+        margin-bottom: 10px;
     }
 
     .survey-desc {
-        opacity: 0.5;
-        font-size: 0.8rem;
-        margin-bottom: 12px;
-        flex-grow: 1;
-    }
-
-    .card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top: 1px solid rgba(33,40,68,0.08);
-        padding-top: 10px;
-    }
-
-    .owner-name {
-        font-size: 0.75rem;
-        color: #888;
-        font-weight: 600;
-    }
-
-    .survey-admin-actions {
-        display: flex;
-        gap: 6px;
-    }
-
-    .btn-sm {
-        width: 34px;
-        height: 34px;
-        border: 2px solid #212844;
-        border-radius: 8px;
-        background: white;
-        cursor: pointer;
+        color: rgba(33, 40, 68, 0.7);
         font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 20px;
+    }
+
+    .survey-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #212844;
+        opacity: 0.6;
+        margin-bottom: 15px;
+    }
+
+    .meta-dept, .meta-owner {
+        opacity: 0.7;
+    }
+
+    /* Кнопки действий */
+    .card-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .btn-action {
+        flex: 1;
+        height: 42px;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        cursor: pointer;
+        background: white;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 1rem;
         transition: all 0.2s;
     }
 
-    .btn-edit:hover {
-        background: #B0D7FF;
+        .btn-action.edit:hover {
+            background: #FDFDF1;
+        }
+
+        .btn-action.toggle:hover {
+            background: #fdf6e3;
+        }
+
+        .btn-action.delete:hover {
+            background: #DF2935;
+            color: white;
+        }
+
+        .btn-action.toggle.is-closed {
+            background: #212844;
+            color: white;
+        }
+
+    /* Загрузка и пусто */
+    .loader-wrapper, .empty-state {
+        text-align: center;
+        padding: 60px 0;
     }
 
-    .btn-delete:hover {
-        background: #F2C4CE;
+    .custom-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #FDFDF1;
+        border-top: 4px solid #212844;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+
+    .empty-state h2 {
+        font-weight: 900;
+        color: #212844;
+        font-size: 1.3rem;
     }
 </style>
