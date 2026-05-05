@@ -57,12 +57,11 @@
                 isLoggedIn.value = true
 
                 // Проверка на админа
-                const { data: adminCheck } = await supabase
+                const { data: allAdmins } = await supabase
                     .from('admins')
                     .select('user_id')
-                    .eq('user_id', user.id)
-                    .single()
-                isAdmin.value = !!adminCheck
+
+                isAdmin.value = (allAdmins || []).some(a => a.user_id === user.id)
 
                 // Загрузка профиля
                 const { data: profile } = await supabase
