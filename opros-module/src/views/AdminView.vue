@@ -36,12 +36,15 @@
 
                         <div class="user-controls">
                             <div class="dept-mini">
-                                <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
-                                    <option value="">Без департамента</option>
-                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                                        {{ dept.name }}
-                                    </option>
-                                </select>
+                                <div class="dept-select-wrap">
+                                    <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
+                                        <option value="">Без департамента</option>
+                                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                                            {{ dept.name }}
+                                        </option>
+                                    </select>
+                                    <span class="dept-arrow">▾</span>
+                                </div>
                             </div>
 
                             <div class="switches">
@@ -304,13 +307,17 @@
     }
 
     .dept-mini {
-        min-width: 150px;
+        min-width: 160px;
+    }
+
+    .dept-select-wrap {
+        position: relative;
     }
 
     .mini-select {
         width: 100%;
-        height: 36px;
-        padding: 0 30px 0 10px;
+        height: 38px;
+        padding: 0 32px 0 12px;
         border: 2px solid #212844;
         border-radius: 10px;
         font-size: 0.8rem;
@@ -319,6 +326,18 @@
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
+        color: #212844;
+    }
+
+    .dept-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.7rem;
+        color: #212844;
+        font-weight: 900;
     }
 
     .switches {
@@ -348,7 +367,7 @@
             transform: scale(1.03);
         }
 
-    /* ===== КАРТОЧКИ ОПРОСОВ (как на главной) ===== */
+    /* ===== КАРТОЧКИ ОПРОСОВ ===== */
     .surveys-admin-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -369,7 +388,18 @@
 
     .survey-admin-card {
         position: relative;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
     }
+
+        .survey-admin-card:hover {
+            transform: translate(-4px, -4px);
+        }
+
+            .survey-admin-card:hover .card-deco {
+                transform: translate(4px, 4px);
+                background: #F2C4CE;
+            }
 
     .card-deco {
         position: absolute;
@@ -381,6 +411,7 @@
         border: 2px solid #212844;
         border-radius: 20px;
         z-index: 1;
+        transition: all 0.3s ease;
     }
 
     .card-content {
@@ -401,6 +432,7 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 6px;
+        flex-wrap: wrap;
     }
 
     .survey-label {
@@ -433,6 +465,7 @@
         opacity: 0.5;
         font-size: 0.8rem;
         margin-bottom: 12px;
+        flex-grow: 1;
     }
 
     .card-footer {
@@ -455,13 +488,13 @@
     }
 
     .btn-sm {
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border: 2px solid #212844;
         border-radius: 8px;
         background: white;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         display: flex;
         align-items: center;
         justify-content: center;
