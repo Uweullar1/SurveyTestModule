@@ -35,7 +35,6 @@
                         </div>
 
                         <div class="user-controls">
-                            <!-- Департамент -->
                             <div class="dept-mini">
                                 <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
                                     <option value="">Без департамента</option>
@@ -45,17 +44,16 @@
                                 </select>
                             </div>
 
-                            <!-- Права создателя -->
-                            <label class="toggle-label">
-                                <input type="checkbox" :checked="profile.can_create" @change="toggleCreate(profile)" />
-                                <span class="toggle-text">Создатель</span>
-                            </label>
-
-                            <!-- Админ -->
-                            <label class="toggle-label">
-                                <input type="checkbox" :checked="adminIds.includes(profile.id)" @change="toggleAdmin(profile)" />
-                                <span class="toggle-text">Админ</span>
-                            </label>
+                            <div class="switches">
+                                <button @click="toggleCreate(profile)"
+                                        :class="['switch-btn', { active: profile.can_create }]">
+                                    ✏️ Создатель
+                                </button>
+                                <button @click="toggleAdmin(profile)"
+                                        :class="['switch-btn', { active: adminIds.includes(profile.id) }]">
+                                    👑 Админ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
