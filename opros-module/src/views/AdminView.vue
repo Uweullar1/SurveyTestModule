@@ -176,7 +176,7 @@
     }
 
     const editSurvey = (surveyId) => {
-        router.push(`/surveys/${surveyId}/edit`)
+        router.push(`/edit/${surveyId}`)
     }
 
     const deleteSurvey = async (surveyId) => {
@@ -339,4 +339,63 @@
         .switch-btn:hover {
             transform: scale(1.03);
         }
+    /* Опросы */
+    .surveys-admin-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .survey-admin-card {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .survey-admin-info {
+        flex: 1;
+    }
+
+    .survey-admin-title {
+        font-weight: 800;
+        color: #212844;
+        font-size: 1rem;
+    }
+
+    .survey-admin-meta {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .survey-admin-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-sm {
+        width: 36px;
+        height: 36px;
+        border: 2px solid #212844;
+        border-radius: 10px;
+        background: white;
+        cursor: pointer;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .btn-edit:hover {
+        background: #B0D7FF;
+    }
+
+    .btn-delete:hover {
+        background: #F2C4CE;
+    }
 </style>
