@@ -114,23 +114,24 @@ const filteredUsers = computed(() => {
 })
 
 onMounted(async () => {
-    // Проверка на админа
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return router.push('/login')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return router.push('/login')
 
-    const { data: adminCheck } = await supabase
-        .from('admins')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .single()
+        const { data: adminCheck, error: adminError } = await supabase
+            .from('admins')
+            .select('user_id')
+            .eq('user_id', user.id)
+            .maybeSingle()  // ← замени .single() на .maybeSingle()
 
-    if (!adminCheck) {
-        alert('Доступ запрещён')
-        router.push('/')
-        return
-    }
+        console.log('adminCheck:', adminCheck, 'error:', adminError)
 
-    await loadData()
+        if (!adminCheck) {
+            alert('Доступ запрещён')
+            router.push('/')
+            return
+        }
+
+        await loadData()
 })
 
 const loadData = async () => {
