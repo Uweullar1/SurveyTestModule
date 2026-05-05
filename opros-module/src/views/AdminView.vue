@@ -15,10 +15,10 @@
                 </button>
             </div>
 
-            <!-- Вкладка: Пользователи -->
+            <!-- ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ ===== -->
             <div v-if="activeTab === 'users'" class="tab-content">
                 <div class="search-box">
-                    <input v-model="userSearch" type="text" placeholder="Поиск по имени или email..." class="admin-input" />
+                    <input v-model="userSearch" type="text" placeholder="Поиск по имени..." class="admin-input" />
                 </div>
 
                 <div v-if="loadingUsers" class="text-center py-4">Загрузка...</div>
@@ -30,7 +30,7 @@
                                  class="user-avatar" />
                             <div>
                                 <div class="user-name">{{ profile.first_name }} {{ profile.last_name }}</div>
-                                <div class="user-email">{{ profile.username }}</div>
+                                <div class="user-email">{{ profile.username || '—' }}</div>
                             </div>
                         </div>
 
@@ -47,11 +47,11 @@
                             <div class="switches">
                                 <button @click="toggleCreate(profile)"
                                         :class="['switch-btn', { active: profile.can_create }]">
-                                    Создатель
+                                    ✏️ Создатель
                                 </button>
                                 <button @click="toggleAdmin(profile)"
                                         :class="['switch-btn', { active: adminIds.includes(profile.id) }]">
-                                    Админ
+                                    👑 Админ
                                 </button>
                             </div>
                         </div>
@@ -59,22 +59,29 @@
                 </div>
             </div>
 
-            <!-- Вкладка: Все опросы -->
+            <!-- ===== ВКЛАДКА: ВСЕ ОПРОСЫ ===== -->
             <div v-if="activeTab === 'surveys'" class="tab-content">
                 <div v-if="loadingSurveys" class="text-center py-4">Загрузка...</div>
 
-                <div v-else class="surveys-admin-list">
+                <div v-else class="surveys-admin-grid">
                     <div v-for="survey in allSurveys" :key="survey.id" class="survey-admin-card">
-                        <div class="survey-admin-info">
-                            <div class="survey-admin-title">{{ survey.title }}</div>
-                            <div class="survey-admin-meta">
-                                {{ survey.departments?.name || 'Без департамента' }} · {{ survey.owner_name }}
-                                {{ survey.profiles?.first_name }} {{ survey.profiles?.last_name }}
+                        <div class="card-deco"></div>
+                        <div class="card-content">
+                            <div class="title-row">
+                                <span class="survey-label">ОПРОС</span>
+                                <span v-if="survey.departments?.name" class="department-badge">
+                                    {{ survey.departments.name }}
+                                </span>
                             </div>
-                        </div>
-                        <div class="survey-admin-actions">
-                            <button @click="editSurvey(survey.id)" class="btn-sm btn-edit">✏️</button>
-                            <button @click="deleteSurvey(survey.id)" class="btn-sm btn-delete">🗑️</button>
+                            <h3 class="survey-title">{{ survey.title }}</h3>
+                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                            <div class="card-footer">
+                                <span class="owner-name">{{ survey.owner_name || '—' }}</span>
+                                <div class="survey-admin-actions">
+                                    <button @click="editSurvey(survey.id)" class="btn-sm btn-edit">✏️</button>
+                                    <button @click="deleteSurvey(survey.id)" class="btn-sm btn-delete">🗑️</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -106,7 +113,7 @@
         return users.value.filter(u =>
             u.first_name?.toLowerCase().includes(q) ||
             u.last_name?.toLowerCase().includes(q) ||
-            u.email?.toLowerCase().includes(q)
+            u.username?.toLowerCase().includes(q)
         )
     })
 
@@ -130,7 +137,7 @@
 
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, avatar_url, department_id, can_create')
+            .select('id, first_name, last_name, username, avatar_url, department_id, can_create')
             .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
@@ -143,7 +150,6 @@
             .select(`*, departments(name)`)
             .order('created_at', { ascending: false })
 
-        // Добавляем имена создателей
         if (surveys) {
             for (let s of surveys) {
                 const owner = users.value.find(u => u.id === s.user_id)
@@ -269,6 +275,7 @@
         display: flex;
         align-items: center;
         gap: 14px;
+        min-width: 200px;
     }
 
     .user-avatar {
@@ -277,6 +284,7 @@
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid #212844;
+        flex-shrink: 0;
     }
 
     .user-name {
@@ -292,8 +300,7 @@
     .user-controls {
         display: flex;
         align-items: center;
-        gap: 20px;
-        flex-wrap: wrap;
+        gap: 16px;
     }
 
     .dept-mini {
@@ -329,6 +336,7 @@
         color: #888;
         cursor: pointer;
         transition: all 0.2s;
+        white-space: nowrap;
     }
 
         .switch-btn.active {
@@ -339,52 +347,121 @@
         .switch-btn:hover {
             transform: scale(1.03);
         }
-    /* Опросы */
-    .surveys-admin-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+
+    /* ===== КАРТОЧКИ ОПРОСОВ (как на главной) ===== */
+    .surveys-admin-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+        .surveys-admin-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .surveys-admin-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .survey-admin-card {
+        position: relative;
+    }
+
+    .card-deco {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 100%;
+        height: 100%;
+        background: #B0D7FF;
+        border: 2px solid #212844;
+        border-radius: 20px;
+        z-index: 1;
+    }
+
+    .card-content {
+        position: relative;
         background: white;
         border: 2px solid #212844;
-        border-radius: 14px;
-        padding: 16px 20px;
+        border-radius: 20px;
+        padding: 22px;
+        z-index: 2;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .survey-label {
+        font-size: 0.65rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        color: #212844;
+        opacity: 0.5;
+    }
+
+    .department-badge {
+        background: #B0D7FF;
+        color: #212844;
+        border: 1.5px solid #212844;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .survey-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+        color: #212844;
+    }
+
+    .survey-desc {
+        opacity: 0.5;
+        font-size: 0.8rem;
+        margin-bottom: 12px;
+    }
+
+    .card-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border-top: 1px solid rgba(33,40,68,0.08);
+        padding-top: 10px;
     }
 
-    .survey-admin-info {
-        flex: 1;
-    }
-
-    .survey-admin-title {
-        font-weight: 800;
-        color: #212844;
-        font-size: 1rem;
-    }
-
-    .survey-admin-meta {
-        font-size: 0.8rem;
+    .owner-name {
+        font-size: 0.75rem;
         color: #888;
-        margin-top: 4px;
+        font-weight: 600;
     }
 
     .survey-admin-actions {
         display: flex;
-        gap: 8px;
+        gap: 6px;
     }
 
     .btn-sm {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border: 2px solid #212844;
-        border-radius: 10px;
+        border-radius: 8px;
         background: white;
         cursor: pointer;
-        font-size: 1rem;
+        font-size: 0.85rem;
         display: flex;
         align-items: center;
         justify-content: center;
