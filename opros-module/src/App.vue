@@ -52,35 +52,37 @@
     const loadUserData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
+
             if (user) {
+                isLoggedIn.value = true
+
+                // Проверка на админа
                 const { data: adminCheck } = await supabase
                     .from('admins')
                     .select('user_id')
                     .eq('user_id', user.id)
                     .single()
                 isAdmin.value = !!adminCheck
-            }
-            if (user) {
-                isLoggedIn.value = true
 
+                // Загрузка профиля
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('avatar_url, can_create')
                     .eq('id', user.id)
                     .single()
+
                 if (profile) {
                     canCreate.value = profile.can_create || false
-                if (profile?.avatar_url) {
-                    
-                    // Если base64 — используем как есть
-                    if (profile.avatar_url.startsWith('data:')) {
-                        userAvatar.value = profile.avatar_url
-                        localStorage.setItem('avatar', profile.avatar_url)
-                    } else {
-                        // Обычный URL
-                        const url = profile.avatar_url + '?t=' + Date.now()
-                        userAvatar.value = url
-                        localStorage.setItem('avatar', url)
+
+                    if (profile.avatar_url) {
+                        if (profile.avatar_url.startsWith('data:')) {
+                            userAvatar.value = profile.avatar_url
+                            localStorage.setItem('avatar', profile.avatar_url)
+                        } else {
+                            const url = profile.avatar_url + '?t=' + Date.now()
+                            userAvatar.value = url
+                            localStorage.setItem('avatar', url)
+                        }
                     }
                 }
             } else {
