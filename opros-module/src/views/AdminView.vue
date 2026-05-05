@@ -139,7 +139,11 @@ const loadData = async () => {
     departments.value = depts || []
 
     // Загружаем пользователей
-    const { data: profiles } = await supabase.from('profiles').select('*').order('last_name')
+    const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, avatar_url, department_id, can_create')  // ← добавь can_create
+        .order('last_name')
+
     users.value = profiles || []
     loadingUsers.value = false
 
