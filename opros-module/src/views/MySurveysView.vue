@@ -23,23 +23,26 @@
         <div class="card-status" :class="{ 'closed': survey.is_closed }">
           {{ survey.is_closed ? 'Закрыт' : 'Активен' }}
         </div>
-        
+
         <div class="card-main">
           <h3 class="survey-title">{{ survey.title }}</h3>
           <p class="survey-desc">
             {{ survey.description || 'Без описания' }}
           </p>
-          
+
           <div class="survey-meta">
             <span class="meta-item">
               📅 {{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}
+            </span>
+            <span v-if="survey.departments?.name" class="meta-dept">
+              🏢 {{ survey.departments.name }}
             </span>
           </div>
         </div>
 
         <div class="card-actions">
           <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">
-            ⚙️
+            ✏️
           </button>
           <button 
             @click="toggleVisibility(survey)" 
@@ -72,7 +75,7 @@ const loadMySurveys = async () => {
 
   const { data, error } = await supabase
     .from('surveys')
-    .select('*')
+    .select('*, departments(name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -89,7 +92,7 @@ const editSurvey = (id) => {
 const toggleVisibility = async (survey) => {
   const { error } = await supabase
     .from('surveys')
-    .update({ is_closed: !survey.is_closed })
+    .update({ is_closed: !survey.is_closed, is_active: survey.is_closed })
     .eq('id', survey.id)
 
   if (!error) {
@@ -100,7 +103,7 @@ const toggleVisibility = async (survey) => {
 }
 
 const deleteSurvey = async (id) => {
-  if (!confirm('Вы действительно хотите удалить этот опрос? Все результаты тоже будут удалены.')) return
+  if (!confirm('Удалить опрос? Все результаты будут удалены.')) return
 
   const { error } = await supabase
     .from('surveys')
@@ -116,16 +119,16 @@ const deleteSurvey = async (id) => {
 
 onMounted(loadMySurveys)
 </script>
+
 <style scoped>
 .my-surveys-container {
   max-width: 1000px;
   margin: 0 auto;
   padding: 40px 20px;
-  background-color: #FDFDF1; /* Основной фон */
+  background-color: #FDFDF1;
   min-height: 90vh;
 }
 
-/* Заголовок страницы */
 .content-header {
   display: flex;
   justify-content: space-between;
@@ -141,7 +144,7 @@ onMounted(loadMySurveys)
 
 .btn-create-new {
   background: #212844;
-  color: #F2C4CE; /* Розовый акцент */
+  color: #F2C4CE;
   text-decoration: none;
   padding: 12px 24px;
   border-radius: 16px;
@@ -155,14 +158,12 @@ onMounted(loadMySurveys)
   box-shadow: 4px 4px 0px #DF2935;
 }
 
-/* Сетка карточек */
 .surveys-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 25px;
 }
 
-/* Стилизация карточки */
 .survey-card {
   background: white;
   border: 3px solid #212844;
@@ -203,6 +204,7 @@ onMounted(loadMySurveys)
   font-weight: 800;
   color: #212844;
   margin-bottom: 10px;
+  padding-right: 70px;
 }
 
 .survey-desc {
@@ -213,22 +215,25 @@ onMounted(loadMySurveys)
 }
 
 .survey-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   font-size: 0.85rem;
   font-weight: 700;
   color: #212844;
   opacity: 0.6;
+  margin-bottom: 5px;
 }
 
-/* Кнопки действий на карточке */
 .card-actions {
   display: flex;
   gap: 10px;
-  margin-top: 25px;
+  margin-top: 20px;
 }
 
 .btn-action {
   flex: 1;
-  height: 45px;
+  height: 42px;
   border: 2px solid #212844;
   border-radius: 12px;
   cursor: pointer;
@@ -248,7 +253,6 @@ onMounted(loadMySurveys)
   color: white;
 }
 
-/* Состояния загрузки и пустоты */
 .loader-wrapper, .empty-state {
   text-align: center;
   padding: 80px 0;
