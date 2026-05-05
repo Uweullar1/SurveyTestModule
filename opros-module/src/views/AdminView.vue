@@ -86,62 +86,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { supabase } from '../supabase'
+    import { ref, onMounted } from 'vue'
+    import { supabase } from './supabase'
+    import { useRouter } from 'vue-router'
 
-const router = useRouter()
+    const canCreate = ref(false)
+    const isAdmin = ref(false)
+    const router = useRouter()
 
-const activeTab = ref('users')
-const loadingUsers = ref(true)
-const loadingSurveys = ref(true)
+    const isLoggedIn = ref(false)
+    const userAvatar = ref(localStorage.getItem('avatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')
 
-const users = ref([])
-const allSurveys = ref([])
-const departments = ref([])
-const adminIds = ref([])
-const userSearch = ref('')
-
-// Фильтрация пользователей
-const filteredUsers = computed(() => {
-    if (!userSearch.value.trim()) return users.value
-    const q = userSearch.value.toLowerCase()
-    return users.value.filter(u =>
-        u.first_name?.toLowerCase().includes(q) ||
-        u.last_name?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q)
-    )
-})
-
-onMounted(async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return router.push('/login')
-
-        // Загружаем всех админов и проверяем локально
-        const { data: allAdmins } = await supabase
-            .from('admins')
-            .select('user_id')
-
-        if (!allAdmins?.some(a => a.user_id === user.id)) {
-            alert('Доступ запрещён')
-            router.push('/')
-            return
-        }
-
-        await loadData()
-})
-
-    // Убери отдельный запрос к admins
-    // Вместо этого загрузи список админов один раз
-
-const loadUserData = async () => {
+    const loadUserData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
 
             if (user) {
                 isLoggedIn.value = true
 
-                // Загружаем профиль
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('avatar_url, can_create')
@@ -163,7 +125,7 @@ const loadUserData = async () => {
                     }
                 }
 
-                // Загружаем ВСЕХ админов и проверяем локально
+                // Загружаем всех админов одним запросом (без eq)
                 const { data: allAdmins } = await supabase
                     .from('admins')
                     .select('user_id')
@@ -176,72 +138,17 @@ const loadUserData = async () => {
                 localStorage.removeItem('avatar')
             }
         } catch (err) {
-            console.error('Ошибка загрузки пользователя:', err)
+            console.error('Ошибка загрузки:', err)
         }
-}
+    }
 
-// Обновить департамент
-const updateDepartment = async (profile) => {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ department_id: profile.department_id })
-            .eq('id', profile.id)
+    supabase.auth.onAuthStateChange(() => {
+        loadUserData()
+    })
 
-        if (error) {
-            console.error('Ошибка обновления департамента:', error)
-        }
-}
-
-// Переключить права создателя
-const toggleCreate = async (profile) => {
-        const newVal = !profile.can_create
-        const { error } = await supabase
-            .from('profiles')
-            .update({ can_create: newVal })
-            .eq('id', profile.id)
-
-        if (!error) {
-            profile.can_create = newVal
-        }
-}
-
-    // Переключить админа
-const toggleAdmin = async (profile) => {
-        const isAdmin = adminIds.value.includes(profile.id)
-
-        if (isAdmin) {
-            const { error } = await supabase
-                .from('admins')
-                .delete()
-                .eq('user_id', profile.id)
-
-            if (!error) {
-                adminIds.value = adminIds.value.filter(id => id !== profile.id)
-            }
-        } else {
-            const { error } = await supabase
-                .from('admins')
-                .insert({ user_id: profile.id })
-
-            if (!error) {
-                adminIds.value.push(profile.id)
-            }
-        }
-}
-
-// Редактировать опрос
-const editSurvey = (surveyId) => {
-    router.push(`/surveys/${surveyId}/edit`)
-}
-
-// Удалить опрос
-const deleteSurvey = async (surveyId) => {
-    if (!confirm('Удалить опрос? Все ответы будут потеряны.')) return
-    await supabase.from('responses').delete().eq('survey_id', surveyId)
-    await supabase.from('questions').delete().eq('survey_id', surveyId)
-    await supabase.from('surveys').delete().eq('id', surveyId)
-    allSurveys.value = allSurveys.value.filter(s => s.id !== surveyId)
-}
+    onMounted(() => {
+        loadUserData()
+    })
 </script>
 
 <style scoped>
