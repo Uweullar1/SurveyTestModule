@@ -286,88 +286,53 @@
     .user-controls {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 20px;
+        flex-wrap: wrap;
     }
 
     .dept-mini {
-        min-width: 160px;
+        min-width: 150px;
     }
 
     .mini-select {
         width: 100%;
-        height: 34px;
-        padding: 0 8px;
+        height: 36px;
+        padding: 0 30px 0 10px;
         border: 2px solid #212844;
-        border-radius: 8px;
+        border-radius: 10px;
         font-size: 0.8rem;
-        background: white;
-    }
-
-    .toggle-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        font-weight: 600;
+        background: #FDFDF1;
+        appearance: none;
+        -webkit-appearance: none;
         cursor: pointer;
     }
 
-    .toggle-text {
+    .switches {
+        display: flex;
+        gap: 8px;
+    }
+
+    .switch-btn {
+        padding: 6px 14px;
+        border: 2px solid #212844;
+        border-radius: 10px;
+        background: white;
         font-size: 0.8rem;
         font-weight: 700;
-        color: #212844;
-    }
-
-    /* Опросы */
-    .surveys-admin-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .survey-admin-card {
-        background: white;
-        border: 2px solid #212844;
-        border-radius: 14px;
-        padding: 14px 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .survey-admin-title {
-        font-weight: 800;
-        color: #212844;
-    }
-
-    .survey-admin-meta {
-        font-size: 0.75rem;
         color: #888;
-        margin-top: 4px;
-    }
-
-    .survey-admin-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .btn-sm {
-        width: 34px;
-        height: 34px;
-        border: 2px solid #212844;
-        border-radius: 8px;
-        background: white;
         cursor: pointer;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         transition: all 0.2s;
     }
 
-    .btn-edit:hover {
-        background: #B0D7FF;
-    }
+        .switch-btn.active {
+            background: #212844;
+            color: #F2C4CE;
+        }
 
-    .btn-delete:hover {
-        background: #F2C4CE;
-    }
+        .switch-btn:hover {
+            transform: scale(1.03);
+        }
+
+    /* Убираем старые стили для toggle-label, mini-select старый */
 </style>
