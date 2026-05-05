@@ -86,69 +86,100 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
-    import { supabase } from '../supabase'
+    import { ref, onMounted, computed } from 'vue'
     import { useRouter } from 'vue-router'
+    import { supabase } from '../supabase'
 
-    const canCreate = ref(false)
-    const isAdmin = ref(false)
     const router = useRouter()
 
-    const isLoggedIn = ref(false)
-    const userAvatar = ref(localStorage.getItem('avatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')
+    const activeTab = ref('users')
+    const loadingUsers = ref(true)
+    const loadingSurveys = ref(true)
 
-    const loadUserData = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
+    const users = ref([])
+    const allSurveys = ref([])
+    const departments = ref([])
+    const adminIds = ref([])
+    const userSearch = ref('')
 
-            if (user) {
-                isLoggedIn.value = true
+    const filteredUsers = computed(() => {
+        if (!userSearch.value.trim()) return users.value
+        const q = userSearch.value.toLowerCase()
+        return users.value.filter(u =>
+            u.first_name?.toLowerCase().includes(q) ||
+            u.last_name?.toLowerCase().includes(q) ||
+            u.email?.toLowerCase().includes(q)
+        )
+    })
 
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('avatar_url, can_create')
-                    .eq('id', user.id)
-                    .single()
+    onMounted(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return router.push('/login')
 
-                if (profile) {
-                    canCreate.value = profile.can_create || false
+        const { data: allAdmins } = await supabase.from('admins').select('user_id')
+        if (!allAdmins?.some(a => a.user_id === user.id)) {
+            alert('Доступ запрещён')
+            router.push('/')
+            return
+        }
 
-                    if (profile.avatar_url) {
-                        if (profile.avatar_url.startsWith('data:')) {
-                            userAvatar.value = profile.avatar_url
-                            localStorage.setItem('avatar', profile.avatar_url)
-                        } else {
-                            const url = profile.avatar_url + '?t=' + Date.now()
-                            userAvatar.value = url
-                            localStorage.setItem('avatar', url)
-                        }
-                    }
-                }
+        await loadData()
+    })
 
-                // Загружаем всех админов одним запросом (без eq)
-                const { data: allAdmins } = await supabase
-                    .from('admins')
-                    .select('user_id')
+    const loadData = async () => {
+        const { data: depts } = await supabase.from('departments').select('*').order('name')
+        departments.value = depts || []
 
-                isAdmin.value = (allAdmins || []).some(a => a.user_id === user.id)
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, email, avatar_url, department_id, can_create')
+            .order('last_name')
+        users.value = profiles || []
+        loadingUsers.value = false
 
-            } else {
-                isLoggedIn.value = false
-                userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-                localStorage.removeItem('avatar')
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки:', err)
+        const { data: admins } = await supabase.from('admins').select('user_id')
+        adminIds.value = (admins || []).map(a => a.user_id)
+
+        const { data: surveys } = await supabase
+            .from('surveys')
+            .select(`*, departments(name), profiles!surveys_user_id_fkey(first_name, last_name)`)
+            .order('created_at', { ascending: false })
+        allSurveys.value = surveys || []
+        loadingSurveys.value = false
+    }
+
+    const updateDepartment = async (profile) => {
+        await supabase.from('profiles').update({ department_id: profile.department_id }).eq('id', profile.id)
+    }
+
+    const toggleCreate = async (profile) => {
+        const newVal = !profile.can_create
+        const { error } = await supabase.from('profiles').update({ can_create: newVal }).eq('id', profile.id)
+        if (!error) profile.can_create = newVal
+    }
+
+    const toggleAdmin = async (profile) => {
+        const isAdmin = adminIds.value.includes(profile.id)
+        if (isAdmin) {
+            const { error } = await supabase.from('admins').delete().eq('user_id', profile.id)
+            if (!error) adminIds.value = adminIds.value.filter(id => id !== profile.id)
+        } else {
+            const { error } = await supabase.from('admins').insert({ user_id: profile.id })
+            if (!error) adminIds.value.push(profile.id)
         }
     }
 
-    supabase.auth.onAuthStateChange(() => {
-        loadUserData()
-    })
+    const editSurvey = (surveyId) => {
+        router.push(`/surveys/${surveyId}/edit`)
+    }
 
-    onMounted(() => {
-        loadUserData()
-    })
+    const deleteSurvey = async (surveyId) => {
+        if (!confirm('Удалить опрос?')) return
+        await supabase.from('responses').delete().eq('survey_id', surveyId)
+        await supabase.from('questions').delete().eq('survey_id', surveyId)
+        await supabase.from('surveys').delete().eq('id', surveyId)
+        allSurveys.value = allSurveys.value.filter(s => s.id !== surveyId)
+    }
 </script>
 
 <style scoped>
