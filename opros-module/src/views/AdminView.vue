@@ -87,7 +87,7 @@
 
 <script setup>
     import { ref, onMounted } from 'vue'
-    import { supabase } from './supabase'
+    import { supabase } from '../supabase'
     import { useRouter } from 'vue-router'
 
     const canCreate = ref(false)
