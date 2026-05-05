@@ -117,15 +117,12 @@ onMounted(async () => {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return router.push('/login')
 
-        const { data: adminCheck, error: adminError } = await supabase
+        // Загружаем всех админов и проверяем локально
+        const { data: allAdmins } = await supabase
             .from('admins')
             .select('user_id')
-            .eq('user_id', user.id)
-            .maybeSingle()  // ← замени .single() на .maybeSingle()
 
-        console.log('adminCheck:', adminCheck, 'error:', adminError)
-
-        if (!adminCheck) {
+        if (!allAdmins?.some(a => a.user_id === user.id)) {
             alert('Доступ запрещён')
             router.push('/')
             return
