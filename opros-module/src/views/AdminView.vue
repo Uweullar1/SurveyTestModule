@@ -134,35 +134,57 @@ onMounted(async () => {
         await loadData()
 })
 
-const loadData = async () => {
-    // Загружаем департаменты
-    const { data: depts } = await supabase.from('departments').select('*').order('name')
-    departments.value = depts || []
+    // Убери отдельный запрос к admins
+    // Вместо этого загрузи список админов один раз
 
-    // Загружаем пользователей
-    const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, avatar_url, department_id, can_create')  // ← добавь can_create
-        .order('last_name')
+const loadUserData = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
 
-    users.value = profiles || []
-    loadingUsers.value = false
+            if (user) {
+                isLoggedIn.value = true
 
-    // Загружаем админов
-    const { data: admins } = await supabase.from('admins').select('user_id')
-    adminIds.value = (admins || []).map(a => a.user_id)
+                // Загружаем профиль
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('avatar_url, can_create')
+                    .eq('id', user.id)
+                    .single()
 
-    // Загружаем все опросы
-    const { data: surveys } = await supabase
-        .from('surveys')
-        .select(`*, departments(name), profiles!surveys_user_id_fkey(first_name, last_name)`)
-        .order('created_at', { ascending: false })
-    allSurveys.value = surveys || []
-    loadingSurveys.value = false
+                if (profile) {
+                    canCreate.value = profile.can_create || false
+
+                    if (profile.avatar_url) {
+                        if (profile.avatar_url.startsWith('data:')) {
+                            userAvatar.value = profile.avatar_url
+                            localStorage.setItem('avatar', profile.avatar_url)
+                        } else {
+                            const url = profile.avatar_url + '?t=' + Date.now()
+                            userAvatar.value = url
+                            localStorage.setItem('avatar', url)
+                        }
+                    }
+                }
+
+                // Загружаем ВСЕХ админов и проверяем локально
+                const { data: allAdmins } = await supabase
+                    .from('admins')
+                    .select('user_id')
+
+                isAdmin.value = (allAdmins || []).some(a => a.user_id === user.id)
+
+            } else {
+                isLoggedIn.value = false
+                userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                localStorage.removeItem('avatar')
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки пользователя:', err)
+        }
 }
 
 // Обновить департамент
-    const updateDepartment = async (profile) => {
+const updateDepartment = async (profile) => {
         const { error } = await supabase
             .from('profiles')
             .update({ department_id: profile.department_id })
@@ -171,10 +193,10 @@ const loadData = async () => {
         if (error) {
             console.error('Ошибка обновления департамента:', error)
         }
-    }
+}
 
 // Переключить права создателя
-    const toggleCreate = async (profile) => {
+const toggleCreate = async (profile) => {
         const newVal = !profile.can_create
         const { error } = await supabase
             .from('profiles')
@@ -184,10 +206,10 @@ const loadData = async () => {
         if (!error) {
             profile.can_create = newVal
         }
-    }
+}
 
     // Переключить админа
-    const toggleAdmin = async (profile) => {
+const toggleAdmin = async (profile) => {
         const isAdmin = adminIds.value.includes(profile.id)
 
         if (isAdmin) {
@@ -208,7 +230,7 @@ const loadData = async () => {
                 adminIds.value.push(profile.id)
             }
         }
-    }
+}
 
 // Редактировать опрос
 const editSurvey = (surveyId) => {
