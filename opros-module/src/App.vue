@@ -9,7 +9,8 @@
 
                 <div class="nav-links">
                     <router-link to="/my-history" class="nav-link">История прохождений</router-link>
-                    <router-link to="/my-surveys" class="nav-link">Мои опросы</router-link>
+                    <router-link v-if="canCreate" to="/my-surveys">Мои опросы</router-link>
+                    <router-link v-if="isAdmin" to="/admin" class="nav-link">Админка</router-link>
                 </div>
 
                 <div class="nav-right">
@@ -41,6 +42,8 @@
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
 
+    const canCreate = ref(false)
+    const isAdmin = ref(false)
     const router = useRouter()
 
     const isLoggedIn = ref(false)
@@ -49,17 +52,26 @@
     const loadUserData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
-
+            if (user) {
+                const { data: adminCheck } = await supabase
+                    .from('admins')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .single()
+                isAdmin.value = !!adminCheck
+            }
             if (user) {
                 isLoggedIn.value = true
 
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('avatar_url')
+                    .select('avatar_url, can_create')
                     .eq('id', user.id)
                     .single()
-
+                if (profile) {
+                    canCreate.value = profile.can_create || false
                 if (profile?.avatar_url) {
+                    
                     // Если base64 — используем как есть
                     if (profile.avatar_url.startsWith('data:')) {
                         userAvatar.value = profile.avatar_url

@@ -325,7 +325,21 @@
         user.value = u
         if (!u) return router.push('/login')
 
-        await loadDepartments()  // ← ВЫЗЫВАЕМ здесь
+        // СНАЧАЛА проверяем права
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('can_create')
+            .eq('id', u.id)
+            .single()
+
+        if (!profile?.can_create) {
+            alert('У вас нет прав на создание опросов')
+            router.push('/')
+            return
+        }
+
+        // ПОТОМ загружаем всё остальное
+        await loadDepartments()
         await loadTemplates()
 
         if (route.params.id) {

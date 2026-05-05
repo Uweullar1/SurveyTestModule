@@ -55,6 +55,12 @@ const routes = [
         path: '/my-surveys',
         name: 'my-surveys',
         component: () => import('../views/MySurveysView.vue'),
+    },
+    {
+        path: '/admin',
+        name: 'Admin',
+        component: () => import('../views/AdminView.vue'),
+        meta: { requiresAuth: true }
     }
 
 ]
