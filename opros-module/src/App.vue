@@ -9,7 +9,7 @@
 
                 <div class="nav-links">
                     <router-link to="/my-history" class="nav-link">История прохождений</router-link>
-                    <router-link v-if="canCreate" to="/my-surveys">Мои опросы</router-link>
+                    <router-link v-if="canCreate" to="/my-surveys" class="nav-link">Мои опросы</router-link>
                     <router-link v-if="isAdmin" to="/admin" class="nav-link">Админка</router-link>
                 </div>
 
