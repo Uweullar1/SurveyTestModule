@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <nav class="main-header">
+        <nav v-if="isLoggedIn" class="main-header">
             <div class="nav-container">
                 <router-link to="/" class="logo-group">
                     <span class="logo-main">VOCUS</span>
