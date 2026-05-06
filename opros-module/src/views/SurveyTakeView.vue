@@ -279,6 +279,18 @@
         if (submitting.value) return
         submitting.value = true
 
+        // Проверка обязательных вопросов
+        for (const q of questions.value) {
+            if (q.required) {
+                const val = responses.value[q.id]
+                if (!val || (Array.isArray(val) && val.length === 0)) {
+                    alert(`Вопрос "${q.text}" обязателен для ответа.`)
+                    submitting.value = false
+                    return
+                }
+            }
+        }
+
         const surveyId = route.params.id
 
         try {

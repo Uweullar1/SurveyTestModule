@@ -94,6 +94,10 @@
                             <option value="text">Текстовый ответ</option>
                             <option value="scale">Шкала (1-10)</option>
                         </select>
+                        <label class="required-check">
+                            <input type="checkbox" v-model="question.required">
+                            <span>Обязательный</span>
+                        </label>
                         <button @click="removeQuestion(qIndex)" v-if="survey.questions.length > 1" class="btn-remove-question">Удалить</button>
                     </div>
                 </div>
@@ -310,6 +314,7 @@
                 id: q.id,
                 text: q.text || '',
                 type: q.question_type || 'radio',
+                required: q.required || false,
                 choices: questionChoices.length > 0
                     ? questionChoices
                     : [{ text: '', is_correct: false }]
@@ -362,6 +367,7 @@
             id: Date.now() + Math.random(),
             text: '',
             type,
+            required: false,
             choices: (type === 'text' || type === 'scale') ? [] : [{ text: '', is_correct: false }]
         })
     }
@@ -442,7 +448,8 @@
                         survey_id: savedId,
                         text: q.text.trim(),
                         question_type: q.type,
-                        order
+                        order,
+                        required: q.required || false
                     })
                     .select()
                     .single()
@@ -1025,4 +1032,18 @@
         opacity: 1;
         transform: translateX(0);
     }
+    .required-check {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #212844;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+        .required-check input {
+            cursor: pointer;
+        }
 </style>
