@@ -175,7 +175,7 @@
             // Загружаем опрос
             const { data, error: sErr } = await supabase
                 .from('surveys')
-                .select('*, user_id, questions(*, choices(*))')
+                .select('*')
                 .eq('id', surveyId)
                 .single()
 
@@ -217,6 +217,24 @@
                 } else {
                     // Для создателя — мягкое уведомление
                     alert('Этот опрос закрыт. Его могут видеть только вы.')
+                }
+            }
+            // === ПРОВЕРКА ДАТЫ ОКОНЧАНИЯ ===
+            if (data.expires_at) {
+                const now = new Date()
+                const expiresAt = new Date(data.expires_at)
+
+                if (now > expiresAt) {
+                    const { data: { user } } = await supabase.auth.getUser()
+                    const isCreator = user && user.id === data.user_id
+
+                    if (!isCreator) {
+                        alert('Срок прохождения этого опроса истёк.')
+                        router.push('/')
+                        return
+                    } else {
+                        alert('Срок прохождения опроса истёк, но вы можете просматривать его как создатель.')
+                    }
                 }
             }
 

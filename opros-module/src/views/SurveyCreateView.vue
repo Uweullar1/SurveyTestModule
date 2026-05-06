@@ -70,9 +70,6 @@
                 <label><input type="checkbox" v-model="survey.is_private"> Приватный опрос (доступен только по прямой ссылке)</label>
             </div>
             <div class="setting-row">
-                <label><input type="checkbox" v-model="survey.show_correct_answers"> Показывать правильные ответы после прохождения</label>
-            </div>
-            <div class="setting-row">
                 <label>Ограничение по количеству прохождений на одного пользователя:</label>
                 <input v-model="survey.max_responses" type="number" min="0" placeholder="0 = без ограничения" class="minimal-input">
             </div>
