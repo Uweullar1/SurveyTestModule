@@ -53,7 +53,9 @@
                                         <span :class="resp.passed ? 'status-passed' : 'status-failed'">
                                             {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
                                         </span>
-                                        <span v-if="resp.hasUnchecked" class="unchecked-dot" title="Требует проверки">🔍</span>
+                                        <span v-if="resp.hasUnchecked" class="unchecked-badge" title="Требует проверки">
+                                            🔍 На проверку
+                                        </span>
                                     </td>
                                     <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
                                     <td>
@@ -662,5 +664,16 @@
     .unchecked-dot {
         margin-left: 6px;
         font-size: 0.8rem;
+    }
+    .unchecked-badge {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #856404;
+        background: #fff3cd;
+        padding: 2px 8px;
+        border-radius: 8px;
+        white-space: nowrap;
     }
 </style>
