@@ -629,10 +629,17 @@
 
         .summary-table {
             min-width: 500px;
+            font-size: 0.8rem;
         }
 
-        .eval-row {
+        .d-flex.justify-content-between {
             flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-back {
+            width: 100%;
+            text-align: center;
         }
     }
 </style>

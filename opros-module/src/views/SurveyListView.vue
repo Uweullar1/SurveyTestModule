@@ -537,6 +537,308 @@
             color: #212844;
             text-decoration: none;
             cursor: pointer;
+            <style scoped>
+            /* ===== ФИЛЬТРЫ ===== */
+            .filters-bar
+
+        {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 42px;
+            padding: 0 40px 0 16px;
+            border: 2px solid #212844;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #212844;
+            background: white;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+            .search-input:focus {
+                outline: none;
+                border-color: #DF2935;
+            }
+
+        .search-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .filter-toggle {
+            height: 42px;
+            padding: 0 16px;
+            border: 2px solid #212844;
+            border-radius: 14px;
+            background: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #212844;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+            .filter-toggle:hover {
+                background: #FDFDF1;
+            }
+
+        .filter-count {
+            background: #DF2935;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Панель фильтров */
+        .filters-panel {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: white;
+            border: 2px solid #212844;
+            border-radius: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 0.65rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #212844;
+            opacity: 0.5;
+            padding-left: 4px;
+        }
+
+        .filter-select-wrapper {
+            position: relative;
+        }
+
+        .filter-select {
+            height: 38px;
+            padding: 0 32px 0 12px;
+            border: 2px solid #212844;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #212844;
+            background: #FDFDF1;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+            .filter-select:focus {
+                outline: none;
+                border-color: #DF2935;
+            }
+
+        .filter-reset {
+            height: 38px;
+            padding: 0 14px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: auto;
+        }
+
+            .filter-reset:hover {
+                color: #DF2935;
+            }
+
+        .passed-badge {
+            background: #d1e7dd;
+            color: #0f5132;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid;
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        /* Остальные стили без изменений */
+        .surveys-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            padding: 40px 0;
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .surveys-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .surveys-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .survey-card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            width: 100%;
+        }
+
+        .survey-card {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+            .survey-card:hover {
+                transform: translate(-4px, -4px);
+            }
+
+                .survey-card:hover .card-deco {
+                    transform: translate(4px, 4px);
+                    background: #F2C4CE;
+                }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .survey-label {
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #212844;
+            opacity: 0.5;
+        }
+
+        .department-badge {
+            background: #B0D7FF;
+            color: #212844;
+            border: 1.5px solid #212844;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .card-deco {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100%;
+            height: 100%;
+            background: #B0D7FF;
+            border: 2px solid #212844;
+            border-radius: 20px;
+            z-index: 1;
+        }
+
+        .card-content {
+            position: relative;
+            background: white;
+            border: 2px solid #212844;
+            border-radius: 20px;
+            padding: 25px;
+            z-index: 2;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .survey-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            line-height: 1.2;
+            color: #212844;
+        }
+
+        .survey-desc {
+            opacity: 0.6;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(33, 40, 68, 0.1);
+            padding-top: 12px;
+        }
+
+        .date {
+            font-size: 0.75rem;
+            font-weight: 600;
+            opacity: 0.4;
+        }
+
+        .open-btn {
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: #212844;
+            text-decoration: none;
+            cursor: pointer;
         }
 
         .admin-btn {
@@ -553,4 +855,39 @@
             .admin-btn:hover {
                 transform: scale(1.05);
             }
+        }
+
+        .admin-btn {
+            background: #F2C4CE;
+            border: 2px solid #212844;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: transform 0.2s;
+        }
+
+            .admin-btn:hover {
+                transform: scale(1.05);
+            }
+
+        @media (max-width: 500px) {
+            .card-content {
+                padding: 16px;
+                min-height: 160px;
+            }
+
+            .survey-title {
+                font-size: 1rem;
+            }
+
+            .survey-desc {
+                font-size: 0.75rem;
+            }
+
+            .date {
+                font-size: 0.65rem;
+            }
+        }
     </style>

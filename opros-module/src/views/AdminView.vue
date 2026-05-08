@@ -714,37 +714,44 @@
         }
 
         .results-table {
-            min-width: 600px;
+            min-width: 650px;
         }
 
-            .results-table th,
-            .results-table td {
-                padding: 8px 10px;
-                font-size: 0.75rem;
-                white-space: nowrap;
+            .results-table th, .results-table td {
+                padding: 6px 8px;
+                font-size: 0.7rem;
             }
 
         .filter-row {
             flex-direction: column;
+            align-items: stretch;
         }
 
-        .admin-input {
-            max-width: 100%;
+        .filter-select-sm {
+            width: 100%;
         }
 
-        .user-card {
+        .user-controls {
             flex-direction: column;
             align-items: flex-start;
         }
 
-        .user-controls {
+        .dept-mini {
             width: 100%;
-            flex-wrap: wrap;
+        }
+
+        .switches {
+            width: 100%;
+        }
+
+        .switch-btn {
+            flex: 1;
+            text-align: center;
         }
 
         .tab {
-            padding: 10px 14px;
-            font-size: 0.8rem;
+            padding: 8px 12px;
+            font-size: 0.75rem;
         }
     }
 </style>

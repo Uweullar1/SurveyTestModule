@@ -275,4 +275,23 @@
         font-weight: 900;
         font-size: 1rem;
     }
+    @media (max-width: 400px) {
+        .auth-card {
+            padding: 24px;
+            border-radius: 24px;
+        }
+
+        .auth-title {
+            font-size: 24px;
+        }
+
+        .auth-input {
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .btn-submit {
+            max-width: 100%;
+        }
+    }
 </style>

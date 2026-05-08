@@ -771,12 +771,8 @@
     }
 
     @media (max-width: 500px) {
-        .profile-content {
-            padding: 20px 0;
-        }
-
         .profile-title {
-            font-size: 2rem;
+            font-size: 1.8rem;
         }
 
         .avatar-section {
@@ -784,13 +780,31 @@
             align-items: flex-start;
         }
 
+        .profile-input {
+            font-size: 0.9rem;
+            height: 50px;
+        }
+
+        .btn-save {
+            font-size: 1rem;
+            padding: 16px;
+        }
+
         .secondary-actions {
             flex-direction: column;
         }
 
-        .modal {
-            padding: 25px;
-            margin: 10px;
+        .btn-logout, .btn-delete {
+            height: 48px;
+        }
+
+        .select-wrapper {
+            height: 50px;
+        }
+
+        .profile-select {
+            height: 50px;
+            font-size: 0.9rem;
         }
     }
 </style>
