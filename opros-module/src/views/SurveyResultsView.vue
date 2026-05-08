@@ -22,7 +22,7 @@
 
             <div v-else class="row justify-content-center mt-4">
                 <!-- СВОДНАЯ ТАБЛИЦА РЕЗУЛЬТАТОВ -->
-                <div class="summary-table-wrapper mb-5" style="margin-top: 40px;>
+                <div class="summary-table-wrapper mb-5" style="margin-top: 40px;">
                     <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }} участников)</h3>
                     <div class="table-responsive">
                         <table class="summary-table">
