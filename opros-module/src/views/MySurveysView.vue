@@ -24,6 +24,11 @@
           {{ survey.is_closed ? 'Закрыт' : 'Активен' }}
         </div>
 
+                  <!-- Бейдж проверки -->
+        <div v-if="survey.needsCheck" class="card-check-badge">
+            🔍 {{ survey.uncheckedCount }} на проверку
+        </div>
+
         <div class="card-main">
           <h3 class="survey-title">{{ survey.title }}</h3>
           <p class="survey-desc">
@@ -95,6 +100,47 @@ const toggleVisibility = async (survey) => {
   } else {
     alert('Ошибка при изменении видимости')
   }
+}
+    const loadMySurveys = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return router.push('/login')
+
+  const { data, error } = await supabase
+    .from('surveys')
+    .select('*, departments(name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) console.error(error)
+  else {
+    // Для каждого опроса проверяем, есть ли непроверенные ответы
+    const enriched = await Promise.all((data || []).map(async (survey) => {
+      // Есть ли текстовые вопросы в опросе
+      const { data: textQuestions } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('survey_id', survey.id)
+        .eq('question_type', 'text')
+      
+      if (!textQuestions || textQuestions.length === 0) {
+        return { ...survey, needsCheck: false, uncheckedCount: 0 }
+      }
+      
+      // Есть ли ответы с score = null (непроверенные)
+      const questionIds = textQuestions.map(q => q.id)
+      const { count } = await supabase
+        .from('answers')
+        .select('*', { count: 'exact', head: true })
+        .in('question_id', questionIds)
+        .is('score', null)
+      
+      return { ...survey, needsCheck: count > 0, uncheckedCount: count || 0 }
+    }))
+    
+    mySurveys.value = enriched
+  }
+
+  loading.value = false
 }
 
 const deleteSurvey = async (id) => {
@@ -279,5 +325,17 @@ onMounted(loadMySurveys)
 .empty-state h2 {
   font-weight: 900;
   color: #212844;
+}
+    .card-check-badge {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: #fdf6e3;
+    color: #212844;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    border: 2px solid #212844;
 }
 </style>
