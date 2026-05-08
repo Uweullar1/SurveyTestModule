@@ -197,8 +197,7 @@
                         })
                     }
                 }
-                console.log('userId:', userIds)
-                console.log('profilesData:', profilesData)
+                
                 // Ответы
                 const respIds = allResponses.value.map(r => r.id)
                 const { data: aData, error: aError } = await supabase
@@ -383,6 +382,7 @@
         padding: 8px 20px;
         font-weight: bold;
         transition: 0.2s;
+        margin-bottom: auto;
     }
 
         .btn-back:hover {
