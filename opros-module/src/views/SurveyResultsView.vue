@@ -423,6 +423,9 @@
     .answer-text {
         font-size: 1.15rem;
         font-weight: 600;
+        word-break: break-word; /* ← перенос длинных слов */
+        overflow-wrap: break-word; /* ← запасной вариант */
+        white-space: pre-wrap; /* ← сохраняет пробелы и переносит */
     }
 
     .admin-input {

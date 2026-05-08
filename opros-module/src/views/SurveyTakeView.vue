@@ -63,8 +63,12 @@
                             <textarea v-model="responses[question.id]"
                                       class="form-control custom-textarea"
                                       rows="3"
+                                      maxlength="1000"
                                       :required="question.required"
                                       placeholder="Введите ваш ответ..."></textarea>
+                            <div class="text-end small text-muted mt-1">
+                                {{ (responses[question.id] || '').length }}/1000
+                            </div>
                         </div>
 
                         <div v-else-if="question.question_type === 'scale'" class="mt-3">

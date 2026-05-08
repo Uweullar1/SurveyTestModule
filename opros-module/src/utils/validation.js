@@ -27,6 +27,10 @@ export const rules = {
         if (value.toString().trim().length > 150) return 'Вариант ответа не должен превышать 150 символов'
         return ''
     },
+    textAnswer: (value) => {
+        if (value && String(value).length > 1000) return 'Ответ не должен превышать 1000 символов'
+        return ''
+    },
 }
 
 // Удобная функция для проверки формы

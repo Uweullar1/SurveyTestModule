@@ -275,6 +275,9 @@
         padding: 12px 16px;
         font-size: 0.9rem;
         margin-bottom: 14px;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
     }
 
     .answer-correct {
