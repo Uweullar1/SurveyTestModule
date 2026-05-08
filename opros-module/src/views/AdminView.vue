@@ -162,14 +162,25 @@
     })
 
     const loadData = async () => {
-        const { data: depts } = await supabase.from('departments').select('*').order('name')
+        const { data: depts } = await supabase
+            .from('departments')
+            .select('*')
+            .order('name')
         departments.value = depts || []
-        const { data: profiles } = await supabase.from('profiles').select('id, first_name, last_name, username, avatar_url, department_id, can_create').order('last_name')
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, username, avatar_url, department_id, can_create')
+            .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
-        const { data: admins } = await supabase.from('admins').select('user_id')
+        const { data: admins } = await supabase
+            .from('admins')
+            .select('user_id')
         adminIds.value = (admins || []).map(a => a.user_id)
-        const { data: surveys } = await supabase.from('surveys').select(`*, departments(name)`).order('created_at', { ascending: false })
+        const { data: surveys } = await supabase
+            .from('surveys')
+            .select(`*, departments(name)`)
+            .order('created_at', { ascending: false })
         if (surveys) { for (let s of surveys) { const owner = users.value.find(u => u.id === s.user_id); s.owner_name = owner ? `${owner.first_name} ${owner.last_name}` : '—' } }
         allSurveys.value = surveys || []
         loadingSurveys.value = false
@@ -178,14 +189,65 @@
 
     const loadResults = async () => {
         loadingResults.value = true
-        const { data: responses } = await supabase.from('responses').select(`id, submitted_at, survey_id, user_id, surveys!inner(title, department_id, departments(name))`).order('submitted_at', { ascending: false })
+
+        const { data: responses } = await supabase
+            .from('responses')
+            .select(`id, submitted_at, survey_id, user_id, surveys!inner(title, department_id, departments(name))`)
+            .order('submitted_at', { ascending: false })
+
         if (!responses) { loadingResults.value = false; return }
+
+        const responseIds = responses.map(r => r.id)
+        const surveyIds = [...new Set(responses.map(r => r.survey_id))]
         const userIds = [...new Set(responses.map(r => r.user_id).filter(Boolean))]
+
+        // Загружаем ответы
+        const { data: allAnswersData } = await supabase.from('answers').select('*').in('response_id', responseIds)
+
+        // Загружаем вопросы с choices
+        const { data: allQuestions } = await supabase
+            .from('questions')
+            .select('id, question_type, survey_id, choices(id, is_correct)')
+            .in('survey_id', surveyIds)
+
+        // Загружаем профили
         const { data: profilesData } = await supabase.from('profiles').select('id, first_name, last_name').in('id', userIds)
         const profileMap = {}
         if (profilesData) profilesData.forEach(p => { profileMap[p.id] = p })
+
+        // Считаем баллы для каждого response
         const results = responses.map(resp => {
             const profile = profileMap[resp.user_id]
+            const respAnswers = (allAnswersData || []).filter(a => a.response_id === resp.id)
+            const surveyQuestions = (allQuestions || []).filter(q => q.survey_id === resp.survey_id)
+
+            let totalScore = 0
+            let maxScore = 0
+
+            surveyQuestions.forEach(q => {
+                if (q.question_type === 'scale') return
+                maxScore++
+
+                const ansList = respAnswers.filter(a => a.question_id === q.id)
+                if (ansList.length === 0) return
+
+                if (q.question_type === 'text') {
+                    const ans = ansList[0]
+                    if (ans.score && Number(ans.score) > 0) totalScore += Number(ans.score)
+                    return
+                }
+
+                const correctIds = (q.choices || []).filter(c => c.is_correct).map(c => String(c.id))
+                const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
+
+                if (correctIds.length > 0 && userIds.length === correctIds.length &&
+                    userIds.every(id => correctIds.includes(id))) {
+                    totalScore++
+                }
+            })
+
+            const passed = maxScore > 0 ? (totalScore / maxScore) >= 0.6 : true
+
             return {
                 responseId: resp.id,
                 userName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Неизвестный' : 'Неизвестный',
@@ -194,11 +256,12 @@
                 departmentName: resp.surveys?.departments?.name || null,
                 departmentId: resp.surveys?.department_id || null,
                 submittedAt: resp.submitted_at,
-                totalScore: 0,
-                maxScore: 0,
-                passed: false
+                totalScore,
+                maxScore,
+                passed
             }
         })
+
         allResults.value = results
         loadingResults.value = false
     }
@@ -206,14 +269,25 @@
     const openResult = (item) => router.push(`/results/${item.surveyId}/admin`)
     const resetResultFilters = () => { resultSearch.value = ''; resultSurveyFilter.value = ''; resultDeptFilter.value = '' }
     const updateDepartment = async (p) => { await supabase.from('profiles').update({ department_id: p.department_id }).eq('id', p.id) }
-    const toggleCreate = async (p) => { const n = !p.can_create; const { error } = await supabase.from('profiles').update({ can_create: n }).eq('id', p.id); if (!error) p.can_create = n }
+    const toggleCreate = async (p) => {
+        const n = !p.can_create; const { error } = await supabase.from('profiles').update({ can_create: n }).eq('id', p.id); if (!error) p.can_create = n
+    }
     const toggleAdmin = async (p) => {
         if (adminIds.value.includes(p.id)) { await supabase.from('admins').delete().eq('user_id', p.id); adminIds.value = adminIds.value.filter(id => id !== p.id) }
         else { await supabase.from('admins').insert({ user_id: p.id }); adminIds.value.push(p.id) }
     }
     const editSurvey = (id) => router.push(`/edit/${id}`)
-    const deleteSurvey = async (id) => { if (!confirm('Удалить опрос?')) return; await supabase.from('responses').delete().eq('survey_id', id); await supabase.from('questions').delete().eq('survey_id', id); await supabase.from('surveys').delete().eq('id', id); allSurveys.value = allSurveys.value.filter(s => s.id !== id) }
-    const toggleSurveyStatus = async (s) => { const { error } = await supabase.from('surveys').update({ is_closed: !s.is_closed, is_active: s.is_closed }).eq('id', s.id); if (!error) s.is_closed = !s.is_closed }
+    const deleteSurvey = async (id) => {
+        if (!confirm('Удалить опрос?')) return;
+        await supabase.from('responses').delete().eq('survey_id', id);
+        await supabase.from('questions').delete().eq('survey_id', id);
+        await supabase.from('surveys').delete().eq('id', id);
+        allSurveys.value = allSurveys.value.filter(s => s.id !== id)
+    }
+    const toggleSurveyStatus = async (s) => {
+        const { error } = await supabase.from('surveys').update({ is_closed: !s.is_closed, is_active: s.is_closed }).eq('id', s.id);
+        if (!error) s.is_closed = !s.is_closed
+    }
     const formatDate = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
 
