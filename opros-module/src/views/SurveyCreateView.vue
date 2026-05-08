@@ -165,6 +165,7 @@
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
+    import { rules, validate } from '../utils/validation.js'
 
     const router = useRouter()
     const route = useRoute() 
@@ -393,6 +394,27 @@
 
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
+
+        // ВАЛИДАЦИЯ ЗАГОЛОВКА
+        const titleError = validate('surveyTitle', survey.value.title)
+        if (titleError) return alert(titleError)
+
+        // ВАЛИДАЦИЯ ОПИСАНИЯ
+        const descError = validate('surveyDescription', survey.value.description)
+        if (descError) return alert(descError)
+
+        // ВАЛИДАЦИЯ ВОПРОСОВ
+        for (const q of survey.value.questions) {
+            const qError = validate('questionText', q.text)
+            if (qError) return alert(qError)
+
+            if (q.type === 'radio' || q.type === 'checkbox') {
+                for (const c of q.choices) {
+                    const cError = validate('choiceText', c.text)
+                    if (cError) return alert(cError)
+                }
+            }
+        }
 
         loading.value = true
 

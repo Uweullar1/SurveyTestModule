@@ -234,6 +234,21 @@
         const file = event.target.files[0]
         if (!file) return
 
+        // ВАЛИДАЦИЯ: тип файла
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+        if (!allowedTypes.includes(file.type)) {
+            alert('Можно загружать только изображения (JPEG, PNG, WebP)')
+            event.target.value = ''
+            return
+        }
+
+        // ВАЛИДАЦИЯ: размер файла (макс 5 МБ)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Файл слишком большой. Максимальный размер — 5 МБ')
+            event.target.value = ''
+            return
+        }
+
         try {
             const reader = new FileReader()
 
