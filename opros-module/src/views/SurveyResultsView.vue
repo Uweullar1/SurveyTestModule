@@ -16,99 +16,109 @@
                 </div>
             </div>
 
-            <!-- СВОДНАЯ ТАБЛИЦА РЕЗУЛЬТАТОВ -->
-            <div class="summary-table-wrapper mb-5">
-                <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }} участников)</h3>
-                <div class="table-responsive">
-                    <table class="summary-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Участник</th>
-                                <th>Результат</th>
-                                <th>Статус</th>
-                                <th>Дата</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
-                                @click="selectUser(resp)"
-                                :class="{ 'selected-row': selectedResponse?.id === resp.id }">
-                                <td>{{ idx + 1 }}</td>
-                                <td>
-                                    <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
-                                </td>
-                                <td>
-                                    <span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
-                                </td>
-                                <td>
-                                    <span :class="resp.passed ? 'status-passed' : 'status-failed'">
-                                        {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
-                                    </span>
-                                </td>
-                                <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
-                                <td>
-                                    <button @click.stop="selectUser(resp)" class="btn-view-sm">
-                                        Смотреть ответы
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div v-if="loading" class="text-center p-5">
+                <div class="spinner-border text-navy"></div>
             </div>
 
-                <div class="col-lg-7">
-                    <div v-if="selectedResponse" class="results-container">
-                        <div class="user-info-header mb-5">
-                            <h2 class="fw-bold mb-3">
-                                Ответы: {{ getParticipantName(selectedResponse) }}
-                            </h2>
-                            <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
-                        </div>
-
-                        <div v-for="q in questions" :key="q.id" class="question-block mb-5">
-                            <h5 class="question-heading mb-3">{{ q.text }}</h5>
-
-                            <div class="answer-display mb-3">
-                                <div class="answer-label">Ответ пользователя:</div>
-                                <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
-                            </div>
-
-                            <div v-if="q.question_type === 'radio' || q.question_type === 'checkbox'" class="correct-answer mb-3">
-                                <div class="answer-label">Правильный ответ:</div>
-                                <div class="answer-text correct">
-                                    {{ getCorrectAnswers(q) }}
-                                </div>
-                            </div>
-
-                            <!-- Фидбек для текстовых -->
-                            <div v-if="q.question_type === 'text'" class="eval-box mt-3 p-3">
-                                <div class="eval-row">
-                                    <label class="eval-check">
-                                        <input type="checkbox" v-model="editData[q.id].passed">
-                                        <span class="eval-check-text">Зачтено</span>
-                                    </label>
-                                    <div class="eval-comment">
-                                        <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий (необязательно)...">
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else class="auto-status mt-2">
-                                <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
-                            </div>
-                        </div>
-
-                        <div class="publish-bottom">
-                            <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
-                                <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
-                                СОХРАНИТЬ РЕЗУЛЬТАТЫ
-                            </button>
-                        </div>
+            <div v-else class="row justify-content-center">
+                <!-- СВОДНАЯ ТАБЛИЦА РЕЗУЛЬТАТОВ -->
+                <div class="summary-table-wrapper mb-5">
+                    <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }} участников)</h3>
+                    <div class="table-responsive">
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Участник</th>
+                                    <th>Результат</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
+                                    @click="selectUser(resp)"
+                                    :class="{ 'selected-row': selectedResponse?.id === resp.id }">
+                                    <td>{{ idx + 1 }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
+                                    </td>
+                                    <td>
+                                        <span :class="resp.passed ? 'status-passed' : 'status-failed'">
+                                            {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
+                                    <td>
+                                        <button @click.stop="selectUser(resp)" class="btn-view-sm">
+                                            Смотреть ответы
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+
+            <div v-if="!selectedResponse" class="empty-state text-center py-5">
+                <h4 class="fw-bold">Выберите участника из таблицы</h4>
+                <p class="text-muted">Нажмите на строку в таблице результатов, чтобы посмотреть ответы</p>
+            </div>
+            <div class="col-lg-10">
+                <div v-if="selectedResponse" class="results-container mt-5">
+                    <div class="user-info-header mb-5">
+                        <h2 class="fw-bold mb-3">
+                            Ответы: {{ getParticipantName(selectedResponse) }}
+                        </h2>
+                        <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
+                    </div>
+
+                    <div v-for="q in questions" :key="q.id" class="question-block mb-5">
+                        <h5 class="question-heading mb-3">{{ q.text }}</h5>
+
+                        <div class="answer-display mb-3">
+                            <div class="answer-label">Ответ пользователя:</div>
+                            <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
+                        </div>
+
+                        <div v-if="q.question_type === 'radio' || q.question_type === 'checkbox'" class="correct-answer mb-3">
+                            <div class="answer-label">Правильный ответ:</div>
+                            <div class="answer-text correct">
+                                {{ getCorrectAnswers(q) }}
+                            </div>
+                        </div>
+
+                        <!-- Фидбек для текстовых -->
+                        <div v-if="q.question_type === 'text'" class="eval-box mt-3 p-3">
+                            <div class="eval-row">
+                                <label class="eval-check">
+                                    <input type="checkbox" v-model="editData[q.id].passed">
+                                    <span class="eval-check-text">Зачтено</span>
+                                </label>
+                                <div class="eval-comment">
+                                    <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий (необязательно)...">
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="auto-status mt-2">
+                            <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
+                        </div>
+                    </div>
+
+                    <div class="publish-bottom">
+                        <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
+                            <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                            СОХРАНИТЬ РЕЗУЛЬТАТЫ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 </template>
@@ -198,9 +208,6 @@
                 allAnswers.value = aData || []
             }
 
-            if (allResponses.value.length > 0) {
-                selectUser(allResponses.value[0])
-            }
 
         } catch (err) {
             console.error("Ошибка загрузки:", err.message)
@@ -378,49 +385,7 @@
             color: #F2C4CE;
         }
 
-    .participants-sidebar {
-        background: rgba(255, 255, 255, 0.4);
-        border-radius: 24px;
-        border: 1px solid rgba(33, 40, 68, 0.05);
-        margin-top: 20px;
-    }
 
-    .sidebar-label {
-        padding: 15px;
-        background: #212844;
-        color: #F0E8D5;
-        font-weight: bold;
-        text-align: center;
-        border-radius: 24px 24px 0 0;
-    }
-
-    .scroll-area {
-        max-height: 70vh;
-        overflow-y: auto;
-        padding: 10px;
-    }
-
-    .user-nav-card {
-        width: 100%;
-        background: white;
-        border: 1px solid transparent;
-        border-radius: 16px;
-        padding: 15px;
-        margin-bottom: 10px;
-        text-align: left;
-        transition: all 0.3s ease;
-    }
-
-        .user-nav-card:hover {
-            transform: translateY(-2px);
-            border-color: #F2C4CE;
-        }
-
-        .user-nav-card.active {
-            background: #212844;
-            color: white;
-            box-shadow: 0 8px 15px rgba(33, 40, 68, 0.15);
-        }
 
     .results-container {
         padding-bottom: 100px;
