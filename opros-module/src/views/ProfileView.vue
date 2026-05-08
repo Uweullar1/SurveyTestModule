@@ -786,16 +786,19 @@
         }
 
         .btn-save {
+            padding: 18px;
             font-size: 1rem;
-            padding: 16px;
+        }
+
+        .btn-logout, .btn-delete {
+            height: 52px;
+            font-size: 0.9rem;
+            border-radius: 16px;
         }
 
         .secondary-actions {
             flex-direction: column;
-        }
-
-        .btn-logout, .btn-delete {
-            height: 48px;
+            gap: 10px;
         }
 
         .select-wrapper {

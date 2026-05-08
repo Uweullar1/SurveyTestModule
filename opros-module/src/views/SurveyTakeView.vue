@@ -219,10 +219,14 @@
             if (checkDraft()) {
                 const draft = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${surveyId}`))
                 if (draft) {
-                    responses.value = draft
+                    // Восстанавливаем только для тех вопросов, которые уже загружены
+                    Object.keys(draft).forEach(key => {
+                        if (responses.value.hasOwnProperty(key)) {
+                            responses.value[key] = draft[key]
+                        }
+                    })
                 }
             } else {
-                // Стандартная инициализация
                 localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
                 questions.value.forEach(q => {
                     if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
@@ -233,7 +237,7 @@
                         responses.value[q.id] = null
                     }
                 })
-            }  
+            }
 
             // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
             if (data.is_closed) {
@@ -620,13 +624,15 @@
         }
 
         .scale-btn {
-            width: 36px;
-            height: 36px;
-            font-size: 0.8rem;
+            width: 32px;
+            height: 32px;
+            font-size: 0.75rem;
+            border-radius: 8px;
         }
 
         .scale-labels {
             font-size: 0.7rem;
+            padding: 0;
         }
 
         .question-text {
