@@ -9,7 +9,7 @@
                             <h1 class="fw-bold survey-title mb-2">{{ surveyTitle }}</h1>
                             <p class="text-muted">Панель проверки ответов</p>
                         </div>
-                        <button @click="router.push('/')" class="btn btn-back shadow-sm mb-3">
+                        <button @click="router.push('/')" class="btn btn-back shadow-sm mb-4">
                             <i class="bi bi-arrow-left"></i> Назад
                         </button>
                     </div>
@@ -261,9 +261,7 @@
         if (!resp) return 'Неизвестный участник'
         const profile = profiles.value[resp.user_id]
         if (profile) {
-            const lastName = profile.last_name || ''
-            const firstInitial = lastName ? lastName.charAt(0).toUpperCase() + '.' : ''
-            return `${profile.first_name || 'Участник'} ${firstInitial}`.trim()
+            return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || `Участник`
         }
         return `Участник #${allResponses.value.indexOf(resp) + 1}`
     }
