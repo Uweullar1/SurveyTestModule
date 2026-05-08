@@ -197,7 +197,8 @@
                         })
                     }
                 }
-
+                console.log('userId:', userIds)
+                console.log('profilesData:', profilesData)
                 // Ответы
                 const respIds = allResponses.value.map(r => r.id)
                 const { data: aData, error: aError } = await supabase
@@ -247,13 +248,18 @@
 
             const passed = maxScore > 0 ? (totalScore / maxScore) >= 0.6 : true
 
+            // Добавляем имя участника
+            const profile = profiles.value[resp.user_id]
+            const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null
+
             return {
                 ...resp,
                 totalScore,
                 maxScore,
-                passed
+                passed,
+                profiles: { full_name: fullName || `Участник #${allResponses.value.indexOf(resp) + 1}` }
             }
-        }).sort((a, b) => b.totalScore - a.totalScore) // сортировка по убыванию баллов
+        }).sort((a, b) => b.totalScore - a.totalScore)
     })
 
     // Получить имя участника
