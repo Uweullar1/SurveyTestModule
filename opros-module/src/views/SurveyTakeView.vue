@@ -313,6 +313,7 @@
     }
 
     watch(responses, (newVal) => {
+        console.log('watch сработал!', newVal)  // ← добавь эту строку
         const surveyId = route.params.id
         if (!surveyId) return
         const key = `${STORAGE_KEY}_${surveyId}`
@@ -321,6 +322,7 @@
         )
         if (hasAnswers) {
             localStorage.setItem(key, JSON.stringify(newVal))
+            console.log('Сохранено в localStorage:', key)  // ← и эту
         }
     }, { deep: true })
 </script>
