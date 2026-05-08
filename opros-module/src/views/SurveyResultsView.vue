@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, reactive } from 'vue'
+    import { ref, onMounted, reactive, computed } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
 
