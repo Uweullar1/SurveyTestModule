@@ -382,7 +382,7 @@
         padding: 8px 20px;
         font-weight: bold;
         transition: 0.2s;
-        margin-bottom: auto;
+        margin-top: 40px;
     }
 
         .btn-back:hover {

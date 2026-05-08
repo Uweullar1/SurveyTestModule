@@ -125,15 +125,8 @@
     }
 
     const handleCardClick = (survey) => {
-        const isOwner = user.value && survey.user_id === user.value.id
-
-        if (isOwner) {
-            // Создатель идёт в результаты
-            router.push(`/results/${survey.id}/admin`)
-        } else {
-            // Остальные — на прохождение
-            router.push(`/take/${survey.id}`)
-        }
+        // Все идут на прохождение (включая создателя)
+        router.push(`/take/${survey.id}`)
     }
 
     // Фильтрация на клиенте
