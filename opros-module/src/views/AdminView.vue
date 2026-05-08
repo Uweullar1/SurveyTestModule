@@ -3,129 +3,71 @@
         <div class="container py-5">
             <h1 class="admin-title">Панель администратора</h1>
 
-            <!-- Вкладки -->
             <div class="tabs">
-                <button @click="activeTab = 'users'"
-                        :class="['tab', { active: activeTab === 'users' }]">
-                    👥 Пользователи
-                </button>
-                <button @click="activeTab = 'surveys'"
-                        :class="['tab', { active: activeTab === 'surveys' }]">
-                    📋 Все опросы
-                </button>
-                <button @click="activeTab = 'results'"
-                        :class="['tab', { active: activeTab === 'results' }]">
-                    📊 Результаты
-                </button>
+                <button @click="activeTab = 'users'" :class="['tab', { active: activeTab === 'users' }]">👥 Пользователи</button>
+                <button @click="activeTab = 'surveys'" :class="['tab', { active: activeTab === 'surveys' }]">📋 Все опросы</button>
+                <button @click="activeTab = 'results'" :class="['tab', { active: activeTab === 'results' }]">📊 Результаты</button>
             </div>
 
-            <!-- ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ ===== -->
+            <!-- ПОЛЬЗОВАТЕЛИ -->
             <div v-if="activeTab === 'users'" class="tab-content">
-                <div class="search-box">
-                    <input v-model="userSearch" type="text" placeholder="Поиск по имени..." class="admin-input" />
-                </div>
-
+                <div class="search-box"><input v-model="userSearch" type="text" placeholder="Поиск по имени..." class="admin-input" /></div>
                 <div v-if="loadingUsers" class="text-center py-4">Загрузка...</div>
-
                 <div v-else class="users-list">
                     <div v-for="profile in filteredUsers" :key="profile.id" class="user-card">
                         <div class="user-info">
-                            <img :src="profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`"
-                                 class="user-avatar" />
+                            <img :src="profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`" class="user-avatar" />
                             <div>
                                 <div class="user-name">{{ profile.first_name }} {{ profile.last_name }}</div>
                                 <div class="user-email">{{ profile.username || '—' }}</div>
                             </div>
                         </div>
-
                         <div class="user-controls">
                             <div class="dept-mini">
                                 <div class="dept-select-wrap">
                                     <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
                                         <option value="">Без департамента</option>
-                                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                                            {{ dept.name }}
-                                        </option>
+                                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                                     </select>
                                     <span class="dept-arrow">▾</span>
                                 </div>
                             </div>
-
                             <div class="switches">
-                                <button @click="toggleCreate(profile)"
-                                        :class="['switch-btn', { active: profile.can_create }]">
-                                    ✏️ Создатель
-                                </button>
-                                <button @click="toggleAdmin(profile)"
-                                        :class="['switch-btn', { active: adminIds.includes(profile.id) }]">
-                                    👑 Админ
-                                </button>
+                                <button @click="toggleCreate(profile)" :class="['switch-btn', { active: profile.can_create }]">✏️ Создатель</button>
+                                <button @click="toggleAdmin(profile)" :class="['switch-btn', { active: adminIds.includes(profile.id) }]">👑 Админ</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== ВКЛАДКА: ВСЕ ОПРОСЫ ===== -->
+            <!-- ВСЕ ОПРОСЫ -->
             <div v-if="activeTab === 'surveys'" class="tab-content">
-                <div v-if="loadingSurveys" class="loader-wrapper">
-                    <div class="custom-spinner"></div>
-                    <p>Загружаем опросы...</p>
-                </div>
-
-                <div v-else-if="allSurveys.length === 0" class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <h2>Нет опросов</h2>
-                    <p>В системе пока нет созданных опросов.</p>
-                </div>
-
+                <div v-if="loadingSurveys" class="loader-wrapper"><div class="custom-spinner"></div><p>Загружаем опросы...</p></div>
+                <div v-else-if="allSurveys.length === 0" class="empty-state"><div class="empty-icon">📋</div><h2>Нет опросов</h2><p>В системе пока нет созданных опросов.</p></div>
                 <div v-else class="surveys-admin-grid">
                     <div v-for="survey in allSurveys" :key="survey.id" class="survey-card">
-                        <div class="card-status" :class="{ 'closed': survey.is_closed }">
-                            {{ survey.is_closed ? 'Закрыт' : 'Активен' }}
-                        </div>
-
+                        <div class="card-status" :class="{ 'closed': survey.is_closed }">{{ survey.is_closed ? 'Закрыт' : 'Активен' }}</div>
                         <div class="card-main">
                             <h3 class="survey-title">{{ survey.title }}</h3>
-                            <p class="survey-desc">
-                                {{ survey.description || 'Без описания' }}
-                            </p>
-
+                            <p class="survey-desc">{{ survey.description || 'Без описания' }}</p>
                             <div class="survey-meta">
-                                <span class="meta-item">
-                                    📅 {{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}
-                                </span>
-                                <span v-if="survey.departments?.name" class="meta-dept">
-                                    🏢 {{ survey.departments.name }}
-                                </span>
-                                <span class="meta-owner">
-                                    👤 {{ survey.owner_name || '—' }}
-                                </span>
+                                <span class="meta-item">📅 {{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                <span v-if="survey.departments?.name" class="meta-dept">🏢 {{ survey.departments.name }}</span>
+                                <span class="meta-owner">👤 {{ survey.owner_name || '—' }}</span>
                             </div>
                         </div>
-
                         <div class="card-actions">
-                            <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">
-                                ✏️
-                            </button>
-                            <button @click="toggleSurveyStatus(survey)"
-                                    class="btn-action toggle"
-                                    :class="{ 'is-closed': survey.is_closed }"
-                                    :title="survey.is_closed ? 'Открыть' : 'Закрыть'">
-                                {{ survey.is_closed ? '🔓' : '🔒' }}
-                            </button>
-                            <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">
-                                🗑️
-                            </button>
+                            <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">✏️</button>
+                            <button @click="toggleSurveyStatus(survey)" class="btn-action toggle" :class="{ 'is-closed': survey.is_closed }">{{ survey.is_closed ? '🔓' : '🔒' }}</button>
+                            <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">🗑️</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== ВКЛАДКА: РЕЗУЛЬТАТЫ ===== -->
+            <!-- РЕЗУЛЬТАТЫ -->
             <div v-if="activeTab === 'results'" class="tab-content">
-
-                <!-- ФИЛЬТРЫ -->
                 <div class="results-filters">
                     <div class="filter-row">
                         <input v-model="resultSearch" type="text" placeholder="Поиск по имени или опросу..." class="admin-input" />
@@ -140,14 +82,7 @@
                         <button @click="resetResultFilters" class="filter-clear">Сбросить</button>
                     </div>
                 </div>
-
-                <!-- ЗАГРУЗКА -->
-                <div v-if="loadingResults" class="loader-wrapper">
-                    <div class="custom-spinner"></div>
-                    <p>Загружаем результаты...</p>
-                </div>
-
-                <!-- ТАБЛИЦА -->
+                <div v-if="loadingResults" class="loader-wrapper"><div class="custom-spinner"></div><p>Загружаем результаты...</p></div>
                 <div v-else class="results-table-wrapper">
                     <div class="results-count">{{ filteredResults.length }} прохождений</div>
                     <table class="results-table">
@@ -165,23 +100,12 @@
                         <tbody>
                             <tr v-for="(item, idx) in filteredResults" :key="item.responseId" @click="openResult(item)" class="clickable-row">
                                 <td>{{ idx + 1 }}</td>
-                                <td>
-                                    <div class="fw-bold">{{ item.userName }}</div>
-                                </td>
+                                <td><div class="fw-bold">{{ item.userName }}</div></td>
                                 <td>{{ item.surveyTitle }}</td>
-                                <td>
-                                    <span v-if="item.departmentName" class="dept-tag">{{ item.departmentName }}</span>
-                                    <span v-else class="text-muted">—</span>
-                                </td>
-                                <td>
-                                    <span class="score-badge">{{ item.totalScore }} / {{ item.maxScore }}</span>
-                                </td>
-                                <td>
-                                    <span :class="item.passed ? 'status-passed' : 'status-failed'">
-                                        {{ item.passed ? 'Сдал' : 'Не сдал' }}
-                                    </span>
-                                </td>
-                                <td class="text-muted small">{{ formatDate(item.submittedAt) }}</td>
+                                <td><span v-if="item.departmentName" class="dept-tag">{{ item.departmentName }}</span><span v-else>—</span></td>
+                                <td><span class="score-badge">{{ item.totalScore }} / {{ item.maxScore }}</span></td>
+                                <td><span :class="item.passed ? 'status-passed' : 'status-failed'">{{ item.passed ? 'Сдал' : 'Не сдал' }}</span></td>
+                                <td class="small">{{ formatDate(item.submittedAt) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -197,18 +121,16 @@
     import { supabase } from '../supabase'
 
     const router = useRouter()
-
     const activeTab = ref('users')
     const loadingUsers = ref(true)
     const loadingSurveys = ref(true)
+    const loadingResults = ref(false)
 
     const users = ref([])
     const allSurveys = ref([])
     const departments = ref([])
     const adminIds = ref([])
     const userSearch = ref('')
-
-    const loadingResults = ref(false)
     const allResults = ref([])
     const resultSearch = ref('')
     const resultSurveyFilter = ref('')
@@ -217,164 +139,53 @@
     const filteredUsers = computed(() => {
         if (!userSearch.value.trim()) return users.value
         const q = userSearch.value.toLowerCase()
-        return users.value.filter(u =>
-            u.first_name?.toLowerCase().includes(q) ||
-            u.last_name?.toLowerCase().includes(q) ||
-            u.username?.toLowerCase().includes(q)
-        )
+        return users.value.filter(u => u.first_name?.toLowerCase().includes(q) || u.last_name?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q))
+    })
+
+    const filteredResults = computed(() => {
+        let res = [...allResults.value]
+        if (resultSearch.value.trim()) {
+            const q = resultSearch.value.toLowerCase()
+            res = res.filter(r => r.userName.toLowerCase().includes(q) || r.surveyTitle.toLowerCase().includes(q))
+        }
+        if (resultSurveyFilter.value) res = res.filter(r => r.surveyId === resultSurveyFilter.value)
+        if (resultDeptFilter.value) res = res.filter(r => r.departmentId === resultDeptFilter.value)
+        return res
     })
 
     onMounted(async () => {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return router.push('/login')
-
         const { data: allAdmins } = await supabase.from('admins').select('user_id')
-        if (!allAdmins?.some(a => a.user_id === user.id)) {
-            alert('Доступ запрещён')
-            router.push('/')
-            return
-        }
-
+        if (!allAdmins?.some(a => a.user_id === user.id)) { alert('Доступ запрещён'); router.push('/'); return }
         await loadData()
     })
 
     const loadData = async () => {
         const { data: depts } = await supabase.from('departments').select('*').order('name')
         departments.value = depts || []
-
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, username, avatar_url, department_id, can_create')
-            .order('last_name')
+        const { data: profiles } = await supabase.from('profiles').select('id, first_name, last_name, username, avatar_url, department_id, can_create').order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
-
         const { data: admins } = await supabase.from('admins').select('user_id')
         adminIds.value = (admins || []).map(a => a.user_id)
-
-        const { data: surveys } = await supabase
-            .from('surveys')
-            .select(`*, departments(name)`)
-            .order('created_at', { ascending: false })
-
-        if (surveys) {
-            for (let s of surveys) {
-                const owner = users.value.find(u => u.id === s.user_id)
-                s.owner_name = owner ? `${owner.first_name} ${owner.last_name}` : '—'
-            }
-        }
+        const { data: surveys } = await supabase.from('surveys').select(`*, departments(name)`).order('created_at', { ascending: false })
+        if (surveys) { for (let s of surveys) { const owner = users.value.find(u => u.id === s.user_id); s.owner_name = owner ? `${owner.first_name} ${owner.last_name}` : '—' } }
         allSurveys.value = surveys || []
         loadingSurveys.value = false
         await loadResults()
     }
 
-    const updateDepartment = async (profile) => {
-        await supabase.from('profiles').update({ department_id: profile.department_id }).eq('id', profile.id)
-    }
-
-    const toggleCreate = async (profile) => {
-        const newVal = !profile.can_create
-        const { error } = await supabase.from('profiles').update({ can_create: newVal }).eq('id', profile.id)
-        if (!error) profile.can_create = newVal
-    }
-
-    const toggleAdmin = async (profile) => {
-        const isAdmin = adminIds.value.includes(profile.id)
-        if (isAdmin) {
-            const { error } = await supabase.from('admins').delete().eq('user_id', profile.id)
-            if (!error) adminIds.value = adminIds.value.filter(id => id !== profile.id)
-        } else {
-            const { error } = await supabase.from('admins').insert({ user_id: profile.id })
-            if (!error) adminIds.value.push(profile.id)
-        }
-    }
-
-    const editSurvey = (surveyId) => {
-        router.push(`/edit/${surveyId}`)
-    }
-
-    const deleteSurvey = async (surveyId) => {
-        if (!confirm('Удалить опрос?')) return
-        await supabase.from('responses').delete().eq('survey_id', surveyId)
-        await supabase.from('questions').delete().eq('survey_id', surveyId)
-        await supabase.from('surveys').delete().eq('id', surveyId)
-        allSurveys.value = allSurveys.value.filter(s => s.id !== surveyId)
-    }
-    const toggleSurveyStatus = async (survey) => {
-        const { error } = await supabase
-            .from('surveys')
-            .update({ is_closed: !survey.is_closed, is_active: survey.is_closed })
-            .eq('id', survey.id)
-
-        if (!error) {
-            survey.is_closed = !survey.is_closed
-        } else {
-            alert('Ошибка при изменении статуса')
-        }
-    }
-
-    const resetResultFilters = () => {
-        resultSearch.value = ''
-        resultSurveyFilter.value = ''
-        resultDeptFilter.value = ''
-    }
-
     const loadResults = async () => {
         loadingResults.value = true
-
-        // Загружаем все responses с данными опросов и пользователей
-        const { data: responses } = await supabase
-            .from('responses')
-            .select(`
-            id,
-            submitted_at,
-            survey_id,
-            user_id,
-            surveys!inner(title, department_id, departments(name))
-        `)
-            .order('submitted_at', { ascending: false })
-
-        if (!responses) {
-            loadingResults.value = false
-            return
-        }
-
-        // Загружаем все ответы
-        const responseIds = responses.map(r => r.id)
-        const { data: allAnswersData } = await supabase
-            .from('answers')
-            .select('*')
-            .in('response_id', responseIds)
-
-        // Загружаем все вопросы
-        const surveyIds = [...new Set(responses.map(r => r.survey_id))]
-        const { data: allQuestions } = await supabase
-            .from('questions')
-            .select('id, question_type, choices(id, is_correct)')
-            .in('survey_id', surveyIds)
-
-        // Загружаем профили
+        const { data: responses } = await supabase.from('responses').select(`id, submitted_at, survey_id, user_id, surveys!inner(title, department_id, departments(name))`).order('submitted_at', { ascending: false })
+        if (!responses) { loadingResults.value = false; return }
         const userIds = [...new Set(responses.map(r => r.user_id).filter(Boolean))]
-        const { data: profilesData } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name')
-            .in('id', userIds)
-
+        const { data: profilesData } = await supabase.from('profiles').select('id, first_name, last_name').in('id', userIds)
         const profileMap = {}
-        if (profilesData) {
-            profilesData.forEach(p => { profileMap[p.id] = p })
-        }
-
-        // Собираем результаты
+        if (profilesData) profilesData.forEach(p => { profileMap[p.id] = p })
         const results = responses.map(resp => {
-            const surveyQuestions = (allQuestions || []).filter(q =>
-                resp.surveys && q.survey_id === resp.survey_id  // не можем проверить survey_id без джойна
-            )
-
-            // Проще: посчитаем баллы позже или загрузим вопросы по-другому
-            const respAnswers = (allAnswersData || []).filter(a => a.response_id === resp.id)
             const profile = profileMap[resp.user_id]
-
             return {
                 responseId: resp.id,
                 userName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Неизвестный' : 'Неизвестный',
@@ -383,23 +194,27 @@
                 departmentName: resp.surveys?.departments?.name || null,
                 departmentId: resp.surveys?.department_id || null,
                 submittedAt: resp.submitted_at,
-                totalScore: 0,  // посчитаем отдельно
+                totalScore: 0,
                 maxScore: 0,
                 passed: false
             }
         })
-
         allResults.value = results
         loadingResults.value = false
     }
 
-    const openResult = (item) => {
-        router.push(`/results/${item.surveyId}/admin`)
+    const openResult = (item) => router.push(`/results/${item.surveyId}/admin`)
+    const resetResultFilters = () => { resultSearch.value = ''; resultSurveyFilter.value = ''; resultDeptFilter.value = '' }
+    const updateDepartment = async (p) => { await supabase.from('profiles').update({ department_id: p.department_id }).eq('id', p.id) }
+    const toggleCreate = async (p) => { const n = !p.can_create; const { error } = await supabase.from('profiles').update({ can_create: n }).eq('id', p.id); if (!error) p.can_create = n }
+    const toggleAdmin = async (p) => {
+        if (adminIds.value.includes(p.id)) { await supabase.from('admins').delete().eq('user_id', p.id); adminIds.value = adminIds.value.filter(id => id !== p.id) }
+        else { await supabase.from('admins').insert({ user_id: p.id }); adminIds.value.push(p.id) }
     }
-
-    const formatDate = (date) => new Date(date).toLocaleString('ru-RU', {
-        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    })
+    const editSurvey = (id) => router.push(`/edit/${id}`)
+    const deleteSurvey = async (id) => { if (!confirm('Удалить опрос?')) return; await supabase.from('responses').delete().eq('survey_id', id); await supabase.from('questions').delete().eq('survey_id', id); await supabase.from('surveys').delete().eq('id', id); allSurveys.value = allSurveys.value.filter(s => s.id !== id) }
+    const toggleSurveyStatus = async (s) => { const { error } = await supabase.from('surveys').update({ is_closed: !s.is_closed, is_active: s.is_closed }).eq('id', s.id); if (!error) s.is_closed = !s.is_closed }
+    const formatDate = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
 
 <style scoped>
@@ -415,10 +230,8 @@
         margin-bottom: 30px;
     }
 
-    /* Вкладки */
     .tabs {
         display: flex;
-        gap: 0;
         margin-bottom: 30px;
         border-bottom: 2px solid #212844;
     }
@@ -444,7 +257,6 @@
             color: #212844;
         }
 
-    /* Поиск */
     .search-box {
         margin-bottom: 20px;
     }
@@ -460,7 +272,6 @@
         background: white;
     }
 
-    /* Карточки пользователей */
     .users-list {
         display: flex;
         flex-direction: column;
@@ -529,7 +340,6 @@
         font-weight: 600;
         background: #FDFDF1;
         appearance: none;
-        -webkit-appearance: none;
         cursor: pointer;
         color: #212844;
     }
@@ -572,7 +382,6 @@
             transform: scale(1.03);
         }
 
-    /* ===== КАРТОЧКИ ОПРОСОВ (как в Мои опросы) ===== */
     .surveys-admin-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -589,7 +398,7 @@
         flex-direction: column;
         justify-content: space-between;
         transition: all 0.3s ease;
-        box-shadow: 6px 6px 0px rgba(33, 40, 68, 0.05);
+        box-shadow: 6px 6px 0px rgba(33,40,68,0.05);
     }
 
         .survey-card:hover {
@@ -622,7 +431,7 @@
     }
 
     .survey-desc {
-        color: rgba(33, 40, 68, 0.7);
+        color: rgba(33,40,68,0.7);
         font-size: 0.9rem;
         line-height: 1.4;
         margin-bottom: 20px;
@@ -639,11 +448,6 @@
         margin-bottom: 15px;
     }
 
-    .meta-dept, .meta-owner {
-        opacity: 0.7;
-    }
-
-    /* Кнопки действий */
     .card-actions {
         display: flex;
         gap: 10px;
@@ -682,7 +486,6 @@
             color: white;
         }
 
-    /* Загрузка и пусто */
     .loader-wrapper, .empty-state {
         text-align: center;
         padding: 60px 0;
@@ -718,6 +521,7 @@
         color: #212844;
         font-size: 1.3rem;
     }
+
     .results-filters {
         margin-bottom: 20px;
     }
@@ -806,4 +610,27 @@
         font-weight: 700;
     }
 
+    .status-passed {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .status-failed {
+        background: #F2C4CE;
+        color: #212844;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .score-badge {
+        font-weight: 800;
+        color: #212844;
+        font-size: 1rem;
+    }
 </style>
