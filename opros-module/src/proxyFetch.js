@@ -27,7 +27,7 @@ window.fetch = function (input, init) {
         const path = urlObj.pathname + urlObj.search;
         url = `${window.location.origin}/api/supabase-proxy${path}`;
 
-        console.log('Proxy:', url); // ← добавь для проверки
+        console.log('Proxy:', url); 
     }
 
     return originalFetch(url, options);

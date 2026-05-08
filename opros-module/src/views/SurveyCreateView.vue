@@ -178,6 +178,8 @@
     const surveyId = ref(null)
     const user = ref(null)
 
+    const DRAFT_KEY = 'survey_create_draft'
+
     const survey = ref({
         title: '',
         description: '',
@@ -189,6 +191,25 @@
         department_id: '',
         questions: []
     })
+
+    watch(survey, (newVal) => {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(newVal))
+    }, { deep: true })
+
+    const checkCreateDraft = () => {
+        if (!route.params.id) { // только для новых опросов
+            const draft = localStorage.getItem(DRAFT_KEY)
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft)
+                    if (parsed.title || parsed.questions?.length > 0) {
+                        return confirm('У вас есть несохраненный черновик опроса. Продолжить?')
+                    }
+                } catch { }
+            }
+        }
+        return false
+    }
 
     const loadTemplates = async () => {
         const { data } = await supabase.from('templates').select('*')
@@ -355,6 +376,14 @@
                 choices: [{ text: '', is_correct: false }]
             }]
         }
+
+        if (!route.params.id && checkCreateDraft()) {
+            const draft = JSON.parse(localStorage.getItem(DRAFT_KEY))
+            if (draft) {
+                survey.value = { ...survey.value, ...draft }
+            }
+        }
+        
     })
 
     const getDepartmentName = (deptId) => {
@@ -507,6 +536,7 @@
             }
 
             alert(isEditMode.value ? 'Опрос успешно обновлён!' : 'Опрос успешно опубликован!')
+            localStorage.removeItem(DRAFT_KEY)
             router.push('/my-surveys')
 
         } catch (e) {

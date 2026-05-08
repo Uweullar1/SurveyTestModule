@@ -13,6 +13,8 @@
                     <router-link v-if="isAdmin" to="/admin" class="nav-link">Админка</router-link>
                 </div>
 
+                <NotificationsBar ref="notifBar" />
+
                 <div class="nav-right">
                     <template v-if="isLoggedIn">
                         <router-link to="/profile" class="avatar-link">
@@ -41,7 +43,9 @@
     import { ref, onMounted } from 'vue'
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
+    import NotificationsBar from './components/NotificationsBar.vue'
 
+    const notifBar = ref(null)
     const canCreate = ref(false)
     const isAdmin = ref(false)
     const router = useRouter()

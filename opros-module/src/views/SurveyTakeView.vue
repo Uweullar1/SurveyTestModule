@@ -104,9 +104,11 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
+
+    
 
     const route = useRoute()
     const router = useRouter()
@@ -117,6 +119,22 @@
     const submitting = ref(false)
     const loading = ref(true)
     const error = ref(null)
+
+    const STORAGE_KEY = 'survey_draft'
+
+    // Проверяем черновик при загрузке
+    const checkDraft = () => {
+        const draft = localStorage.getItem(`${STORAGE_KEY}_${route.params.id}`)
+        if (draft) {
+            try {
+                const parsed = JSON.parse(draft)
+                if (Object.keys(parsed).length > 0) {
+                    return confirm('У вас есть незавершенное прохождение. Продолжить?')
+                }
+            } catch { }
+        }
+        return false
+    }
 
     // Проверка: если пользователь не авторизован — сразу отправляем на логин
     const checkAuth = async () => {
@@ -197,6 +215,17 @@
                     return
                 }
             }
+
+            if (checkDraft()) {
+                const draft = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${surveyId}`))
+                if (draft) {
+                    responses.value = draft
+                }
+            } else {
+                // Стандартная инициализация
+                localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
+                questions.value.forEach(q => { ... })
+            }  
 
             // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
             if (data.is_closed) {
@@ -358,6 +387,7 @@
             }
 
             router.push(`/my-results/${responseId}`)
+            localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)
@@ -366,6 +396,12 @@
             submitting.value = false
         }
     }
+
+    watch(responses, (newVal) => {
+        if (route.params.id) {
+            localStorage.setItem(`${STORAGE_KEY}_${route.params.id}`, JSON.stringify(newVal))
+        }
+    }, { deep: true })
 </script>
 
 <style scoped>
