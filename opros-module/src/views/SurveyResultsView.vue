@@ -256,19 +256,19 @@
                 a.score === null
             )
 
-            // Добавляем имя участника
             const profile = profiles.value[resp.user_id]
             const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null
 
-            return {
+            const result = {
                 ...resp,
                 totalScore,
                 maxScore,
                 passed,
+                hasUnchecked,
                 profiles: { full_name: fullName || `Участник #${allResponses.value.indexOf(resp) + 1}` }
             }
-            console.log('result:', result.hasUnchecked, 'respId:', resp.id)
-            return result
+
+            return result  // ← только один return
 
         }).sort((a, b) => b.totalScore - a.totalScore)
     })
