@@ -9,7 +9,7 @@
                             <h1 class="fw-bold survey-title mb-2">{{ surveyTitle }}</h1>
                             <p class="text-muted">Панель проверки ответов</p>
                         </div>
-                        <button @click="router.push('/')" class="btn btn-back shadow-sm">
+                        <button @click="router.push('/')" class="btn btn-back shadow-sm mb-3">
                             <i class="bi bi-arrow-left"></i> Назад
                         </button>
                     </div>
@@ -20,7 +20,7 @@
                 <div class="spinner-border text-navy"></div>
             </div>
 
-            <div v-else class="row justify-content-center">
+            <div v-else class="row justify-content-center mt-4">
                 <!-- СВОДНАЯ ТАБЛИЦА РЕЗУЛЬТАТОВ -->
                 <div class="summary-table-wrapper mb-5">
                     <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }} участников)</h3>
