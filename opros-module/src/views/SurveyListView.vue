@@ -81,12 +81,12 @@
 
                             <div class="card-footer">
                                 <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                <!--<button v-if="user && survey.user_id === user.id"
-                                            @click.stop="goToResults(survey.id)"
-                                            class="admin-btn">
-                                        Результаты
-                                    </button>-->
-                                <span v-else class="open-btn">
+                                 <!--<button v-if="user && survey.user_id === user.id"
+                                        @click.stop="goToResults(survey.id)"
+                                        class="admin-btn">
+                                    Результаты
+                                </button>-->
+                                <span class="open-btn">
                                     {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
                                 </span>
                             </div>
