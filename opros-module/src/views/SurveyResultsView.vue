@@ -1,6 +1,7 @@
 <template>
     <div class="admin-check-page">
         <div class="container py-5">
+
             <div class="row justify-content-center mb-5">
                 <div class="col-lg-10">
                     <div class="d-flex justify-content-between align-items-start">
@@ -12,6 +13,49 @@
                             <i class="bi bi-arrow-left"></i> Назад
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- СВОДНАЯ ТАБЛИЦА РЕЗУЛЬТАТОВ -->
+            <div class="summary-table-wrapper mb-5">
+                <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }} участников)</h3>
+                <div class="table-responsive">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Участник</th>
+                                <th>Результат</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
+                                @click="selectUser(resp)"
+                                :class="{ 'selected-row': selectedResponse?.id === resp.id }">
+                                <td>{{ idx + 1 }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
+                                </td>
+                                <td>
+                                    <span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
+                                </td>
+                                <td>
+                                    <span :class="resp.passed ? 'status-passed' : 'status-failed'">
+                                        {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
+                                    </span>
+                                </td>
+                                <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
+                                <td>
+                                    <button @click.stop="selectUser(resp)" class="btn-view-sm">
+                                        Смотреть ответы
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -186,6 +230,44 @@
         } finally {
             loading.value = false
         }
+    })
+
+    const allResponsesWithScores = computed(() => {
+        return allResponses.value.map(resp => {
+            let totalScore = 0
+            let maxScore = 0
+
+            questions.value.forEach(q => {
+                if (q.question_type === 'scale') return
+                maxScore++
+
+                const ansList = allAnswers.value.filter(a => a.response_id === resp.id && a.question_id === q.id)
+                if (ansList.length === 0) return
+
+                if (q.question_type === 'text') {
+                    const ans = ansList[0]
+                    if (ans.score && Number(ans.score) > 0) totalScore += Number(ans.score)
+                    return
+                }
+
+                const correctIds = (q.choices || []).filter(c => c.is_correct).map(c => String(c.id))
+                const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
+
+                if (correctIds.length > 0 && userIds.length === correctIds.length &&
+                    userIds.every(id => correctIds.includes(id))) {
+                    totalScore++
+                }
+            })
+
+            const passed = maxScore > 0 ? (totalScore / maxScore) >= 0.6 : true
+
+            return {
+                ...resp,
+                totalScore,
+                maxScore,
+                passed
+            }
+        }).sort((a, b) => b.totalScore - a.totalScore) // сортировка по убыванию баллов
     })
 
     // Получить имя участника
@@ -513,5 +595,80 @@
         .eval-input::placeholder {
             color: #adb5bd;
             font-weight: 400;
+        }
+
+    .summary-table-wrapper {
+        background: white;
+        border-radius: 20px;
+        border: 2px solid #212844;
+        padding: 20px;
+    }
+
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .summary-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #888;
+            border-bottom: 2px solid #212844;
+        }
+
+        .summary-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-table tr:hover {
+            background: #FDFDF1;
+            cursor: pointer;
+        }
+
+    .selected-row {
+        background: #F2C4CE44 !important;
+    }
+
+    .score-badge {
+        font-weight: 800;
+        color: #212844;
+        font-size: 1rem;
+    }
+
+    .status-passed {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .status-failed {
+        background: #F2C4CE;
+        color: #212844;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .btn-view-sm {
+        background: #212844;
+        color: #F2C4CE;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+        .btn-view-sm:hover {
+            background: #2d365a;
         }
 </style>
