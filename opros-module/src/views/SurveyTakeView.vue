@@ -120,6 +120,8 @@
     const loading = ref(true)
     const error = ref(null)
 
+    const draftKey = `${STORAGE_KEY}_${surveyId}`
+    const hasDraft = checkDraft()
     const STORAGE_KEY = 'survey_draft'
 
     // Проверяем черновик при загрузке
@@ -216,29 +218,28 @@
                 }
             }
 
-            if (checkDraft()) {
-                const draft = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${surveyId}`))
-                if (draft) {
-                    // Восстанавливаем только для тех вопросов, которые уже загружены
-                    Object.keys(draft).forEach(key => {
-                        if (responses.value.hasOwnProperty(key)) {
-                            responses.value[key] = draft[key]
-                        }
-                    })
+            // Инициализация ответов
+            questions.value.forEach(q => {
+                if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
+                    responses.value[q.id] = []
+                } else if (q.question_type === 'scale') {
+                    responses.value[q.id] = 5
+                } else {
+                    responses.value[q.id] = null
                 }
-            } else {
-                localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
-                questions.value.forEach(q => {
-                    if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
-                        responses.value[q.id] = []
-                    } else if (q.question_type === 'scale') {
-                        responses.value[q.id] = 5
-                    } else {
-                        responses.value[q.id] = null
-                    }
-                })
-            }
+            })
 
+            // Восстанавливаем черновик если есть
+            if (hasDraft) {
+                const draft = JSON.parse(localStorage.getItem(draftKey))
+                if (draft) {
+                    // Копируем сохраненные ответы поверх инициализированных
+                    Object.keys(draft).forEach(key => {
+                        responses.value[key] = draft[key]
+                    })
+                    console.log('Черновик восстановлен:', Object.keys(draft).length, 'ответов')
+                }
+            }
             // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
             if (data.is_closed) {
                 const { data: { user } } = await supabase.auth.getUser()
