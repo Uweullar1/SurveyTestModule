@@ -59,28 +59,6 @@
                 </div>
             </div>
 
-            <div v-if="loading" class="text-center p-5">
-                <div class="spinner-border text-navy"></div>
-            </div>
-
-            <div v-else class="row justify-content-center g-5">
-                <div class="col-lg-3">
-                    <div class="participants-sidebar shadow-sm">
-                        <div class="sidebar-label">Список участников</div>
-                        <div class="scroll-area p-3">
-                            <button v-for="(resp, idx) in allResponses" :key="resp.id"
-                                    @click="selectUser(resp)"
-                                    class="user-nav-card"
-                                    :class="{ active: selectedResponse?.id === resp.id }">
-                                <div class="fw-bold">
-                                    {{ getParticipantName(resp) }}
-                                </div>
-                                <small class="d-block opacity-75">{{ formatDate(resp.submitted_at) }}</small>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="col-lg-7">
                     <div v-if="selectedResponse" class="results-container">
                         <div class="user-info-header mb-5">
