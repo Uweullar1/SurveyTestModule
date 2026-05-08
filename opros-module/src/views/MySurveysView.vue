@@ -66,19 +66,45 @@ const mySurveys = ref([])
 const loading = ref(true)
 
 const loadMySurveys = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return router.push('/login')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return router.push('/login')
 
-  const { data, error } = await supabase
-    .from('surveys')
-    .select('*, departments(name)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+        const { data, error } = await supabase
+            .from('surveys')
+            .select('*, departments(name)')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
 
-  if (error) console.error(error)
-  else mySurveys.value = data || []
+        if (error) console.error(error)
+        else {
+            // Для каждого опроса проверяем, есть ли непроверенные ответы
+            const enriched = await Promise.all((data || []).map(async (survey) => {
+                // Есть ли текстовые вопросы в опросе
+                const { data: textQuestions } = await supabase
+                    .from('questions')
+                    .select('id')
+                    .eq('survey_id', survey.id)
+                    .eq('question_type', 'text')
 
-  loading.value = false
+                if (!textQuestions || textQuestions.length === 0) {
+                    return { ...survey, needsCheck: false, uncheckedCount: 0 }
+                }
+
+                // Есть ли ответы с score = null (непроверенные)
+                const questionIds = textQuestions.map(q => q.id)
+                const { count } = await supabase
+                    .from('answers')
+                    .select('*', { count: 'exact', head: true })
+                    .in('question_id', questionIds)
+                    .is('score', null)
+
+                return { ...survey, needsCheck: count > 0, uncheckedCount: count || 0 }
+            }))
+
+            mySurveys.value = enriched
+        }
+
+        loading.value = false
 }
 
 const viewResults = (id) => {
@@ -101,47 +127,7 @@ const toggleVisibility = async (survey) => {
     alert('Ошибка при изменении видимости')
   }
 }
-    const loadMySurveys = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return router.push('/login')
-
-  const { data, error } = await supabase
-    .from('surveys')
-    .select('*, departments(name)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (error) console.error(error)
-  else {
-    // Для каждого опроса проверяем, есть ли непроверенные ответы
-    const enriched = await Promise.all((data || []).map(async (survey) => {
-      // Есть ли текстовые вопросы в опросе
-      const { data: textQuestions } = await supabase
-        .from('questions')
-        .select('id')
-        .eq('survey_id', survey.id)
-        .eq('question_type', 'text')
-
-      if (!textQuestions || textQuestions.length === 0) {
-        return { ...survey, needsCheck: false, uncheckedCount: 0 }
-      }
-
-      // Есть ли ответы с score = null (непроверенные)
-      const questionIds = textQuestions.map(q => q.id)
-      const { count } = await supabase
-        .from('answers')
-        .select('*', { count: 'exact', head: true })
-        .in('question_id', questionIds)
-        .is('score', null)
-
-      return { ...survey, needsCheck: count > 0, uncheckedCount: count || 0 }
-    }))
-
-    mySurveys.value = enriched
-  }
-
-  loading.value = false
-}
+    
 
 const deleteSurvey = async (id) => {
   if (!confirm('Удалить опрос? Все результаты будут удалены.')) return
