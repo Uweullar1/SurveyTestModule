@@ -201,12 +201,18 @@
                 .order('created_at', { ascending: false })
 
             if (userDepartmentId.value) {
+                // Сотрудник: опросы своего департамента + общие (без департамента) + свои
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value}),` +
+                    `and(is_private.eq.false,department_id.is.null),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                query = query.or(`is_private.eq.false,user_id.eq.${user.value.id}`)
+                // Кандидат: только общие опросы (без департамента) + свои
+                query = query.or(
+                    `and(is_private.eq.false,department_id.is.null),` +
+                    `user_id.eq.${user.value.id}`
+                )
             }
 
             const { data, error } = await query

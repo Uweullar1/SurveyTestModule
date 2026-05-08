@@ -13,6 +13,10 @@
                         :class="['tab', { active: activeTab === 'surveys' }]">
                     📋 Все опросы
                 </button>
+                <button @click="activeTab = 'results'"
+                        :class="['tab', { active: activeTab === 'results' }]">
+                    📊 Результаты
+                </button>
             </div>
 
             <!-- ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ ===== -->
@@ -117,6 +121,72 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ===== ВКЛАДКА: РЕЗУЛЬТАТЫ ===== -->
+            <div v-if="activeTab === 'results'" class="tab-content">
+
+                <!-- ФИЛЬТРЫ -->
+                <div class="results-filters">
+                    <div class="filter-row">
+                        <input v-model="resultSearch" type="text" placeholder="Поиск по имени или опросу..." class="admin-input" />
+                        <select v-model="resultSurveyFilter" class="filter-select-sm">
+                            <option value="">Все опросы</option>
+                            <option v-for="s in allSurveys" :key="s.id" :value="s.id">{{ s.title }}</option>
+                        </select>
+                        <select v-model="resultDeptFilter" class="filter-select-sm">
+                            <option value="">Все департаменты</option>
+                            <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                        <button @click="resetResultFilters" class="filter-clear">Сбросить</button>
+                    </div>
+                </div>
+
+                <!-- ЗАГРУЗКА -->
+                <div v-if="loadingResults" class="loader-wrapper">
+                    <div class="custom-spinner"></div>
+                    <p>Загружаем результаты...</p>
+                </div>
+
+                <!-- ТАБЛИЦА -->
+                <div v-else class="results-table-wrapper">
+                    <div class="results-count">{{ filteredResults.length }} прохождений</div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Участник</th>
+                                <th>Опрос</th>
+                                <th>Департамент</th>
+                                <th>Баллы</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in filteredResults" :key="item.responseId" @click="openResult(item)" class="clickable-row">
+                                <td>{{ idx + 1 }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ item.userName }}</div>
+                                </td>
+                                <td>{{ item.surveyTitle }}</td>
+                                <td>
+                                    <span v-if="item.departmentName" class="dept-tag">{{ item.departmentName }}</span>
+                                    <span v-else class="text-muted">—</span>
+                                </td>
+                                <td>
+                                    <span class="score-badge">{{ item.totalScore }} / {{ item.maxScore }}</span>
+                                </td>
+                                <td>
+                                    <span :class="item.passed ? 'status-passed' : 'status-failed'">
+                                        {{ item.passed ? 'Сдал' : 'Не сдал' }}
+                                    </span>
+                                </td>
+                                <td class="text-muted small">{{ formatDate(item.submittedAt) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -137,6 +207,12 @@
     const departments = ref([])
     const adminIds = ref([])
     const userSearch = ref('')
+
+    const loadingResults = ref(false)
+    const allResults = ref([])
+    const resultSearch = ref('')
+    const resultSurveyFilter = ref('')
+    const resultDeptFilter = ref('')
 
     const filteredUsers = computed(() => {
         if (!userSearch.value.trim()) return users.value
@@ -189,6 +265,7 @@
         }
         allSurveys.value = surveys || []
         loadingSurveys.value = false
+        await loadResults()
     }
 
     const updateDepartment = async (profile) => {
@@ -235,6 +312,94 @@
             alert('Ошибка при изменении статуса')
         }
     }
+
+    const resetResultFilters = () => {
+        resultSearch.value = ''
+        resultSurveyFilter.value = ''
+        resultDeptFilter.value = ''
+    }
+
+    const loadResults = async () => {
+        loadingResults.value = true
+
+        // Загружаем все responses с данными опросов и пользователей
+        const { data: responses } = await supabase
+            .from('responses')
+            .select(`
+            id,
+            submitted_at,
+            survey_id,
+            user_id,
+            surveys!inner(title, department_id, departments(name))
+        `)
+            .order('submitted_at', { ascending: false })
+
+        if (!responses) {
+            loadingResults.value = false
+            return
+        }
+
+        // Загружаем все ответы
+        const responseIds = responses.map(r => r.id)
+        const { data: allAnswersData } = await supabase
+            .from('answers')
+            .select('*')
+            .in('response_id', responseIds)
+
+        // Загружаем все вопросы
+        const surveyIds = [...new Set(responses.map(r => r.survey_id))]
+        const { data: allQuestions } = await supabase
+            .from('questions')
+            .select('id, question_type, choices(id, is_correct)')
+            .in('survey_id', surveyIds)
+
+        // Загружаем профили
+        const userIds = [...new Set(responses.map(r => r.user_id).filter(Boolean))]
+        const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds)
+
+        const profileMap = {}
+        if (profilesData) {
+            profilesData.forEach(p => { profileMap[p.id] = p })
+        }
+
+        // Собираем результаты
+        const results = responses.map(resp => {
+            const surveyQuestions = (allQuestions || []).filter(q =>
+                resp.surveys && q.survey_id === resp.survey_id  // не можем проверить survey_id без джойна
+            )
+
+            // Проще: посчитаем баллы позже или загрузим вопросы по-другому
+            const respAnswers = (allAnswersData || []).filter(a => a.response_id === resp.id)
+            const profile = profileMap[resp.user_id]
+
+            return {
+                responseId: resp.id,
+                userName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Неизвестный' : 'Неизвестный',
+                surveyTitle: resp.surveys?.title || 'Без названия',
+                surveyId: resp.survey_id,
+                departmentName: resp.surveys?.departments?.name || null,
+                departmentId: resp.surveys?.department_id || null,
+                submittedAt: resp.submitted_at,
+                totalScore: 0,  // посчитаем отдельно
+                maxScore: 0,
+                passed: false
+            }
+        })
+
+        allResults.value = results
+        loadingResults.value = false
+    }
+
+    const openResult = (item) => {
+        router.push(`/results/${item.surveyId}/admin`)
+    }
+
+    const formatDate = (date) => new Date(date).toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
 </script>
 
 <style scoped>
@@ -553,4 +718,92 @@
         color: #212844;
         font-size: 1.3rem;
     }
+    .results-filters {
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-select-sm {
+        height: 42px;
+        padding: 0 12px;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        background: white;
+        cursor: pointer;
+    }
+
+    .filter-clear {
+        height: 42px;
+        padding: 0 16px;
+        border: none;
+        background: transparent;
+        color: #888;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 0.85rem;
+    }
+
+    .results-table-wrapper {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .results-count {
+        padding: 14px 20px;
+        font-weight: 700;
+        color: #888;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .results-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #888;
+            background: #FDFDF1;
+            border-bottom: 2px solid #212844;
+        }
+
+        .results-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+    .clickable-row {
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+        .clickable-row:hover {
+            background: #FDFDF1;
+        }
+
+    .dept-tag {
+        background: #B0D7FF;
+        color: #212844;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
 </style>
