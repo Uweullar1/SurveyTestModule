@@ -267,6 +267,9 @@
                 passed,
                 profiles: { full_name: fullName || `Участник #${allResponses.value.indexOf(resp) + 1}` }
             }
+            console.log('result:', result.hasUnchecked, 'respId:', resp.id)
+            return result
+
         }).sort((a, b) => b.totalScore - a.totalScore)
     })
 
