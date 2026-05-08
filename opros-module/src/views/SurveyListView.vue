@@ -537,8 +537,9 @@
             color: #212844;
             text-decoration: none;
             cursor: pointer;
-            <style scoped>
             /* ===== ФИЛЬТРЫ ===== */
+            
+            
             .filters-bar
 
         {
