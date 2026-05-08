@@ -39,7 +39,9 @@
                             <tbody>
                                 <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
                                     @click="selectUser(resp)"
-                                    :class="{ 'selected-row': selectedResponse?.id === resp.id, 'unchecked-row': resp.hasUnchecked }">
+                                    :class="{
+                                             'selected-row': selectedResponse?.id === resp.id,
+                                             'unchecked-row': resp.hasUnchecked}">
                                     <td>{{ idx + 1 }}</td>
                                     <td>
                                         <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
@@ -51,6 +53,7 @@
                                         <span :class="resp.passed ? 'status-passed' : 'status-failed'">
                                             {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
                                         </span>
+                                        <span v-if="resp.hasUnchecked" class="unchecked-dot" title="Требует проверки">🔍</span>
                                     </td>
                                     <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
                                     <td>
@@ -650,7 +653,11 @@
     }
 
     .unchecked-row {
-        background: #fdf6e3 !important;
-        border-left: 3px solid #DF2935;
+        background: #fef9e7 !important;
+    }
+
+    .unchecked-dot {
+        margin-left: 6px;
+        font-size: 0.8rem;
     }
 </style>
