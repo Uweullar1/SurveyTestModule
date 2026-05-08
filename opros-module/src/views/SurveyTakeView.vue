@@ -611,4 +611,36 @@
             box-shadow: 0 10px 20px rgba(33, 40, 68, 0.2);
             background-color: #2d365a;
         }
+
+    @media (max-width: 600px) {
+        .scale-buttons {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .scale-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 0.8rem;
+        }
+
+        .scale-labels {
+            font-size: 0.7rem;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+        }
+
+        .btn-finish {
+            padding: 16px 40px;
+            font-size: 1rem;
+        }
+
+        .container {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+    }
 </style>

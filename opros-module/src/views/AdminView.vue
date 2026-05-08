@@ -707,4 +707,44 @@
         color: #212844;
         font-size: 1rem;
     }
+    @media (max-width: 768px) {
+        .results-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .results-table {
+            min-width: 600px;
+        }
+
+            .results-table th,
+            .results-table td {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+                white-space: nowrap;
+            }
+
+        .filter-row {
+            flex-direction: column;
+        }
+
+        .admin-input {
+            max-width: 100%;
+        }
+
+        .user-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .user-controls {
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 14px;
+            font-size: 0.8rem;
+        }
+    }
 </style>

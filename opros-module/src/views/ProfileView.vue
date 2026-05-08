@@ -769,4 +769,28 @@
         cursor: not-allowed;
         background: #f0f0f0;
     }
+
+    @media (max-width: 500px) {
+        .profile-content {
+            padding: 20px 0;
+        }
+
+        .profile-title {
+            font-size: 2rem;
+        }
+
+        .avatar-section {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .secondary-actions {
+            flex-direction: column;
+        }
+
+        .modal {
+            padding: 25px;
+            margin: 10px;
+        }
+    }
 </style>

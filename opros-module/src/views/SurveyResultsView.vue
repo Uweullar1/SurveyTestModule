@@ -621,4 +621,18 @@
         .btn-view-sm:hover {
             background: #2d365a;
         }
+
+    @media (max-width: 768px) {
+        .summary-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .summary-table {
+            min-width: 500px;
+        }
+
+        .eval-row {
+            flex-direction: column;
+        }
+    }
 </style>

@@ -13,7 +13,9 @@
                     <router-link v-if="isAdmin" to="/admin" class="nav-link">Админка</router-link>
                 </div>
 
-                <NotificationsBar ref="notifBar" />
+                <div class="nav-notif">
+                    <NotificationsBar ref="notifBar" />
+                </div>
 
                 <div class="nav-right">
                     <template v-if="isLoggedIn">
@@ -225,5 +227,42 @@
         max-width: 60rem;
         margin: 0 auto;
         padding: 3rem 1rem;
+    }
+    @media (max-width: 768px) {
+        .main-header {
+            padding: 10px 16px;
+        }
+
+        .nav-container {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .nav-links {
+            gap: 16px;
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(33, 40, 68, 0.1);
+        }
+
+        .nav-link {
+            font-size: 16px;
+        }
+
+        .logo-main {
+            font-size: 20px;
+        }
+
+        .logo-sub {
+            font-size: 7px;
+        }
+
+        .nav-avatar {
+            width: 36px;
+            height: 36px;
+            border-width: 2px;
+        }
     }
 </style>

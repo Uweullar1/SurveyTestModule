@@ -1098,4 +1098,42 @@
         .required-check input {
             cursor: pointer;
         }
+    @media (max-width: 600px) {
+        .create-container {
+            padding: 40px 12px;
+            gap: 40px;
+        }
+
+        .main-title {
+            font-size: 1.6rem;
+        }
+
+        .title-field {
+            font-size: 1.4rem;
+        }
+
+        .question-controls {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .questions-list {
+            gap: 60px;
+        }
+
+        .toolbar-grid {
+            flex-direction: column;
+        }
+
+        .btn-tool {
+            width: 100%;
+            text-align: center;
+        }
+
+        .scale-item {
+            width: 30px;
+            height: 30px;
+            font-size: 0.8rem;
+        }
+    }
 </style>
