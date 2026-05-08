@@ -9,7 +9,7 @@
                             <h1 class="fw-bold survey-title mb-2">{{ surveyTitle }}</h1>
                             <p class="text-muted">Панель проверки ответов</p>
                         </div>
-                        <button @click="router.push('/')" class="btn btn-back shadow-sm mb-4">
+                        <button @click="router.push('/')" class="btn btn-back shadow-sm mb-4" style="margin-top: 40px;">
                             <i class="bi bi-arrow-left"></i> Назад
                         </button>
                     </div>
