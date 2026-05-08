@@ -47,7 +47,10 @@
 
                 <div class="card-actions">
                     <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">✏️</button>
-                    <button @click="viewResults(survey.id)" class="btn-action results" title="Результаты">📊</button>
+                    <button @click="viewResults(survey.id)" class="btn-action results" title="Результаты">
+                        📊
+                        <span v-if="survey.needsCheck" class="btn-badge">{{ survey.uncheckedCount }}</span>
+                    </button>
                     <button @click="toggleVisibility(survey)" class="btn-action toggle" :class="{ 'is-closed': survey.is_closed }" :title="survey.is_closed ? 'Открыть' : 'Закрыть'">{{ survey.is_closed ? '🔓' : '🔒' }}</button>
                     <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">🗑️</button>
                 </div>
@@ -270,6 +273,10 @@ onMounted(loadMySurveys)
         justify-content: center;
         transition: all 0.2s;
     }
+        .btn-action.results {
+            position: relative;
+        }
+
 
         .btn-action.results:hover {
             background: #d1e7dd;
@@ -292,6 +299,21 @@ onMounted(loadMySurveys)
             background: #212844;
             color: white;
         }
+    .btn-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #DF2935;
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 0.6rem;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
     .loader-wrapper, .empty-state {
         text-align: center;

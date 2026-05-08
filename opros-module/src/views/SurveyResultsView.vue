@@ -39,7 +39,7 @@
                             <tbody>
                                 <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
                                     @click="selectUser(resp)"
-                                    :class="{ 'selected-row': selectedResponse?.id === resp.id }">
+                                    :class="{ 'selected-row': selectedResponse?.id === resp.id, 'unchecked-row': resp.hasUnchecked }">
                                     <td>{{ idx + 1 }}</td>
                                     <td>
                                         <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
@@ -246,6 +246,12 @@
             })
 
             const passed = maxScore > 0 ? (totalScore / maxScore) >= 0.6 : true
+
+            const hasUnchecked = allAnswers.value.some(a =>
+                a.response_id === resp.id &&
+                questions.value.find(q => q.id === a.question_id)?.question_type === 'text' &&
+                a.score === null
+            )
 
             // Добавляем имя участника
             const profile = profiles.value[resp.user_id]
@@ -641,5 +647,10 @@
             width: 100%;
             text-align: center;
         }
+    }
+
+    .unchecked-row {
+        background: #fdf6e3 !important;
+        border-left: 3px solid #DF2935;
     }
 </style>
