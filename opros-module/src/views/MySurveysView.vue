@@ -41,19 +41,10 @@
         </div>
 
         <div class="card-actions">
-          <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">
-            ✏️
-          </button>
-          <button 
-            @click="toggleVisibility(survey)" 
-            class="btn-action toggle"
-            :class="{ 'is-closed': survey.is_closed }"
-            :title="survey.is_closed ? 'Открыть' : 'Закрыть'">
-            {{ survey.is_closed ? '🔓' : '🔒' }}
-          </button>
-          <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">
-            🗑️
-          </button>
+            <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">✏️</button>
+            <button @click="viewResults(survey.id)" class="btn-action results" title="Результаты">📊</button>
+            <button @click="toggleVisibility(survey)" class="btn-action toggle" :class="{ 'is-closed': survey.is_closed }" :title="survey.is_closed ? 'Открыть' : 'Закрыть'">{{ survey.is_closed ? '🔓' : '🔒' }}</button>
+            <button @click="deleteSurvey(survey.id)" class="btn-action delete" title="Удалить">🗑️</button>
         </div>
       </div>
     </div>
@@ -83,6 +74,10 @@ const loadMySurveys = async () => {
   else mySurveys.value = data || []
 
   loading.value = false
+}
+
+const viewResults = (id) => {
+    router.push(`/results/${id}/admin`)
 }
 
 const editSurvey = (id) => {
@@ -242,6 +237,9 @@ onMounted(loadMySurveys)
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+}
+  .btn-action.results:hover {
+    background: #d1e7dd;
 }
 
 .btn-action.edit:hover { background: #FDFDF1; }
