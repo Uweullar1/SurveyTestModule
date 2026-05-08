@@ -224,7 +224,15 @@
             } else {
                 // Стандартная инициализация
                 localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
-                questions.value.forEach(q => { ... })
+                questions.value.forEach(q => {
+                    if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
+                        responses.value[q.id] = []
+                    } else if (q.question_type === 'scale') {
+                        responses.value[q.id] = 5
+                    } else {
+                        responses.value[q.id] = null
+                    }
+                })
             }  
 
             // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
