@@ -233,11 +233,19 @@
             if (hasDraft) {
                 const draft = JSON.parse(localStorage.getItem(draftKey))
                 if (draft) {
-                    // Копируем сохраненные ответы поверх инициализированных
-                    Object.keys(draft).forEach(key => {
-                        responses.value[key] = draft[key]
-                    })
-                    console.log('Черновик восстановлен:', Object.keys(draft).length, 'ответов')
+                    // Проверяем есть ли реальные ответы в черновике
+                    const hasRealAnswers = Object.values(draft).some(v =>
+                        v !== null && v !== 5 && !(Array.isArray(v) && v.length === 0)
+                    )
+
+                    if (hasRealAnswers) {
+                        Object.keys(draft).forEach(key => {
+                            responses.value[key] = draft[key]
+                        })
+                        console.log('Черновик восстановлен')
+                    } else {
+                        console.log('Черновик пустой, игнорируем')
+                    }
                 }
             }
             // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
@@ -411,8 +419,16 @@
     }
 
     watch(responses, (newVal) => {
-        if (route.params.id) {
-            localStorage.setItem(`${STORAGE_KEY}_${route.params.id}`, JSON.stringify(newVal))
+        const key = `${STORAGE_KEY}_${route.params.id}`
+        if (!route.params.id) return
+
+        // Проверяем, есть ли хоть один непустой ответ
+        const hasAnswers = Object.values(newVal).some(v =>
+            v !== null && v !== 5 && !(Array.isArray(v) && v.length === 0)
+        )
+
+        if (hasAnswers) {
+            localStorage.setItem(key, JSON.stringify(newVal))
         }
     }, { deep: true })
 </script>
