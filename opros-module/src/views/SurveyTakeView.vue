@@ -108,10 +108,10 @@
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
 
-    
-
     const route = useRoute()
     const router = useRouter()
+
+    const STORAGE_KEY = 'survey_draft'
 
     const survey = ref({})
     const questions = ref([])
@@ -120,25 +120,6 @@
     const loading = ref(true)
     const error = ref(null)
 
-    const draftKey = `${STORAGE_KEY}_${surveyId}`
-    const hasDraft = checkDraft()
-    const STORAGE_KEY = 'survey_draft'
-
-    // Проверяем черновик при загрузке
-    const checkDraft = () => {
-        const draft = localStorage.getItem(`${STORAGE_KEY}_${route.params.id}`)
-        if (draft) {
-            try {
-                const parsed = JSON.parse(draft)
-                if (Object.keys(parsed).length > 0) {
-                    return confirm('У вас есть незавершенное прохождение. Продолжить?')
-                }
-            } catch { }
-        }
-        return false
-    }
-
-    // Проверка: если пользователь не авторизован — сразу отправляем на логин
     const checkAuth = async () => {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) {
@@ -149,168 +130,112 @@
         return true
     }
 
-    // Проверка ограничения по количеству прохождений
     const checkMaxResponsesLimit = async (surveyId) => {
         if (!surveyId) return true
-
         try {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session?.user?.id) return true
-
             const { count, error } = await supabase
                 .from('responses')
                 .select('*', { count: 'exact', head: true })
                 .eq('survey_id', surveyId)
                 .eq('user_id', session.user.id)
-
-            if (error) {
-                console.error("Ошибка проверки лимита:", error)
-                return true
-            }
-
-            const currentAttempts = count || 0
+            if (error) return true
             const maxAllowed = survey.value.max_responses || 0
-
-            if (maxAllowed > 0 && currentAttempts >= maxAllowed) {
+            if (maxAllowed > 0 && (count || 0) >= maxAllowed) {
                 alert(`Вы уже прошли этот опрос максимальное количество раз (${maxAllowed}).`)
                 router.push('/my-history')
                 return false
             }
             return true
-        } catch (err) {
-            console.error(err)
-            return true
-        }
+        } catch (err) { return true }
     }
 
     onMounted(async () => {
         const surveyId = route.params.id
-        if (!surveyId) {
-            error.value = 'ID опроса не найден'
-            loading.value = false
-            return
-        }
+        if (!surveyId) { error.value = 'ID опроса не найден'; loading.value = false; return }
 
-        // 1. Проверяем авторизацию
         const isAuthenticated = await checkAuth()
         if (!isAuthenticated) return
 
         try {
-            // Загружаем опрос
             const { data, error: sErr } = await supabase
-                .from('surveys')
-                .select('*')
-                .eq('id', surveyId)
-                .single()
-
+                .from('surveys').select('*').eq('id', surveyId).single()
             if (sErr) throw sErr
             if (!data) throw new Error('Опрос не найден')
-
             survey.value = data
 
             if (survey.value.is_private) {
                 const { data: { user } } = await supabase.auth.getUser()
-
                 if (user?.id !== survey.value.user_id) {
-                    alert('Этот опрос доступен только по прямой ссылке и только для тех, кому автор дал ссылку.')
+                    alert('Этот опрос доступен только по прямой ссылке.')
                     router.push('/')
                     return
                 }
             }
 
-            // Инициализация ответов
-            questions.value.forEach(q => {
-                if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
-                    responses.value[q.id] = []
-                } else if (q.question_type === 'scale') {
-                    responses.value[q.id] = 5
-                } else {
-                    responses.value[q.id] = null
-                }
-            })
-
-            // Восстанавливаем черновик если есть
-            if (hasDraft) {
-                const draft = JSON.parse(localStorage.getItem(draftKey))
-                if (draft) {
-                    // Проверяем есть ли реальные ответы в черновике
-                    const hasRealAnswers = Object.values(draft).some(v =>
-                        v !== null && v !== 5 && !(Array.isArray(v) && v.length === 0)
-                    )
-
-                    if (hasRealAnswers) {
-                        Object.keys(draft).forEach(key => {
-                            responses.value[key] = draft[key]
-                        })
-                        console.log('Черновик восстановлен')
-                    } else {
-                        console.log('Черновик пустой, игнорируем')
-                    }
-                }
-            }
-            // === УВЕДОМЛЕНИЕ О ЗАКРЫТИИ ОПРОСА ===
             if (data.is_closed) {
                 const { data: { user } } = await supabase.auth.getUser()
-                const isCreator = user && user.id === data.user_id
-
-                if (!isCreator) {
-                    // Красивое уведомление для обычных пользователей
-                    const closedMessage = `
-                    <div style="text-align: center; padding: 20px;">
-                        <h2 style="color: #DF2935; margin-bottom: 15px;">⛔ Опрос закрыт</h2>
-                        <p style="font-size: 1.1rem; color: #212844;">
-                            Автор закрыл этот опрос.<br>
-                            Прохождение больше недоступно.
-                        </p>
-                    </div>
-                `
-                    alert('Этот опрос был закрыт автором и недоступен для прохождения.')
-                    // Можно заменить на более красивый модальный диалог позже
+                if (!user || user.id !== data.user_id) {
+                    alert('Этот опрос закрыт автором и недоступен для прохождения.')
                     router.push('/')
                     return
-                } else {
-                    // Для создателя — мягкое уведомление
-                    alert('Этот опрос закрыт. Его могут видеть только вы.')
-                }
-            }
-            // === ПРОВЕРКА ДАТЫ ОКОНЧАНИЯ ===
-            if (data.expires_at) {
-                const now = new Date()
-                const expiresAt = new Date(data.expires_at)
-
-                if (now > expiresAt) {
-                    const { data: { user } } = await supabase.auth.getUser()
-                    const isCreator = user && user.id === data.user_id
-
-                    if (!isCreator) {
-                        alert('Срок прохождения этого опроса истёк.')
-                        router.push('/')
-                        return
-                    } else {
-                        alert('Срок прохождения опроса истёк, но вы можете просматривать его как создатель.')
-                    }
                 }
             }
 
-            // 2. Проверка лимита прохождений
+            if (data.expires_at && new Date() > new Date(data.expires_at)) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user || user.id !== data.user_id) {
+                    alert('Срок прохождения этого опроса истёк.')
+                    router.push('/')
+                    return
+                }
+            }
+
             const canProceed = await checkMaxResponsesLimit(surveyId)
             if (!canProceed) return
 
-            // 3. Загружаем вопросы
             const { data: qData, error: qErr } = await supabase
                 .from('questions')
-                .select(`
-                id, text, question_type, order, required,
-                choices (id, text, is_correct)
-            `)
+                .select(`id, text, question_type, order, required, choices (id, text, is_correct)`)
                 .eq('survey_id', surveyId)
                 .order('order')
-
             if (qErr) throw qErr
-
             questions.value = qData || []
 
-            // Инициализация ответов
+            // Проверяем черновик ДО инициализации
+            const draftKey = `${STORAGE_KEY}_${surveyId}`
+            const draftData = localStorage.getItem(draftKey)
+            let draftObj = null
+
+            if (draftData) {
+                try { draftObj = JSON.parse(draftData) } catch { }
+            }
+
+            const hasRealAnswers = draftObj && Object.values(draftObj).some(v =>
+                v !== null && v !== 5 && !(Array.isArray(v) && v.length === 0)
+            )
+
+            if (hasRealAnswers) {
+                const confirmed = confirm('У вас есть незавершенное прохождение. Продолжить?')
+                if (confirmed) {
+                    // Восстанавливаем ответы
+                    Object.keys(draftObj).forEach(key => {
+                        responses.value[key] = draftObj[key]
+                    })
+                    // Дополняем недостающие ответы для новых вопросов
+                    questions.value.forEach(q => {
+                        if (!(q.id in responses.value)) {
+                            responses.value[q.id] = q.question_type === 'checkbox' || q.question_type === 'multiple' ? [] :
+                                q.question_type === 'scale' ? 5 : null
+                        }
+                    })
+                    loading.value = false
+                    return // ← выходим, не перезаписываем ответы
+                }
+            }
+
+            // Обычная инициализация
             questions.value.forEach(q => {
                 if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
                     responses.value[q.id] = []
@@ -323,7 +248,7 @@
 
         } catch (err) {
             console.error(err)
-            error.value = 'Ошибка загрузки опроса: ' + (err.message || 'Неизвестная ошибка')
+            error.value = 'Ошибка загрузки опроса: ' + err.message
         } finally {
             loading.value = false
         }
@@ -333,7 +258,6 @@
         if (submitting.value) return
         submitting.value = true
 
-        // Проверка обязательных вопросов
         for (const q of questions.value) {
             if (q.required) {
                 const val = responses.value[q.id]
@@ -346,59 +270,30 @@
         }
 
         const surveyId = route.params.id
-
         try {
             const { data: { session } } = await supabase.auth.getSession()
-
             const { data: rData, error: rErr } = await supabase
                 .from('responses')
-                .insert({
-                    survey_id: surveyId,
-                    user_id: session?.user?.id || null,
-                    submitted_at: new Date().toISOString()
-                })
-                .select('id')
-                .single()
-
+                .insert({ survey_id: surveyId, user_id: session?.user?.id || null, submitted_at: new Date().toISOString() })
+                .select('id').single()
             if (rErr) throw rErr
 
             const responseId = rData.id
-
             const answersToInsert = []
 
             questions.value.forEach(q => {
                 const userVal = responses.value[q.id]
                 if (userVal === null || (Array.isArray(userVal) && userVal.length === 0)) return
-
                 if (q.question_type === 'single' || q.question_type === 'radio') {
-                    answersToInsert.push({
-                        response_id: responseId,
-                        question_id: q.id,
-                        choice_id: userVal,
-                        text_answer: q.choices.find(c => c.id === userVal)?.text || null
-                    })
+                    answersToInsert.push({ response_id: responseId, question_id: q.id, choice_id: userVal, text_answer: q.choices.find(c => c.id === userVal)?.text || null })
                 } else if (q.question_type === 'multiple' || q.question_type === 'checkbox') {
                     userVal.forEach(cid => {
-                        answersToInsert.push({
-                            response_id: responseId,
-                            question_id: q.id,
-                            choice_id: cid,
-                            text_answer: q.choices.find(c => c.id === cid)?.text || null
-                        })
+                        answersToInsert.push({ response_id: responseId, question_id: q.id, choice_id: cid, text_answer: q.choices.find(c => c.id === cid)?.text || null })
                     })
                 } else if (q.question_type === 'text') {
-                    answersToInsert.push({
-                        response_id: responseId,
-                        question_id: q.id,
-                        text_answer: userVal
-                    })
+                    answersToInsert.push({ response_id: responseId, question_id: q.id, text_answer: userVal })
                 } else if (q.question_type === 'scale') {
-                    answersToInsert.push({
-                        response_id: responseId,
-                        question_id: q.id,
-                        scale_value: parseInt(userVal) || 0,
-                        text_answer: String(userVal)
-                    })
+                    answersToInsert.push({ response_id: responseId, question_id: q.id, scale_value: parseInt(userVal) || 0, text_answer: String(userVal) })
                 }
             })
 
@@ -407,26 +302,23 @@
                 if (aErr) throw aErr
             }
 
-            router.push(`/my-results/${responseId}`)
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
-
+            router.push(`/my-results/${responseId}`)
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)
-            alert('Ошибка при сохранении: ' + (err.message || 'Неизвестная ошибка'))
+            alert('Ошибка при сохранении: ' + err.message)
         } finally {
             submitting.value = false
         }
     }
 
     watch(responses, (newVal) => {
-        const key = `${STORAGE_KEY}_${route.params.id}`
-        if (!route.params.id) return
-
-        // Проверяем, есть ли хоть один непустой ответ
+        const surveyId = route.params.id
+        if (!surveyId) return
+        const key = `${STORAGE_KEY}_${surveyId}`
         const hasAnswers = Object.values(newVal).some(v =>
             v !== null && v !== 5 && !(Array.isArray(v) && v.length === 0)
         )
-
         if (hasAnswers) {
             localStorage.setItem(key, JSON.stringify(newVal))
         }
