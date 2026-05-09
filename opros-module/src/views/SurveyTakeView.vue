@@ -107,6 +107,7 @@
     import { ref, onMounted, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
+    import { notificationsService } from '../utils/notifications'
 
     const route = useRoute()
     const router = useRouter()
@@ -303,6 +304,15 @@
             }
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
+            const surveyOwner = survey.value.user_id
+            if (surveyOwner && session?.user?.id !== surveyOwner) {
+                await notificationsService.send(surveyOwner, 'Новое прохождение опроса', {
+                    message: `Сотрудник прошел опрос "${survey.value.title}"`,
+                    icon: '📋',
+                    link: `/results/${surveyId}/admin`
+                })
+            }
+
             router.push(`/my-results/${responseId}`)
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)

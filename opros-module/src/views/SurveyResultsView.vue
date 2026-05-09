@@ -320,6 +320,12 @@
         } finally {
             submitting.value = false
         }
+
+        await notificationsService.send(selectedResponse.value.user_id, 'Ваш ответ проверен', {
+            message: `Проверяющий оценил ваш ответ в опросе "${surveyTitle.value}"`,
+            icon: '✅',
+            link: `/my-results/${selectedResponse.value.id}`
+        })
     }
 
     const formatAnswer = (q, responseId) => {

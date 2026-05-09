@@ -13,9 +13,7 @@
                     <router-link v-if="isAdmin" to="/admin" class="nav-link">Админка</router-link>
                 </div>
 
-                <div class="nav-notif">
                     <NotificationsBar ref="notifBar" />
-                </div>
 
                 <div class="nav-right">
                     <template v-if="isLoggedIn">
