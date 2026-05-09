@@ -304,10 +304,11 @@
             }
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
-            const surveyOwner = survey.value.user_id
-            if (surveyOwner && session?.user?.id !== surveyOwner) {
-                await notificationsService.send(surveyOwner, 'Новое прохождение опроса', {
-                    message: `Сотрудник прошел опрос "${survey.value.title}"`,
+
+            // Уведомление создателю
+            if (session?.user?.id !== survey.value.user_id) {
+                await notificationsService.send(survey.value.user_id, 'Новое прохождение опроса', {
+                    message: `Пользователь прошел опрос "${survey.value.title}"`,
                     icon: '📋',
                     link: `/results/${surveyId}/admin`
                 })

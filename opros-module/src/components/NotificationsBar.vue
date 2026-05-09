@@ -33,13 +33,26 @@
     import { ref, onMounted, onUnmounted, computed } from 'vue'
     import { supabase } from '../supabase'
     import { notificationsService } from '../utils/notifications'
+    import { useRouter } from 'vue-router'
 
+    const router = useRouter()
     const show = ref(false)
     const notifications = ref([])
     const userId = ref(null)
     let pollInterval = null
 
     const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
+
+    const handleClick = async (n) => {
+        if (!n.is_read) {
+            await notificationsService.markAsRead(n.id)
+            await load()
+        }
+        if (n.link) {
+            router.push(n.link)
+            show.value = false
+        }
+    }
 
     const toggle = () => {
         show.value = !show.value
