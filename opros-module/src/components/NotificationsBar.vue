@@ -43,16 +43,7 @@
 
     const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
 
-    const handleClick = async (n) => {
-        if (!n.is_read) {
-            await notificationsService.markAsRead(n.id)
-            await load()
-        }
-        if (n.link) {
-            router.push(n.link)
-            show.value = false
-        }
-    }
+    
 
     const toggle = () => {
         show.value = !show.value
