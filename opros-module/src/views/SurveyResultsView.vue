@@ -131,6 +131,7 @@
     import { ref, onMounted, reactive, computed } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { supabase } from '../supabase'
+    import { notificationsService } from '../utils/notifications'
 
     const route = useRoute()
     const router = useRouter()
