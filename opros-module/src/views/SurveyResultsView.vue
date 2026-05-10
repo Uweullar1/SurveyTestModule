@@ -18,110 +18,99 @@
 
             <div v-else>
 
-                <!-- СТАТИСТИКА -->
-                <div class="stats-row mb-4">
-                    <div class="stat-card">
-                        <div class="stat-label">Средний балл</div>
-                        <div class="stat-value">{{ averageScore }} / {{ maxPossibleScore }}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Прошли успешно</div>
-                        <div class="stat-value">{{ passedCount }} из {{ allResponses.length }}</div>
-                    </div>
-                    <div class="stat-card" v-if="!isSurvey">
-                        <div class="stat-label">По департаментам</div>
-                        <div class="stat-value-small">
-                            <div v-for="d in deptStats" :key="d.name" class="dept-stat-row">
-                                <span>{{ d.name }}</span>
-                                <span>{{ d.avg }}/{{ d.max }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- СВОДНАЯ ТАБЛИЦА -->
                 <div class="summary-table-wrapper mb-4">
                     <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }})</h3>
-                    <div class="table-responsive">
-                        <table class="summary-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Участник</th>
-                                    <th v-if="!isSurvey">Результат</th>
-                                    <th>Статус</th>
-                                    <th>Дата</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
-                                    @click="selectUser(resp)"
-                                    :class="{ 'selected-row': selectedResponse?.id === resp.id, 'unchecked-row': resp.hasUnchecked }">
-                                    <td>{{ idx + 1 }}</td>
-                                    <td><div class="fw-bold">{{ getParticipantName(resp) }}</div></td>
-                                    <td v-if="!isSurvey"><span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span></td>
-                                    <td>
-                                        <span v-if="!isSurvey" :class="resp.passed ? 'status-passed' : 'status-failed'">{{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}</span>
-                                        <span v-else class="badge-survey">📋 Пройден</span>
-                                        <span v-if="resp.hasUnchecked && !isSurvey" class="unchecked-dot" title="Требует проверки">🔍</span>
-                                    </td>
-                                    <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
-                                    <td><button @click.stop="selectUser(resp)" class="btn-view-sm">Смотреть ответы</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <!-- СТАТИСТИКА ВНУТРИ ТАБЛИЦЫ -->
+                    <div class="stats-inline" v-if="!isSurvey && allResponses.length > 0">
+                        <span class="stats-item">Средний балл: <strong>{{ averageScore }}/{{ maxPossibleScore }}</strong></span>
+                        <span class="stats-divider">·</span>
+                        <span class="stats-item">Успешно: <strong>{{ passedCount }} из {{ allResponses.length }}</strong></span>
+                        <span class="stats-divider">·</span>
+                        <span class="stats-item">Не сдано: <strong>{{ allResponses.length - passedCount }}</strong></span>
                     </div>
-                </div>
-
-                <div v-if="!selectedResponse" class="empty-state text-center py-4">
-                    <p class="text-muted">Выберите участника из таблицы, чтобы посмотреть ответы</p>
-                </div>
-
-                <!-- ДЕТАЛЬНЫЕ ОТВЕТЫ -->
-                <div v-if="selectedResponse" class="results-container mt-4">
-                    <div class="user-info-header mb-4">
-                        <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
-                        <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
+                            <div class="table-responsive">
+                                <table class="summary-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Участник</th>
+                                            <th v-if="!isSurvey">Результат</th>
+                                            <th>Статус</th>
+                                            <th>Дата</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(resp, idx) in allResponsesWithScores" :key="resp.id"
+                                            @click="selectUser(resp)"
+                                            :class="{ 'selected-row': selectedResponse?.id === resp.id, 'unchecked-row': resp.hasUnchecked }">
+                                            <td>{{ idx + 1 }}</td>
+                                            <td><div class="fw-bold">{{ getParticipantName(resp) }}</div></td>
+                                            <td v-if="!isSurvey"><span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span></td>
+                                            <td>
+                                                <span v-if="!isSurvey" :class="resp.passed ? 'status-passed' : 'status-failed'">{{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}</span>
+                                                <span v-else class="badge-survey">📋 Пройден</span>
+                                                <span v-if="resp.hasUnchecked && !isSurvey" class="unchecked-dot" title="Требует проверки">🔍</span>
+                                            </td>
+                                            <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
+                                            <td><button @click.stop="selectUser(resp)" class="btn-view-sm">Смотреть ответы</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                     </div>
 
-                    <div v-for="q in questions" :key="q.id" class="question-block mb-4">
-                        <h5 class="question-heading mb-2">{{ q.text }}</h5>
+                    <div v-if="!selectedResponse" class="empty-state text-center py-4">
+                        <p class="text-muted">Выберите участника из таблицы, чтобы посмотреть ответы</p>
+                    </div>
 
-                        <div class="answer-display mb-2">
-                            <div class="answer-label">Ответ пользователя:</div>
-                            <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
+                    <!-- ДЕТАЛЬНЫЕ ОТВЕТЫ -->
+                    <div v-if="selectedResponse" class="results-container mt-4">
+                        <div class="user-info-header mb-4">
+                            <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
+                            <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
                         </div>
 
-                        <div v-if="!isSurvey && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-2">
-                            <div class="answer-label">Правильный ответ:</div>
-                            <div class="answer-text correct">{{ getCorrectAnswers(q) }}</div>
-                        </div>
+                        <div v-for="q in questions" :key="q.id" class="question-block mb-4">
+                            <h5 class="question-heading mb-2">{{ q.text }}</h5>
 
-                        <div v-if="q.question_type === 'text' && !isSurvey" class="eval-box mt-2 p-3">
-                            <div class="eval-row">
-                                <label class="eval-check">
-                                    <input type="checkbox" v-model="editData[q.id].passed">
-                                    <span class="eval-check-text">Зачтено</span>
-                                </label>
-                                <div class="eval-comment">
-                                    <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий...">
+                            <div class="answer-display mb-2">
+                                <div class="answer-label">Ответ пользователя:</div>
+                                <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
+                            </div>
+
+                            <div v-if="!isSurvey && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-2">
+                                <div class="answer-label">Правильный ответ:</div>
+                                <div class="answer-text correct">{{ getCorrectAnswers(q) }}</div>
+                            </div>
+
+                            <div v-if="q.question_type === 'text' && !isSurvey" class="eval-box mt-2 p-3">
+                                <div class="eval-row">
+                                    <label class="eval-check">
+                                        <input type="checkbox" v-model="editData[q.id].passed">
+                                        <span class="eval-check-text">Зачтено</span>
+                                    </label>
+                                    <div class="eval-comment">
+                                        <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий...">
+                                    </div>
                                 </div>
                             </div>
+                            <div v-if="!isSurvey && q.question_type !== 'text'" class="auto-status mt-1">
+                                <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
+                            </div>
                         </div>
-                        <div v-if="!isSurvey && q.question_type !== 'text'" class="auto-status mt-1">
-                            <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
-                        </div>
-                    </div>
 
-                    <div class="publish-bottom">
-                        <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
-                            <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
-                            СОХРАНИТЬ РЕЗУЛЬТАТЫ
-                        </button>
+                        <div class="publish-bottom">
+                            <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
+                                <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                                СОХРАНИТЬ РЕЗУЛЬТАТЫ
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 </template>
@@ -223,17 +212,6 @@
 
     const passedCount = computed(() => allResponsesWithScores.value.filter(r => r.passed).length)
 
-    const deptStats = computed(() => {
-        const depts = {}
-        allResponsesWithScores.value.forEach(r => {
-            const name = r.departmentName || 'Без департамента'
-            if (!depts[name]) depts[name] = { name, total: 0, count: 0, max: r.maxScore }
-            depts[name].total += r.totalScore
-            depts[name].count++
-        })
-        return Object.values(depts).map(d => ({ ...d, avg: d.count ? (d.total / d.count).toFixed(1) : '0' }))
-    })
-
     const getParticipantName = (resp) => {
         if (!resp) return '—'
         const p = profiles.value[resp.user_id]
@@ -323,12 +301,6 @@
             color: #F2C4CE;
         }
 
-    .stats-row {
-        display: flex;
-        gap: 14px;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
 
     .stat-card {
         flex: 1;
@@ -567,5 +539,23 @@
         .summary-table {
             min-width: 500px;
         }
+    }
+    .stats-inline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+        font-size: 0.85rem;
+        color: #666;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 8px;
+    }
+
+    .stats-item strong {
+        color: #212844;
+    }
+
+    .stats-divider {
+        color: #ccc;
     }
 </style>
