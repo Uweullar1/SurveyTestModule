@@ -38,7 +38,7 @@
                 <div class="question-header">
                     <span class="question-num">{{ i + 1 }}</span>
                     <span class="question-text">{{ q?.text || 'Вопрос без текста' }}</span>
-                    <span :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
+                    <span v-if="!isSurvey" :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
                         {{ getStatusLabel(q) }}
                     </span>
                 </div>
@@ -63,8 +63,7 @@
 
                 <!-- Правильный ответ (для выбора) -->
                 <div v-if="!isSurvey && q?.question_type !== 'text' && q?.question_type !== 'scale'"
-                     class="answer-section mt-2"
-                     :class="getCorrectClass(q)">
+                     class="correct-answer mt-2">
                     <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
                 </div>
             </div>
@@ -100,21 +99,35 @@
 
         try {
             const { data: responseData } = await supabase
-                .from('responses').select('survey_id').eq('id', responseId).single()
+                .from('responses')
+                .select('survey_id')
+                .eq('id', responseId)
+                .single()
             if (!responseData) { loading.value = false; return }
 
             const surveyId = responseData.survey_id
 
-            const { data: sData } = await supabase.from('surveys').select('title').eq('id', surveyId).single()
+            const { data: sData } = await supabase
+                .from('surveys')
+                .select('title, is_survey')
+                .eq('id', surveyId)
+                .single()
+
             surveyTitle.value = sData?.title || 'Опрос'
-            isSurvey.value = surveyData?.is_survey || false
+            isSurvey.value = sData?.is_survey || false
 
             const { data: qData } = await supabase
-                .from('questions').select('id, text, question_type, choices(id, text, is_correct)')
-                .eq('survey_id', surveyId).order('order')
-            questions.value = (qData || []).filter(q => q?.id)
+                .from('questions')
+                .select('id, text, question_type, choices(id, text, is_correct)')
+                .eq('survey_id', surveyId)
+                .order('order')
+            questions.value = (qData || [])
+                .filter(q => q?.id)
 
-            const { data: aData } = await supabase.from('answers').select('*').eq('response_id', responseId)
+            const { data: aData } = await supabase
+                .from('answers')
+                .select('*')
+                .eq('response_id', responseId)
             allAnswers.value = aData || []
         } catch (err) {
             console.error('Ошибка загрузки:', err)

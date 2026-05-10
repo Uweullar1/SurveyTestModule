@@ -44,16 +44,15 @@
                                              'unchecked-row': resp.hasUnchecked}">
                                     <td>{{ idx + 1 }}</td>
                                     <td>
-                                        <div class="fw-bold">{{ resp.profiles?.full_name || `Участник #${allResponses.length - idx}` }}</div>
+                                        <span v-if="!isSurvey" class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
+                                        <span v-else class="text-muted">—</span>
                                     </td>
                                     <td>
-                                        <span class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
-                                    </td>
-                                    <td>
-                                        <span :class="resp.passed ? 'status-passed' : 'status-failed'">
+                                        <span v-if="!isSurvey" :class="resp.passed ? 'status-passed' : 'status-failed'">
                                             {{ resp.passed ? '✅ Сдал' : '❌ Не сдал' }}
                                         </span>
-                                        <span v-if="resp.hasUnchecked" class="unchecked-dot" title="Требует проверки">🔍</span>
+                                        <span v-else class="badge-survey">📋 Пройден</span>
+                                        <span v-if="resp.hasUnchecked && !isSurvey" class="unchecked-dot" title="Требует проверки">🔍</span>
                                     </td>
                                     <td class="text-muted small">{{ formatDate(resp.submitted_at) }}</td>
                                     <td>
@@ -84,7 +83,7 @@
                     <div v-for="q in questions" :key="q.id" class="question-block mb-5">
                         <h5 class="question-heading mb-3">{{ q.text }}</h5>
 
-                        <div class="answer-display mb-3">
+                        <div v-else-if="q.question_type === 'text' && isSurvey" class="answer-display mb-3">
                             <div class="answer-label">Ответ пользователя:</div>
                             <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
                         </div>
@@ -97,7 +96,7 @@
                         </div>
 
                         <!-- Фидбек для текстовых -->
-                        <div v-if="q.question_type === 'text'" class="eval-box mt-3 p-3">
+                        <div v-if="q.question_type === 'text' && !isSurvey" class="eval-box mt-3 p-3">
                             <div class="eval-row">
                                 <label class="eval-check">
                                     <input type="checkbox" v-model="editData[q.id].passed">
