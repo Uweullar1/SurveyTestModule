@@ -374,12 +374,12 @@
         border-left: 5px solid #dee2e6;
     }
 
-    .survey-completed-card {
-        background: #fff;
-        border: 2px solid #212844;
-        border-radius: 20px;
-        padding: 30px;
+    .survey-completed-block {
+        text-align: center;
+        padding: 40px 20px;
         margin-bottom: 30px;
+        background: transparent;
+        border: none;
     }
     .survey-completed-title {
         font-size: 1.3rem;
