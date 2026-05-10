@@ -316,7 +316,13 @@
                 })
             }
 
-            router.push(`/my-results/${responseId}`)
+            if (survey.value.is_survey) {
+                alert('Спасибо за прохождение опроса!')
+                router.push('/my-history')
+            } else {
+                router.push(`/my-results/${responseId}`)
+            }
+
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)
             alert('Ошибка при сохранении: ' + err.message)

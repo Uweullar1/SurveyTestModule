@@ -40,13 +40,14 @@
                     <!-- Нижняя строка: статус + баллы + кнопка -->
                     <div class="card-bottom">
                         <div class="card-info">
-                            <span :class="res.passed ? 'badge-passed' : 'badge-failed'">
+                            <span v-if="res.isSurvey" class="badge-survey">📋 Пройден</span>
+                            <span v-else :class="res.passed ? 'badge-passed' : 'badge-failed'">
                                 {{ res.passed ? 'Сдано' : 'Не сдано' }}
                             </span>
-                            <span class="score-text">{{ res.total_score }} / {{ res.max_score }}</span>
+                            <span v-if="!res.isSurvey" class="score-text">{{ res.total_score }} / {{ res.max_score }}</span>
                         </div>
-                        <span class="view-link">
-                            Результаты →
+                        <span class="view-link" @click="goToResults(res.id)">
+                            {{ res.isSurvey ? 'Подробнее' : 'Результаты' }} →
                         </span>
                     </div>
                 </div>
@@ -109,44 +110,45 @@
 
             // Для каждого ответа считаем баллы
             const enriched = await Promise.all((data || []).map(async (res) => {
-                // Загружаем вопросы опроса
                 const { data: questions } = await supabase
                     .from('questions')
                     .select('id, question_type, choices(id, is_correct)')
                     .eq('survey_id', res.survey_id)
 
-                // Загружаем ответы пользователя
                 const { data: answers } = await supabase
                     .from('answers')
                     .select('*')
                     .eq('response_id', res.id)
 
+                // Проверяем тип опроса
+                const { data: surveyData } = await supabase
+                    .from('surveys')
+                    .select('is_survey')
+                    .eq('id', res.survey_id)
+                    .single()
+
+                const isSurvey = surveyData?.is_survey || false
+
                 let totalScore = 0
                 let maxScore = 0
 
-                questions?.forEach(q => {
-                    if (q.question_type === 'scale') return
-                    maxScore++
+                if (!isSurvey) {
+                    questions?.forEach(q => {
+                        if (q.question_type === 'scale') return
+                        maxScore++
+                        const ansList = (answers || []).filter(a => a.question_id === q.id)
+                        if (ansList.length === 0) return
+                        if (q.question_type === 'text') {
+                            if (ansList[0]?.score > 0) totalScore += Number(ansList[0].score)
+                            return
+                        }
+                        const correctIds = (q.choices || []).filter(c => c.is_correct).map(c => String(c.id))
+                        const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
+                        if (correctIds.length && userIds.length === correctIds.length && userIds.every(id => correctIds.includes(id))) totalScore++
+                    })
+                }
 
-                    const ansList = (answers || []).filter(a => a.question_id === q.id)
-                    if (ansList.length === 0) return
-
-                    if (q.question_type === 'text') {
-                        const ans = ansList[0]
-                        if (ans.score) totalScore += Number(ans.score)
-                        return
-                    }
-
-                    const correctIds = (q.choices || []).filter(c => c.is_correct).map(c => String(c.id))
-                    const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
-
-                    if (correctIds.length > 0 && userIds.length === correctIds.length &&
-                        userIds.every(id => correctIds.includes(id))) {
-                        totalScore++
-                    }
-                })
-
-                const passed = maxScore > 0 ? (totalScore / maxScore) >= 0.6 : true
+                const passed = isSurvey ? null : (maxScore > 0 ? totalScore / maxScore >= 0.6 : true)
 
                 return {
                     id: res.id,
@@ -154,7 +156,8 @@
                     survey_title: res.surveys?.title || 'Завершенный опрос',
                     total_score: totalScore,
                     max_score: maxScore,
-                    passed: passed
+                    passed: passed,
+                    isSurvey: isSurvey
                 }
             }))
 
@@ -226,6 +229,15 @@
 
     .badge-failed {
         background: #F2C4CE;
+        color: #212844;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    .badge-survey {
+        background: #B0D7FF;
         color: #212844;
         padding: 4px 12px;
         border-radius: 20px;

@@ -145,6 +145,7 @@
     const selectedResponse = ref(null)
     const editData = reactive({})
     const profiles = ref({}) // храним профили участников
+    const isSurvey = ref(false)
 
     onMounted(async () => {
         const surveyId = route.params.id
@@ -160,11 +161,12 @@
             // Заголовок опроса
             const { data: sData } = await supabase
                 .from('surveys')
-                .select('title')
+                .select('title, is_survey')
                 .eq('id', surveyId)
                 .single()
 
             surveyTitle.value = sData?.title || 'Опрос без названия'
+            isSurvey.value = sData?.is_survey || false
 
             // Вопросы
             const { data: qData, error: qError } = await supabase
@@ -185,6 +187,8 @@
 
             if (rError) throw rError
             allResponses.value = rData || []
+
+
 
             // Загружаем профили участников
             if (allResponses.value.length > 0) {

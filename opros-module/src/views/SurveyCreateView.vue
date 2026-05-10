@@ -113,7 +113,7 @@
                 <div class="answer-content">
                     <div v-if="question.type === 'radio' || question.type === 'checkbox'" class="options-container">
                         <div v-for="(choice, cIndex) in question.choices" :key="cIndex" class="option-row">
-                            <label class="custom-check-container">
+                            <label class="custom-check-container" v-if="!survey.is_survey">
                                 <input v-if="question.type === 'radio'"
                                        type="radio"
                                        :name="'correct-' + qIndex"
