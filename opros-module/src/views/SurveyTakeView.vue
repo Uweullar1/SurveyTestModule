@@ -305,11 +305,13 @@
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
-            // Уведомление создателю
-            if (session?.user?.id !== survey.value.user_id) {
-                await notificationsService.send(survey.value.user_id, 'Новое прохождение опроса', {
-                    message: `Пользователь прошел опрос "${survey.value.title}"`,
-                    icon: '📋',
+            // Проверяем, есть ли текстовые вопросы
+            const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
+
+            if (hasTextQuestions && session?.user?.id !== survey.value.user_id) {
+                await notificationsService.send(survey.value.user_id, 'Требуется проверка ответов', {
+                    message: `Новые ответы в опросе "${survey.value.title}"`,
+                    icon: '🔍',
                     link: `/results/${surveyId}/admin`
                 })
             }

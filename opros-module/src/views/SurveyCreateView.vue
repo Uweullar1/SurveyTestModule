@@ -166,6 +166,7 @@
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
     import { rules, validate } from '../utils/validation.js'
+    import { notificationsService } from '../utils/notifications'
 
     const router = useRouter()
     const route = useRoute() 
@@ -537,6 +538,26 @@
 
             alert(isEditMode.value ? 'Опрос успешно обновлён!' : 'Опрос успешно опубликован!')
             localStorage.removeItem(DRAFT_KEY)
+            // После успешного сохранения нового опроса
+            if (!isEditMode.value && surveyData.department_id) {
+                // Получаем всех пользователей департамента
+                const { data: deptUsers } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('department_id', surveyData.department_id)
+
+                if (deptUsers) {
+                    for (const u of deptUsers) {
+                        if (u.id !== user.value.id) { // не отправляем создателю
+                            await notificationsService.send(u.id, 'Новый опрос в департаменте', {
+                                message: `"${surveyData.title}"`,
+                                icon: '📝',
+                                link: `/take/${savedId}`
+                            })
+                        }
+                    }
+                }
+            }
             router.push('/my-surveys')
 
         } catch (e) {
