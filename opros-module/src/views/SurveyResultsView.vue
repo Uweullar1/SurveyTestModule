@@ -294,6 +294,7 @@
         padding: 8px 20px;
         font-weight: bold;
         cursor: pointer;
+        margin-bottom:20px;
     }
 
         .btn-back:hover {
@@ -341,7 +342,6 @@
         border: 2px solid #212844;
         border-radius: 20px;
         padding: 20px;
-        margin-top: 20px;
     }
 
     .summary-table {
