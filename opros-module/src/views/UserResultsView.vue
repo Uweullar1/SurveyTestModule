@@ -22,8 +22,8 @@
 
             <!-- Для опросов-анкет просто сообщение -->
             <div v-else class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4 text-center">
-                <div class="fw-bold text-muted">📋 Опрос пройден</div>
-                <div class="small text-muted mt-1">Спасибо за ваши ответы</div>
+                <div class="survey-completed-title">📋 Опрос пройден</div>
+                <div class="survey-completed-subtitle">Спасибо за ваши ответы</div>
             </div>
 
             <div v-if="questions.length === 0" class="text-muted p-5">
@@ -373,5 +373,17 @@
         background-color: #f8f9fa;
         color: #212844;
         border-left: 5px solid #dee2e6;
+    }
+
+    .survey-completed-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #212844;
+    }
+
+    .survey-completed-subtitle {
+        font-size: 0.9rem;
+        color: #888;
+        margin-top: 6px;
     }
 </style>
