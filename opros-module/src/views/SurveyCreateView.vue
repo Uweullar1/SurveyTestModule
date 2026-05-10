@@ -171,7 +171,7 @@
     import { ref, onMounted, watch } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { supabase } from '../supabase'
-    import { rules, validate } from '../utils/validation.js'
+    import { validate } from '../utils/validation.js'
     import { notificationsService } from '../utils/notifications'
 
     const router = useRouter()
