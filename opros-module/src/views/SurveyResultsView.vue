@@ -161,7 +161,7 @@
             const { data: qData } = await supabase
                 .from('questions').select(`id, text, question_type, order, choices (id, text, is_correct)`)
                 .eq('survey_id', surveyId).order('order')
-            if (!qData) throw new Error('Вопросы не загружены')
+            if (!qData) throw new Error('Questions not loaded')
             questions.value = qData
 
             const { data: rData } = await supabase
