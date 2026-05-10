@@ -9,6 +9,7 @@
             <div class="notif-header">
                 <span>Уведомления</span>
                 <button v-if="unreadCount > 0" @click="readAll" class="notif-read-all">Прочитать все</button>
+                <button v-if="notifications.length > 0" @click="clearAll" class="notif-clear-all">Очистить все</button>
             </div>
             <div v-if="notifications.length === 0" class="notif-empty">
                 Нет новых уведомлений
@@ -24,6 +25,7 @@
                     <div class="notif-time">{{ formatTime(n.created_at) }}</div>
                 </div>
                 <div v-if="!n.is_read" class="notif-dot"></div>
+                <button @click.stop="removeOne(n.id)" class="notif-remove" title="Удалить">×</button>
             </div>
         </div>
     </div>
@@ -79,6 +81,16 @@
         if (diff < 3600000) return `${Math.floor(diff / 60000)} мин назад`
         if (diff < 86400000) return `${Math.floor(diff / 3600000)} ч назад`
         return d.toLocaleDateString('ru-RU')
+    }
+    const removeOne = async (id) => {
+        await supabase.from('notifications').delete().eq('id', id)
+        await load()
+    }
+
+    const clearAll = async () => {
+        if (!confirm('Удалить все уведомления?')) return
+        await supabase.from('notifications').delete().eq('user_id', userId.value)
+        notifications.value = []
     }
 
     onMounted(async () => {
@@ -223,5 +235,34 @@
         border-radius: 50%;
         flex-shrink: 0;
         margin-top: 6px;
+    }
+    .notif-remove {
+        background: none;
+        border: none;
+        color: #ccc;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0 4px;
+        flex-shrink: 0;
+    }
+
+        .notif-remove:hover {
+            color: #DF2935;
+        }
+
+    .notif-clear-all {
+        background: none;
+        border: none;
+        color: #DF2935;
+        font-size: 0.75rem;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-left: 8px;
+    }
+
+    .notif-header div {
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
 </style>
