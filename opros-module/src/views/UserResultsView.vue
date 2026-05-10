@@ -381,6 +381,7 @@
         max-width: 500px;
         margin-left: auto;
         margin-right: auto;
+        align-items:center;
     }
     .survey-completed-title {
         font-size: 1.4rem;
