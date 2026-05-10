@@ -89,7 +89,7 @@
                             <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
                         </div>
 
-                        <div v-if="q.question_type === 'radio' || q.question_type === 'checkbox'" class="correct-answer mb-3">
+                        <div v-if="!isSurvey && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-3">
                             <div class="answer-label">Правильный ответ:</div>
                             <div class="answer-text correct">
                                 {{ getCorrectAnswers(q) }}

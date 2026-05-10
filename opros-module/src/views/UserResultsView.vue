@@ -11,14 +11,20 @@
                 :
             </h2>
 
-            <!-- Итоговый балл -->
-            <div class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
+            <!-- Для обычных опросов показываем баллы -->
+            <div v-if="!isSurvey" class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4">
                 <div class="score-display fw-bold">
                     {{ totalScore }} / {{ maxScore }}
                     <span :class="passed ? 'badge-pass' : 'badge-fail'">
                         {{ passed ? 'Сдано' : 'Не сдано' }}
                     </span>
                 </div>
+            </div>
+
+            <!-- Для опросов-анкет просто сообщение -->
+            <div v-else class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4 text-center">
+                <div class="fw-bold text-muted">📋 Опрос пройден</div>
+                <div class="small text-muted mt-1">Спасибо за ваши ответы</div>
             </div>
 
             <div v-if="questions.length === 0" class="text-muted p-5">
@@ -56,8 +62,9 @@
                 </div>
 
                 <!-- Правильный ответ (для выбора) -->
-                <div v-if="q?.question_type !== 'text' && q?.question_type !== 'scale'"
-                     class="correct-answer">
+                <div v-if="!isSurvey && q?.question_type !== 'text' && q?.question_type !== 'scale'"
+                     class="answer-section mt-2"
+                     :class="getCorrectClass(q)">
                     <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
                 </div>
             </div>
@@ -83,6 +90,7 @@
     const questions = ref([])
     const allAnswers = ref([])
     const loading = ref(true)
+    const isSurvey = ref(false)
 
     const goBack = () => router.push('/my-history')
 
@@ -99,6 +107,7 @@
 
             const { data: sData } = await supabase.from('surveys').select('title').eq('id', surveyId).single()
             surveyTitle.value = sData?.title || 'Опрос'
+            isSurvey.value = surveyData?.is_survey || false
 
             const { data: qData } = await supabase
                 .from('questions').select('id, text, question_type, choices(id, text, is_correct)')

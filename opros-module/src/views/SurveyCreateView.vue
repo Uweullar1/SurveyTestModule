@@ -70,6 +70,12 @@
                 <label><input type="checkbox" v-model="survey.is_private"> Приватный опрос (доступен только по прямой ссылке)</label>
             </div>
             <div class="setting-row">
+                <label>
+                    <input type="checkbox" v-model="survey.is_survey">
+                    <span>Опрос без оценивания (нет правильных/неправильных ответов)</span>
+                </label>
+            </div>
+            <div class="setting-row">
                 <label>Ограничение по количеству прохождений на одного пользователя:</label>
                 <input v-model="survey.max_responses" type="number" min="0" placeholder="0 = без ограничения" class="minimal-input">
             </div>
@@ -190,6 +196,7 @@
         max_responses: 0,
         expires_at: null,
         department_id: '',
+        is_survey: false,
         questions: []
     })
 
@@ -314,6 +321,7 @@
         survey.value.max_responses = surveyData.max_responses || 0
         survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
         survey.value.department_id = surveyData.department_id || ''
+        survey.value.is_survey = !!surveyData.is_survey
 
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
@@ -461,7 +469,8 @@
                 max_responses: parseInt(survey.value.max_responses) || 0,
                 expires_at: expiresAt,
                 is_closed: !!survey.value.is_closed,
-                department_id: survey.value.department_id || null
+                department_id: survey.value.department_id || null,
+                is_survey: !!survey.value.is_survey
             }
 
             let savedId = surveyId.value
