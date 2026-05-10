@@ -7,8 +7,7 @@
 
         <div v-else>
             <h2 class="fw-bold mb-4">
-                Результаты: {{ surveyTitle }}
-                :
+                Результаты {{ surveyTitle }}:
             </h2>
 
             <!-- Для обычных опросов показываем баллы -->
@@ -44,12 +43,12 @@
                 </div>
 
                 <!-- Ответ пользователя -->
-                <div class="answer-section" :class="isCorrect(q) ? 'answer-correct' : 'answer-wrong'">
+                <div class="answer-section" :class="isSurvey ? 'neutral-ans-block' : getAnswerClass(q)">
                     <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
                 </div>
 
                 <!-- Фидбек для текстовых -->
-                <div v-if="q?.question_type === 'text'" class="feedback-block">
+                <div v-if="q?.question_type === 'text' && !isSurvey" class="feedback-block mt-3 p-3">
                     <div class="feedback-header">
                         <span class="feedback-label">Комментарий проверяющего</span>
                     </div>
@@ -368,5 +367,11 @@
     .publish-bottom {
         margin-top: 40px;
         padding-bottom: 40px;
+    }
+
+    .neutral-ans-block {
+        background-color: #f8f9fa;
+        color: #212844;
+        border-left: 5px solid #dee2e6;
     }
 </style>

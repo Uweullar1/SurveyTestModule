@@ -44,6 +44,9 @@
                                              'unchecked-row': resp.hasUnchecked}">
                                     <td>{{ idx + 1 }}</td>
                                     <td>
+                                        <div class="fw-bold">{{ getParticipantName(resp) }}</div>
+                                    </td>
+                                    <td>
                                         <span v-if="!isSurvey" class="score-badge">{{ resp.totalScore }} / {{ resp.maxScore }}</span>
                                         <span v-else class="text-muted">—</span>
                                     </td>
@@ -669,6 +672,15 @@
 
     .unchecked-dot {
         margin-left: 6px;
+        font-size: 0.8rem;
+    }
+
+    .badge-survey {
+        background: #B0D7FF;
+        color: #212844;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
         font-size: 0.8rem;
     }
 </style>
