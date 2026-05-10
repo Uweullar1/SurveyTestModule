@@ -341,11 +341,13 @@
         border: 2px solid #212844;
         border-radius: 20px;
         padding: 20px;
+        margin-top: 20px;
     }
 
     .summary-table {
         width: 100%;
         border-collapse: collapse;
+
     }
 
         .summary-table th {
