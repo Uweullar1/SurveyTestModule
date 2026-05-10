@@ -83,16 +83,14 @@
                     <div v-for="q in questions" :key="q.id" class="question-block mb-5">
                         <h5 class="question-heading mb-3">{{ q.text }}</h5>
 
-                        <div v-else-if="q.question_type === 'text' && isSurvey" class="answer-display mb-3">
+                        <div class="answer-display mb-3">
                             <div class="answer-label">Ответ пользователя:</div>
                             <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
                         </div>
 
                         <div v-if="!isSurvey && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-3">
                             <div class="answer-label">Правильный ответ:</div>
-                            <div class="answer-text correct">
-                                {{ getCorrectAnswers(q) }}
-                            </div>
+                            <div class="answer-text correct">{{ getCorrectAnswers(q) }}</div>
                         </div>
 
                         <!-- Фидбек для текстовых -->
@@ -103,11 +101,11 @@
                                     <span class="eval-check-text">Зачтено</span>
                                 </label>
                                 <div class="eval-comment">
-                                    <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий (необязательно)...">
+                                    <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий...">
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="auto-status mt-2">
+                        <div v-if="!isSurvey && q.question_type !== 'text'" class="auto-status mt-2">
                             <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
                         </div>
                     </div>
