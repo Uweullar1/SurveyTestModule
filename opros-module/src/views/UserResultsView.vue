@@ -376,20 +376,21 @@
 
     .survey-completed-block {
         text-align: center;
-        padding: 40px 20px;
+        padding: 50px 20px 30px;
         margin-bottom: 30px;
-        background: transparent;
-        border: none;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
     }
     .survey-completed-title {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         font-weight: 800;
         color: #212844;
+        margin-bottom: 8px;
     }
 
     .survey-completed-subtitle {
         font-size: 0.9rem;
         color: #888;
-        margin-top: 6px;
     }
 </style>
