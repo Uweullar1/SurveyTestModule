@@ -120,8 +120,7 @@
                 .select('id, text, question_type, choices(id, text, is_correct)')
                 .eq('survey_id', surveyId)
                 .order('order')
-            questions.value = (qData || [])
-                .filter(q => q?.id)
+            questions.value = (qData || []).filter(q => q?.id)
 
             const { data: aData } = await supabase
                 .from('answers')
