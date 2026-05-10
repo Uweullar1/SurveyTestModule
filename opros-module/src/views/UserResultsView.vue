@@ -21,7 +21,7 @@
             </div>
 
             <!-- Для опросов-анкет просто сообщение -->
-            <div v-else class="card border-0 shadow-sm bg-white rounded-4 mb-5 p-4 text-center">
+            <div v-else class="survey-completed-card text-center">
                 <div class="survey-completed-title">📋 Опрос пройден</div>
                 <div class="survey-completed-subtitle">Спасибо за ваши ответы</div>
             </div>
@@ -375,6 +375,13 @@
         border-left: 5px solid #dee2e6;
     }
 
+    .survey-completed-card {
+        background: #fff;
+        border: 2px solid #212844;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
     .survey-completed-title {
         font-size: 1.3rem;
         font-weight: 800;
