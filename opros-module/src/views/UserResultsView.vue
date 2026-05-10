@@ -22,8 +22,7 @@
 
             <!-- Для опросов-анкет просто сообщение -->
             <div v-else class="survey-completed-card text-center">
-                <div class="survey-completed-title">📋 Опрос пройден</div>
-                <div class="survey-completed-subtitle">Спасибо за ваши ответы</div>
+
             </div>
 
             <div v-if="questions.length === 0" class="text-muted p-5">
@@ -374,24 +373,5 @@
         border-left: 5px solid #dee2e6;
     }
 
-    .survey-completed-block {
-        text-align: center;
-        padding: 50px 20px 30px;
-        margin-bottom: 30px;
-        max-width: 500px;
-        margin-left: auto;
-        margin-right: auto;
-        align-items:center;
-    }
-    .survey-completed-title {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #212844;
-        margin-bottom: 8px;
-    }
 
-    .survey-completed-subtitle {
-        font-size: 0.9rem;
-        color: #888;
-    }
 </style>
