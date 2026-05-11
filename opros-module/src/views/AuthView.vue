@@ -36,6 +36,9 @@
                         <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
                         <div v-if="formErrors.password" class="error-message">{{ formErrors.password }}</div>
 
+                        <p class="forgot-password" @click="showReset = true">
+                            Забыли пароль?
+                        </p>
 
                         <div class="btn-container">
                             <button type="submit" class="btn-submit">
@@ -48,6 +51,19 @@
                 <p class="auth-switch" @click="toggleMode">
                     {{ isLogin ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти' }}
                 </p>
+
+                <!-- Восстановление пароля -->
+                <div v-if="showReset" class="reset-overlay" @click.self="showReset = false">
+                    <div class="reset-card">
+                        <h3>Восстановление пароля</h3>
+                        <input v-model="resetEmail" type="email" placeholder="Введите ваш email" class="auth-input" />
+                        <div class="modal-buttons mt-3">
+                            <button @click="resetPassword" class="btn-modal-primary">Отправить</button>
+                            <button @click="showReset = false" class="btn-modal-secondary">Отмена</button>
+                        </div>
+                        <p v-if="resetMessage" class="reset-message mt-2">{{ resetMessage }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -63,6 +79,10 @@
 
     const isLogin = ref(true)
 
+    const showReset = ref(false)
+    const resetEmail = ref('')
+    const resetMessage = ref('')
+
     const firstName = ref('')
     const lastName = ref('')
     const username = ref('')
@@ -77,6 +97,25 @@
         const { data } = await supabase.from('departments').select('*').order('name')
         departments.value = data || []
     })
+
+    const resetPassword = async () => {
+        if (!resetEmail.value) return alert('Введите email')
+
+        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.value, {
+            redirectTo: window.location.origin + '/profile'
+        })
+
+        if (error) {
+            resetMessage.value = 'Ошибка: ' + error.message
+        } else {
+            resetMessage.value = 'Ссылка для сброса пароля отправлена на email!'
+            setTimeout(() => {
+                showReset.value = false
+                resetEmail.value = ''
+                resetMessage.value = ''
+            }, 3000)
+        }
+    }
 
     const handleAuth = async () => {
         formErrors.value = {}
