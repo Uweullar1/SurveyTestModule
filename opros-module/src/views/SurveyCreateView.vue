@@ -220,7 +220,10 @@
     }
 
     const loadTemplates = async () => {
-        const { data } = await supabase.from('templates').select('*')
+        const { data } = await supabase
+            .from('templates')
+            .select('*')
+            .or(`user_id.eq.${user.value?.id},is_public.eq.true`)
         templates.value = data || []
     }
     const applyTemplate = (tmpl) => {
