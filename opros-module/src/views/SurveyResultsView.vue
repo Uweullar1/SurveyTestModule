@@ -179,8 +179,6 @@
         }
     })
 
-    const sortField = ref('score')
-    const sortOrder = ref('desc')
 
     const allResponsesWithScores = computed(() => {
         let result = allResponses.value.map(resp => {
