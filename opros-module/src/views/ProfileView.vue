@@ -57,15 +57,15 @@
                         <select v-model="profile.department_id"
                                 class="profile-select"
                                 :disabled="!isAdmin">
-                            <option value="">Не выбран</option>
-                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                                {{ dept.name }}
-                            </option>
+                        <option value="">Не выбран</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                            {{ dept.name }}
+                        </option>
                         </select>
-                        <span class="select-arrow">▾</span>
-                    </div>
-                    <p v-if="!isAdmin" class="dept-hint">Только администратор может изменить департамент</p>
-                </div>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+                                <p v-if="!isAdmin" class="dept-hint">Только администратор может изменить департамент</p>
+                     </div>
                 <!-- Email -->
                 <div class="form-group">
                     <label>Email</label>
@@ -130,19 +130,7 @@
                 </div>
             </div>
         </Transition>
-        <Transition name="fade">
-            <div v-if="showNewPasswordModal" class="modal-overlay">
-                <div class="modal">
-                    <h3>Новый пароль</h3>
-                    <input v-model="newPassword" type="password" placeholder="Введите новый пароль" class="modal-input" />
-                    <div class="modal-buttons">
-                        <button @click="setNewPassword" class="btn-modal-primary">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        </Transition>
     </div>
-
 </template>
 
 <script setup>
@@ -164,8 +152,6 @@
 
     const currentEmail = ref('')
     const avatarPreview = ref('https://api.dicebear.com/7.x/avataaars/svg?seed=default')
-
-    const showNewPasswordModal = ref(false)
 
     const formErrors = ref({})
     const saving = ref(false)
@@ -224,26 +210,6 @@
                     avatarPreview.value = data.avatar_url
                 }
             }
-
-            // Проверяем, пришли ли мы со сбросом пароля
-            const fullUrl = window.location.href
-            if (fullUrl.includes('type=recovery')) {
-                const match = fullUrl.match(/access_token=([^&]+)/)
-                const accessToken = match ? match[1] : null
-
-                if (accessToken) {
-                    const { error } = await supabase.auth.verifyOtp({
-                        token_hash: accessToken,
-                        type: 'recovery'
-                    })
-
-                    if (!error) {
-                        showNewPasswordModal.value = true
-                        window.location.hash = '#/profile'
-                    }
-                }
-            }
-
             const { data: depts } = await supabase.from('departments').select('*')
             departments.value = depts || []
 
@@ -262,19 +228,6 @@
 
     })
 
-    const setNewPassword = async () => {
-        if (!newPassword.value || newPassword.value.length < 6) {
-            return alert('Пароль должен быть не менее 6 символов')
-        }
-        const { error } = await supabase.auth.updateUser({ password: newPassword.value })
-        if (error) {
-            alert('Ошибка: ' + error.message)
-        } else {
-            alert('Пароль успешно изменен!')
-            showNewPasswordModal.value = false
-            newPassword.value = ''
-        }
-    }
 
     //Загрузка аватарок
     const uploadAvatar = async (event) => {

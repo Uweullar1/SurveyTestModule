@@ -2,10 +2,6 @@
     "rewrites": [
         {
             "source": "/api/supabase-proxy/(.*)",
-            "destination": "/api/supabase-proxy?path=$1"
-        },
-        {
-            "source": "/api/supabase-proxy",
             "destination": "/api/supabase-proxy"
         },
         {
