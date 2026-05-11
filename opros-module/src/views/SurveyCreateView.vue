@@ -223,7 +223,7 @@
         const { data } = await supabase
             .from('templates')
             .select('*')
-            .or(`user_id.eq.${user.value?.id},is_public.eq.true`)
+            .or(`user_id.eq.${user.value?.id},is_public.eq.true,user_id.is.null`)
         templates.value = data || []
     }
     const applyTemplate = (tmpl) => {
