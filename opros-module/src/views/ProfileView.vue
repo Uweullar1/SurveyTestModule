@@ -226,11 +226,10 @@
             }
 
             // Проверяем, пришли ли мы со сбросом пароля
-            const hash = window.location.hash
-            if (hash.includes('type=recovery')) {
-                // Парсим access_token из URL
-                const params = new URLSearchParams(hash.substring(2)) // убираем #/
-                const accessToken = params.get('access_token')
+            const fullUrl = window.location.href
+            if (fullUrl.includes('type=recovery')) {
+                const match = fullUrl.match(/access_token=([^&]+)/)
+                const accessToken = match ? match[1] : null
 
                 if (accessToken) {
                     const { error } = await supabase.auth.verifyOtp({
@@ -239,10 +238,8 @@
                     })
 
                     if (!error) {
-                        // Пользователь верифицирован, показываем форму нового пароля
                         showNewPasswordModal.value = true
-                        // Очищаем URL
-                        window.location.hash = '/profile'
+                        window.location.hash = '#/profile'
                     }
                 }
             }
