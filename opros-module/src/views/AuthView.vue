@@ -36,10 +36,6 @@
                         <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
                         <div v-if="formErrors.password" class="error-message">{{ formErrors.password }}</div>
 
-                        <p class="forgot-password" @click="showReset = true">
-                            Забыли пароль?
-                        </p>
-
                         <div class="btn-container">
                             <button type="submit" class="btn-submit">
                                 {{ isLogin ? 'Войти' : 'Создать аккаунт' }}
