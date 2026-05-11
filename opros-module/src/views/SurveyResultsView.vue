@@ -36,10 +36,10 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Участник</th>
-                                            <th v-if="!isSurvey">Результат</th>
+                                            <th @click="toggleSort('name')" class="sortable">Участник {{ sortField === 'name' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
+                                            <th v-if="!isSurvey" @click="toggleSort('score')" class="sortable">Результат {{ sortField === 'score' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
                                             <th>Статус</th>
-                                            <th>Дата</th>
+                                            <th @click="toggleSort('date')" class="sortable">Дата {{ sortField === 'date' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -124,6 +124,9 @@
     const route = useRoute()
     const router = useRouter()
 
+    const sortField = ref('score') // 'score' | 'name' | 'date'
+    const sortOrder = ref('desc') // 'asc' | 'desc'
+
     const loading = ref(true)
     const submitting = ref(false)
     const surveyTitle = ref('')
@@ -176,8 +179,11 @@
         }
     })
 
+    const sortField = ref('score')
+    const sortOrder = ref('desc')
+
     const allResponsesWithScores = computed(() => {
-        return allResponses.value.map(resp => {
+        let result = allResponses.value.map(resp => {
             let totalScore = 0, maxScore = 0
             questions.value.forEach(q => {
                 if (q.question_type === 'scale') return
@@ -200,8 +206,32 @@
                 hasUnchecked: allAnswers.value.some(a => a.response_id === resp.id && questions.value.find(q => q.id === a.question_id)?.question_type === 'text' && a.score === null),
                 profiles: { full_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || `Участник #${allResponses.value.indexOf(resp) + 1}` : `Участник #${allResponses.value.indexOf(resp) + 1}` }
             }
-        }).sort((a, b) => b.totalScore - a.totalScore)
+        })
+
+        if (sortField.value === 'score') {
+            result.sort((a, b) => sortOrder.value === 'desc' ? b.totalScore - a.totalScore : a.totalScore - b.totalScore)
+        } else if (sortField.value === 'name') {
+            result.sort((a, b) => {
+                const nameA = (a.profiles?.full_name || '').toLowerCase()
+                const nameB = (b.profiles?.full_name || '').toLowerCase()
+                return sortOrder.value === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+            })
+        } else if (sortField.value === 'date') {
+            result.sort((a, b) => sortOrder.value === 'desc' ? new Date(b.submitted_at) - new Date(a.submitted_at) : new Date(a.submitted_at) - new Date(b.submitted_at))
+        }
+
+        return result
     })
+
+    const toggleSort = (field) => {
+        if (sortField.value === field) {
+            sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+        } else {
+            sortField.value = field
+            sortOrder.value = 'desc'
+        }
+    }
+
 
     const averageScore = computed(() => {
         const withScores = allResponsesWithScores.value.filter(r => r.maxScore > 0)
@@ -560,4 +590,13 @@
     .stats-divider {
         color: #ccc;
     }
+
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+        .sortable:hover {
+            color: #212844;
+        }
 </style>

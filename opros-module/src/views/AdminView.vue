@@ -89,12 +89,12 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Участник</th>
+                                <th @click="toggleSort('name')" class="sortable">Участник {{ sortField === 'name' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
                                 <th>Опрос</th>
                                 <th>Департамент</th>
-                                <th>Баллы</th>
+                                <th @click="toggleSort('score')" class="sortable">Баллы {{ sortField === 'score' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
                                 <th>Статус</th>
-                                <th>Дата</th>
+                                <th @click="toggleSort('date')" class="sortable">Дата {{ sortField === 'date' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -126,6 +126,10 @@
     const loadingSurveys = ref(true)
     const loadingResults = ref(false)
 
+    const sortField = ref('date')
+    const sortOrder = ref('desc')
+
+
     const users = ref([])
     const allSurveys = ref([])
     const departments = ref([])
@@ -136,20 +140,41 @@
     const resultSurveyFilter = ref('')
     const resultDeptFilter = ref('')
 
-    const filteredUsers = computed(() => {
-        if (!userSearch.value.trim()) return users.value
-        const q = userSearch.value.toLowerCase()
-        return users.value.filter(u => u.first_name?.toLowerCase().includes(q) || u.last_name?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q))
-    })
+    const toggleSort = (field) => {
+        if (sortField.value === field) {
+            sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+        } else {
+            sortField.value = field
+            sortOrder.value = 'desc'
+        }
+    }
 
-    const filteredResults = computed(() => {
+    const filteredUsers = computed(() => {
+            if (!userSearch.value.trim()) return users.value
+            const q = userSearch.value.toLowerCase()
+            return users.value.filter(u => u.first_name?.toLowerCase().includes(q) || u.last_name?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q))
+        })
+
+        const filteredResults = computed(() => {
         let res = [...allResults.value]
+    
+        // Фильтры
         if (resultSearch.value.trim()) {
             const q = resultSearch.value.toLowerCase()
             res = res.filter(r => r.userName.toLowerCase().includes(q) || r.surveyTitle.toLowerCase().includes(q))
         }
         if (resultSurveyFilter.value) res = res.filter(r => r.surveyId === resultSurveyFilter.value)
         if (resultDeptFilter.value) res = res.filter(r => r.departmentId === resultDeptFilter.value)
+    
+        // Сортировка
+        if (sortField.value === 'score') {
+            res.sort((a, b) => sortOrder.value === 'desc' ? b.totalScore - a.totalScore : a.totalScore - b.totalScore)
+        } else if (sortField.value === 'name') {
+            res.sort((a, b) => sortOrder.value === 'asc' ? a.userName.localeCompare(b.userName) : b.userName.localeCompare(a.userName))
+        } else if (sortField.value === 'date') {
+            res.sort((a, b) => sortOrder.value === 'desc' ? new Date(b.submittedAt) - new Date(a.submittedAt) : new Date(a.submittedAt) - new Date(b.submittedAt))
+        }
+    
         return res
     })
 
@@ -267,16 +292,22 @@
     }
 
     const openResult = (item) => router.push(`/results/${item.surveyId}/admin`)
+
     const resetResultFilters = () => { resultSearch.value = ''; resultSurveyFilter.value = ''; resultDeptFilter.value = '' }
+
     const updateDepartment = async (p) => { await supabase.from('profiles').update({ department_id: p.department_id }).eq('id', p.id) }
+
     const toggleCreate = async (p) => {
         const n = !p.can_create; const { error } = await supabase.from('profiles').update({ can_create: n }).eq('id', p.id); if (!error) p.can_create = n
     }
+
     const toggleAdmin = async (p) => {
         if (adminIds.value.includes(p.id)) { await supabase.from('admins').delete().eq('user_id', p.id); adminIds.value = adminIds.value.filter(id => id !== p.id) }
         else { await supabase.from('admins').insert({ user_id: p.id }); adminIds.value.push(p.id) }
     }
+
     const editSurvey = (id) => router.push(`/edit/${id}`)
+
     const deleteSurvey = async (id) => {
         if (!confirm('Удалить опрос?')) return;
         await supabase.from('responses').delete().eq('survey_id', id);
@@ -284,10 +315,12 @@
         await supabase.from('surveys').delete().eq('id', id);
         allSurveys.value = allSurveys.value.filter(s => s.id !== id)
     }
+
     const toggleSurveyStatus = async (s) => {
         const { error } = await supabase.from('surveys').update({ is_closed: !s.is_closed, is_active: s.is_closed }).eq('id', s.id);
         if (!error) s.is_closed = !s.is_closed
     }
+
     const formatDate = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
 
