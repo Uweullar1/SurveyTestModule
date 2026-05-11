@@ -180,6 +180,16 @@
         return isCorrect(q) ? 'Верно' : 'Неверно'
     }
 
+    const getAnswerClass = (q) => {
+        if (!q?.question_type) return 'neutral-ans-block'
+        if (q.question_type === 'text' || q.question_type === 'scale') {
+            return 'neutral-ans-block'
+        }
+        return formatUserAnswer(q) === getCorrectAnswerText(q)
+            ? 'answer-correct'
+            : 'answer-wrong'
+    }
+
     const maxScore = computed(() => questions.value.filter(q => q?.question_type !== 'scale').length)
     const totalScore = computed(() => {
         let score = 0
