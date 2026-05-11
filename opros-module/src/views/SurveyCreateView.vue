@@ -2,7 +2,7 @@
     <div class="create-container">
         <div class="header-flex">
             <div class="title-group">
-                <h1 class="main-title">{{ isEditMode ? 'Редактирование опроса' : 'Создание нового опроса' }}</h1>
+                <h1 class="main-title">{{ route.path === '/create-template' ? 'Создание шаблона' : (isEditMode ? 'Редактирование опроса' : 'Создание нового опроса') }}</h1>
                 <div class="title-underline"></div>
             </div>
         </div>
@@ -161,7 +161,7 @@
         <!-- Кнопка сохранения -->
         <div class="publish-bottom">
             <button @click="saveSurvey" :disabled="loading || !survey.title.trim()" class="btn-publish">
-                {{ loading ? 'Сохранение...' : (isEditMode ? 'Сохранить изменения' : 'Опубликовать опрос') }}
+                {{ loading ? 'Сохранение...' : (route.path === '/create-template' ? 'Сохранить шаблон' : (isEditMode ? 'Сохранить изменения' : 'Опубликовать опрос')) }}
             </button>
         </div>
     </div>
@@ -435,19 +435,15 @@
     const saveSurvey = async () => {
         if (!survey.value.title?.trim()) return alert('Введите заголовок опроса')
 
-        // ВАЛИДАЦИЯ ЗАГОЛОВКА
         const titleError = validate('surveyTitle', survey.value.title)
         if (titleError) return alert(titleError)
 
-        // ВАЛИДАЦИЯ ОПИСАНИЯ
         const descError = validate('surveyDescription', survey.value.description)
         if (descError) return alert(descError)
 
-        // ВАЛИДАЦИЯ ВОПРОСОВ
         for (const q of survey.value.questions) {
             const qError = validate('questionText', q.text)
             if (qError) return alert(qError)
-
             if (q.type === 'radio' || q.type === 'checkbox') {
                 for (const c of q.choices) {
                     const cError = validate('choiceText', c.text)
@@ -458,6 +454,7 @@
 
         loading.value = true
 
+        // === СОХРАНЕНИЕ ШАБЛОНА ===
         if (route.path === '/create-template') {
             const templateQuestions = survey.value.questions.map(q => ({
                 text: q.text,
@@ -469,16 +466,18 @@
             }))
 
             await supabase.from('templates').insert({
-                title: surveyData.title,
-                description: surveyData.description,
-                department_id: surveyData.department_id || null,
+                title: survey.value.title.trim(),
+                description: survey.value.description?.trim() || null,
+                department_id: survey.value.department_id || null,
                 questions: templateQuestions,
-                user_id: user.value.id  // добавить в таблицу templates
+                user_id: user.value.id
             })
 
             alert('Шаблон сохранен!')
+            localStorage.removeItem(DRAFT_KEY)
             router.push('/my-surveys')
-            return  // ← не показываем опрос
+            loading.value = false
+            return
         }
 
         try {
