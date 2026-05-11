@@ -8,7 +8,7 @@
         </div>
 
         <!-- Выбор шаблона -->
-        <div v-if="!isEditMode" class="template-section">
+        <div v-if="route.path !== '/create-template' && !isEditMode" class="template-section">
             <button @click="showTemplates = !showTemplates" class="btn-template">
                 <span class="btn-template-icon">{{ showTemplates ? '✕' : '📋' }}</span>
                 <span>Выбрать готовый шаблон</span>
@@ -373,7 +373,9 @@
 
         // ПОТОМ загружаем всё остальное
         await loadDepartments()
-        await loadTemplates()
+        if (route.path !== '/create-template') {
+            await loadTemplates()
+        }
 
         if (route.params.id) {
             await loadSurveyForEdit()
@@ -455,6 +457,29 @@
         }
 
         loading.value = true
+
+        if (route.path === '/create-template') {
+            const templateQuestions = survey.value.questions.map(q => ({
+                text: q.text,
+                type: q.type,
+                choices: q.choices?.map(c => ({
+                    text: c.text,
+                    is_correct: c.is_correct
+                })) || []
+            }))
+
+            await supabase.from('templates').insert({
+                title: surveyData.title,
+                description: surveyData.description,
+                department_id: surveyData.department_id || null,
+                questions: templateQuestions,
+                user_id: user.value.id  // добавить в таблицу templates
+            })
+
+            alert('Шаблон сохранен!')
+            router.push('/my-surveys')
+            return  // ← не показываем опрос
+        }
 
         try {
             const expiresAt = survey.value.expires_at ? new Date(survey.value.expires_at).toISOString() : null

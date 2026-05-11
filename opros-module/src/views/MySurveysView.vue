@@ -2,9 +2,10 @@
     <div class="my-surveys-container">
         <div class="content-header">
             <h1 class="page-title">Мои опросы</h1>
-            <router-link to="/create" class="btn-create-new">
-                + Создать опрос
-            </router-link>
+            <div class="header-buttons">
+                <router-link to="/create" class="btn-create-new">+ Создать опрос</router-link>
+                <router-link to="/create-template" class="btn-create-template">+ Создать шаблон</router-link>
+            </div>
         </div>
 
         <div v-if="loading" class="loader-wrapper">
@@ -46,6 +47,7 @@
                 </div>
 
                 <div class="card-actions">
+
                     <button @click="editSurvey(survey.id)" class="btn-action edit" title="Редактировать">✏️</button>
                     <button @click="viewResults(survey.id)" class="btn-action results" title="Результаты">
                         📊
@@ -171,6 +173,27 @@ onMounted(loadMySurveys)
         font-weight: 900;
         color: #212844;
     }
+
+    .header-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-create-template {
+        background: white;
+        color: #212844;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 16px;
+        font-weight: 800;
+        border: 3px solid #212844;
+        transition: transform 0.2s ease;
+    }
+
+        .btn-create-template:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 4px 4px 0px #B0D7FF;
+        }
 
     .btn-create-new {
         background: #212844;

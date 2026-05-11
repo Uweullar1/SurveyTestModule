@@ -61,6 +61,12 @@ const routes = [
         name: 'Admin',
         component: () => import('../views/AdminView.vue'),
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/create-template',
+        name: 'CreateTemplate',
+        component: () => import('../views/SurveyCreateView.vue'),
+        meta: { requiresAuth: true, isTemplate: true }
     }
 
 ]
