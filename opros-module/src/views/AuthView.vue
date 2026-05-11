@@ -111,7 +111,61 @@
         }
     }
 
-    const handleAuth = async () => { /* без изменений */ }
+    const handleAuth = async () => {
+        formErrors.value = {}
+
+        if (!isLogin.value) {
+            formErrors.value.firstName = profileRules.firstName(firstName.value)
+            formErrors.value.lastName = profileRules.lastName(lastName.value)
+            formErrors.value.username = profileRules.username(username.value)
+
+            // Проверка департамента
+            if (!departmentId.value) {
+                formErrors.value.departmentId = 'Выберите департамент'
+            }
+        }
+
+        formErrors.value.email = profileRules.email(email.value)
+        formErrors.value.password = profileRules.password(password.value)
+
+        if (Object.values(formErrors.value).some(err => err !== '' && err !== undefined)) {
+            return
+        }
+
+        try {
+            if (isLogin.value) {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email.value.trim(),
+                    password: password.value
+                })
+
+                if (error) throw error
+                router.push('/')
+            } else {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email.value.trim(),
+                    password: password.value
+                })
+
+                if (error) throw error
+
+                if (data.user) {
+                    await supabase.from('profiles').insert({
+                        id: data.user.id,
+                        first_name: firstName.value.trim(),
+                        last_name: lastName.value.trim(),
+                        username: username.value.trim(),
+                        department_id: departmentId.value,
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
+                    })
+                }
+
+                alert('Регистрация прошла успешно!\nПроверьте почту для подтверждения аккаунта.')
+                isLogin.value = true
+            }
+        } catch (err) {
+            alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'))
+        } }
     const toggleMode = () => { isLogin.value = !isLogin.value; formErrors.value = {} }
 </script>
 
