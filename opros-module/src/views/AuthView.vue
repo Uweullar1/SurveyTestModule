@@ -20,7 +20,7 @@
                             <!-- Выбор департамента -->
                             <div class="dept-select-wrapper">
                                 <select v-model="departmentId" class="auth-input auth-select">
-                                    <option value="">Выберите департамент</option>
+                                    <option value="">Без департамента (можно выбрать позже)</option>
                                     <option v-for="dept in departments" :key="dept.id" :value="dept.id">
                                         {{ dept.name }}
                                     </option>
@@ -109,10 +109,6 @@
             formErrors.value.lastName = profileRules.lastName(lastName.value)
             formErrors.value.username = profileRules.username(username.value)
 
-            // Проверка департамента
-            if (!departmentId.value) {
-                formErrors.value.departmentId = 'Выберите департамент'
-            }
         }
 
         formErrors.value.email = profileRules.email(email.value)

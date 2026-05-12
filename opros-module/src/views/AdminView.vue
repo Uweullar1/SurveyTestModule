@@ -7,6 +7,10 @@
                 <button @click="activeTab = 'users'" :class="['tab', { active: activeTab === 'users' }]">👥 Пользователи</button>
                 <button @click="activeTab = 'surveys'" :class="['tab', { active: activeTab === 'surveys' }]">📋 Все опросы</button>
                 <button @click="activeTab = 'results'" :class="['tab', { active: activeTab === 'results' }]">📊 Результаты</button>
+                <button @click="activeTab = 'templates'"
+                        :class="['tab', { active: activeTab === 'templates' }]">
+                    📄 Шаблоны
+                </button>
             </div>
 
             <!-- ПОЛЬЗОВАТЕЛИ -->
@@ -111,6 +115,28 @@
                     </table>
                 </div>
             </div>
+            <!-- ШАБЛОНЫ -->
+            <div v-if="activeTab === 'templates'" class="tab-content">
+                <div v-if="loadingTemplates" class="text-center py-4">Загрузка...</div>
+
+                <div v-else class="templates-admin-grid">
+                    <div v-for="tmpl in allTemplates" :key="tmpl.id" class="survey-card">
+                        <div class="card-main">
+                            <h3 class="survey-title">{{ tmpl.title }}</h3>
+                            <p class="survey-desc">{{ tmpl.description || 'Без описания' }}</p>
+                            <div class="survey-meta">
+                                <span v-if="tmpl.departments?.name">🏢 {{ tmpl.departments.name }}</span>
+                                <span v-if="tmpl.user_id">👤 Пользовательский</span>
+                                <span v-else>📋 Системный</span>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button @click="editTemplate(tmpl)" class="btn-action edit" title="Редактировать">✏️</button>
+                            <button @click="deleteTemplate(tmpl.id)" class="btn-action delete" title="Удалить">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -129,6 +155,8 @@
     const sortField = ref('date')
     const sortOrder = ref('desc')
 
+    const allTemplates = ref([])
+    const loadingTemplates = ref(false)
 
     const users = ref([])
     const allSurveys = ref([])
@@ -210,6 +238,7 @@
         allSurveys.value = surveys || []
         loadingSurveys.value = false
         await loadResults()
+        await loadTemplates()
     }
 
     const loadResults = async () => {
@@ -320,6 +349,27 @@
         const { error } = await supabase.from('surveys').update({ is_closed: !s.is_closed, is_active: s.is_closed }).eq('id', s.id);
         if (!error) s.is_closed = !s.is_closed
     }
+
+    const loadTemplates = async () => {
+            loadingTemplates.value = true
+            const { data } = await supabase
+                .from('templates')
+                .select('*, departments(name)')
+                .order('created_at', { ascending: false })
+            allTemplates.value = data || []
+            loadingTemplates.value = false
+       }
+
+        const deleteTemplate = async (id) => {
+            if (!confirm('Удалить шаблон?')) return
+            await supabase.from('templates').delete().eq('id', id)
+            allTemplates.value = allTemplates.value.filter(t => t.id !== id)
+        }
+
+        const editTemplate = (tmpl) => {
+            // Редирект на создание шаблона с id
+            router.push(`/edit-template/${tmpl.id}`)
+        }
 
     const formatDate = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
