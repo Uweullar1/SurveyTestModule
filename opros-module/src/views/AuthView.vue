@@ -141,7 +141,7 @@
                         first_name: firstName.value.trim(),
                         last_name: lastName.value.trim(),
                         username: username.value.trim(),
-                        department_id: departmentId.value,
+                        department_id: departmentId.value || null,
                         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
                     })
                 }
