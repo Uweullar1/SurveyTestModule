@@ -380,6 +380,11 @@
 
             if (tmpl) {
                 const questions = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions
+                survey.value.is_private = tmpl.settings.is_private || false
+                survey.value.is_survey = tmpl.settings.is_survey || false
+                survey.value.is_closed = tmpl.settings.is_closed || false
+                survey.value.max_responses = tmpl.settings.max_responses || 0
+                survey.value.expires_at = tmpl.settings.expires_at || null
                 survey.value.title = tmpl.title
                 survey.value.description = tmpl.description || ''
                 survey.value.department_id = tmpl.department_id || ''
@@ -497,12 +502,19 @@
                 description: survey.value.description?.trim() || null,
                 department_id: survey.value.department_id || null,
                 questions: templateQuestions,
-                user_id: user.value.id
+                user_id: user.value.id,
+                settings: {
+                    is_private: survey.value.is_private,
+                    is_survey: survey.value.is_survey,
+                    is_closed: survey.value.is_closed,
+                    max_responses: survey.value.max_responses,
+                    expires_at: survey.value.expires_at
+                }
             })
 
             alert('Шаблон сохранен!')
             localStorage.removeItem(DRAFT_KEY)
-            router.push('/my-surveys')
+            router.back()
             loading.value = false
             return
         }
@@ -522,11 +534,18 @@
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
                 department_id: survey.value.department_id || null,
-                questions: templateQuestions
+                questions: templateQuestions,
+                settings: {
+                    is_private: survey.value.is_private,
+                    is_survey: survey.value.is_survey,
+                    is_closed: survey.value.is_closed,
+                    max_responses: survey.value.max_responses,
+                    expires_at: survey.value.expires_at
+                }
             }).eq('id', route.params.id)
 
             alert('Шаблон обновлен!')
-            router.push('/my-surveys')
+            router.back()
             loading.value = false
             return
         }
@@ -642,7 +661,7 @@
                     }
                 }
             }
-            router.push('/my-surveys')
+            router.back()
 
         } catch (e) {
             console.error('Ошибка сохранения:', e)

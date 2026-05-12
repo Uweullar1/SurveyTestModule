@@ -335,7 +335,7 @@
         else { await supabase.from('admins').insert({ user_id: p.id }); adminIds.value.push(p.id) }
     }
 
-    const editSurvey = (id) => router.push(`/edit/${id}`)
+    const editSurvey = (id) => router.push(`/edit/${surveyId}?from=admin`)
 
     const deleteSurvey = async (id) => {
         if (!confirm('Удалить опрос?')) return;
