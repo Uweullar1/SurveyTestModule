@@ -397,6 +397,36 @@
                 survey.value = { ...survey.value, ...draft }
             }
         }
+
+        if (route.path.includes('/edit-template')) {
+            const templateId = route.params.id
+            const { data: tmpl } = await supabase
+                .from('templates')
+                .select('*')
+                .eq('id', templateId)
+                .single()
+
+            if (tmpl) {
+                const questions = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions
+                survey.value.title = tmpl.title
+                survey.value.description = tmpl.description || ''
+                survey.value.department_id = tmpl.department_id || ''
+                survey.value.questions = questions.map(q => ({
+                    id: Date.now() + Math.random(),
+                    text: q.text,
+                    type: q.type,
+                    required: q.required || false,
+                    choices: (q.choices || []).map(c => ({
+                        id: Date.now() + Math.random(),
+                        text: c.text,
+                        is_correct: c.is_correct || false
+                    }))
+                }))
+                isEditMode.value = true
+                surveyId.value = templateId
+            }
+            return // не загружаем шаблоны для выбора
+        }
         
     })
 
@@ -478,6 +508,30 @@
 
             alert('Шаблон сохранен!')
             localStorage.removeItem(DRAFT_KEY)
+            router.push('/my-surveys')
+            loading.value = false
+            return
+        }
+
+        // Сохранение отредактированного шаблона
+        if (route.path.includes('/edit-template')) {
+            const templateQuestions = survey.value.questions.map(q => ({
+                text: q.text,
+                type: q.type,
+                choices: q.choices?.map(c => ({
+                    text: c.text,
+                    is_correct: c.is_correct
+                })) || []
+            }))
+
+            await supabase.from('templates').update({
+                title: survey.value.title.trim(),
+                description: survey.value.description?.trim() || null,
+                department_id: survey.value.department_id || null,
+                questions: templateQuestions
+            }).eq('id', route.params.id)
+
+            alert('Шаблон обновлен!')
             router.push('/my-surveys')
             loading.value = false
             return

@@ -67,6 +67,12 @@ const routes = [
         name: 'CreateTemplate',
         component: () => import('../views/SurveyCreateView.vue'),
         meta: { requiresAuth: true, isTemplate: true }
+    },
+    {
+        path: '/edit-template/:id',
+        name: 'EditTemplate',
+        component: () => import('../views/SurveyCreateView.vue'),
+        meta: { requiresAuth: true, isTemplateEdit: true }
     }
 
 ]
