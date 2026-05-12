@@ -496,6 +496,37 @@
 
         loading.value = true
 
+        // Сохранение отредактированного шаблона
+        if (route.path.includes('/edit-template')) {
+            const templateQuestions = survey.value.questions.map(q => ({
+                text: q.text,
+                type: q.type,
+                choices: q.choices?.map(c => ({
+                    text: c.text,
+                    is_correct: c.is_correct
+                })) || []
+            }))
+
+            await supabase.from('templates').update({
+                title: survey.value.title.trim(),
+                description: survey.value.description?.trim() || null,
+                department_id: survey.value.department_id || null,
+                questions: templateQuestions,
+                settings: {
+                    is_private: survey.value.is_private,
+                    is_survey: survey.value.is_survey,
+                    is_closed: survey.value.is_closed,
+                    max_responses: survey.value.max_responses,
+                    expires_at: survey.value.expires_at
+                }
+            }).eq('id', route.params.id)
+
+            alert('Шаблон обновлен!')
+            router.back()
+            loading.value = false
+            return
+        }
+
         // === СОХРАНЕНИЕ ШАБЛОНА ===
         if (route.path === '/create-template') {
             const templateQuestions = survey.value.questions.map(q => ({
@@ -529,36 +560,7 @@
             return
         }
 
-        // Сохранение отредактированного шаблона
-        if (route.path.includes('/edit-template')) {
-            const templateQuestions = survey.value.questions.map(q => ({
-                text: q.text,
-                type: q.type,
-                choices: q.choices?.map(c => ({
-                    text: c.text,
-                    is_correct: c.is_correct
-                })) || []
-            }))
-
-            await supabase.from('templates').update({
-                title: survey.value.title.trim(),
-                description: survey.value.description?.trim() || null,
-                department_id: survey.value.department_id || null,
-                questions: templateQuestions,
-                settings: {
-                    is_private: survey.value.is_private,
-                    is_survey: survey.value.is_survey,
-                    is_closed: survey.value.is_closed,
-                    max_responses: survey.value.max_responses,
-                    expires_at: survey.value.expires_at
-                }
-            }).eq('id', route.params.id)
-
-            alert('Шаблон обновлен!')
-            router.back()
-            loading.value = false
-            return
-        }
+        
 
         try {
             const expiresAt = survey.value.expires_at ? new Date(survey.value.expires_at).toISOString() : null
