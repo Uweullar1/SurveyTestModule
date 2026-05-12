@@ -2,7 +2,7 @@
     <div class="create-container">
         <div class="header-flex">
             <div class="title-group">
-                <h1 class="main-title">{{ route.path === '/create-template' ? 'Создание шаблона' : (isEditMode ? 'Редактирование опроса' : 'Создание нового опроса') }}</h1>
+                <h1 class="main-title">{{ route.path.includes('/edit-template') ? 'Редактирование шаблона' : (route.path === '/create-template' ? 'Создание шаблона' : (isEditMode ? 'Редактирование опроса' : 'Создание нового опроса')) }}</h1>
                 <div class="title-underline"></div>
             </div>
         </div>
@@ -161,7 +161,7 @@
         <!-- Кнопка сохранения -->
         <div class="publish-bottom">
             <button @click="saveSurvey" :disabled="loading || !survey.title.trim()" class="btn-publish">
-                {{ loading ? 'Сохранение...' : (route.path === '/create-template' ? 'Сохранить шаблон' : (isEditMode ? 'Сохранить изменения' : 'Опубликовать опрос')) }}
+                {{ loading ? 'Сохранение...' : (route.path.includes('/edit-template') ? 'Обновить шаблон' : (route.path === '/create-template' ? 'Сохранить шаблон' : (isEditMode ? 'Сохранить изменения' : 'Опубликовать опрос'))) }}
             </button>
         </div>
     </div>
@@ -361,12 +361,8 @@
         user.value = u
         if (!u) return router.push('/login')
 
-        // СНАЧАЛА проверяем права
         const { data: profile } = await supabase
-            .from('profiles')
-            .select('can_create')
-            .eq('id', u.id)
-            .single()
+            .from('profiles').select('can_create').eq('id', u.id).single()
 
         if (!profile?.can_create) {
             alert('У вас нет прав на создание опросов')
@@ -374,8 +370,37 @@
             return
         }
 
-        // ПОТОМ загружаем всё остальное
         await loadDepartments()
+
+        // === РЕДАКТИРОВАНИЕ ШАБЛОНА ===
+        if (route.path.includes('/edit-template')) {
+            const templateId = route.params.id
+            const { data: tmpl } = await supabase
+                .from('templates').select('*').eq('id', templateId).single()
+
+            if (tmpl) {
+                const questions = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions
+                survey.value.title = tmpl.title
+                survey.value.description = tmpl.description || ''
+                survey.value.department_id = tmpl.department_id || ''
+                survey.value.questions = questions.map(q => ({
+                    id: Date.now() + Math.random(),
+                    text: q.text,
+                    type: q.type,
+                    required: q.required || false,
+                    choices: (q.choices || []).map(c => ({
+                        id: Date.now() + Math.random(),
+                        text: c.text,
+                        is_correct: c.is_correct || false
+                    }))
+                }))
+                isEditMode.value = true
+                surveyId.value = templateId
+            }
+            return
+        }
+
+        // === СОЗДАНИЕ ОПРОСА / РЕДАКТИРОВАНИЕ ОПРОСА ===
         if (route.path !== '/create-template') {
             await loadTemplates()
         }
@@ -397,37 +422,6 @@
                 survey.value = { ...survey.value, ...draft }
             }
         }
-
-        if (route.path.includes('/edit-template')) {
-            const templateId = route.params.id
-            const { data: tmpl } = await supabase
-                .from('templates')
-                .select('*')
-                .eq('id', templateId)
-                .single()
-
-            if (tmpl) {
-                const questions = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions
-                survey.value.title = tmpl.title
-                survey.value.description = tmpl.description || ''
-                survey.value.department_id = tmpl.department_id || ''
-                survey.value.questions = questions.map(q => ({
-                    id: Date.now() + Math.random(),
-                    text: q.text,
-                    type: q.type,
-                    required: q.required || false,
-                    choices: (q.choices || []).map(c => ({
-                        id: Date.now() + Math.random(),
-                        text: c.text,
-                        is_correct: c.is_correct || false
-                    }))
-                }))
-                isEditMode.value = true
-                surveyId.value = templateId
-            }
-            return // не загружаем шаблоны для выбора
-        }
-        
     })
 
     const getDepartmentName = (deptId) => {
