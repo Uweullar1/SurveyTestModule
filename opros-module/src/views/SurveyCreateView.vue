@@ -506,6 +506,17 @@
                 })) || []
             }))
 
+            console.log('СОХРАНЯЕМ ШАБЛОН:', {
+                id: route.params.id,
+                title: survey.value.title,
+                questionsCount: templateQuestions.length,
+                questions: JSON.stringify(templateQuestions)
+            })
+
+            const { error: updateError } = await supabase.from('templates').update({ ...}).eq('id', route.params.id)
+
+            console.log('Результат обновления:', updateError)
+
             await supabase.from('templates').update({
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
