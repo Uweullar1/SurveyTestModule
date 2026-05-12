@@ -495,6 +495,7 @@
         loading.value = true
 
 
+
         // Сохранение отредактированного шаблона
         if (route.path.includes('/edit-template')) {
             const templateQuestions = survey.value.questions.map(q => ({
@@ -513,11 +514,7 @@
                 questions: JSON.stringify(templateQuestions)
             })
 
-            const { error: updateError } = await supabase.from('templates').update({ ...}).eq('id', route.params.id)
-
-            console.log('Результат обновления:', updateError)
-
-            await supabase.from('templates').update({
+            const { error: updateError } = await supabase.from('templates').update({
                 title: survey.value.title.trim(),
                 description: survey.value.description?.trim() || null,
                 department_id: survey.value.department_id || null,
@@ -531,7 +528,14 @@
                 }
             }).eq('id', route.params.id)
 
-            alert('Шаблон обновлен!')
+            console.log('Результат обновления:', updateError)
+
+            if (!updateError) {
+                alert('Шаблон обновлен!')
+            } else {
+                alert('Ошибка: ' + updateError.message)
+            }
+
             router.back()
             loading.value = false
             return
