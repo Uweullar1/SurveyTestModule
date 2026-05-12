@@ -494,7 +494,6 @@
         console.log('survey перед сохранением:', JSON.stringify(survey.value.questions))
         loading.value = true
 
-        loading.value = true
 
         // Сохранение отредактированного шаблона
         if (route.path.includes('/edit-template')) {
@@ -637,6 +636,8 @@ const saveSurvey = async () => {
         }
 
         console.log('survey перед сохранением:', JSON.stringify(survey.value.questions))
+        loading.value = true
+
         loading.value = true
 
         // Сохранение отредактированного шаблона
