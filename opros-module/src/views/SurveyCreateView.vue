@@ -407,6 +407,7 @@
                 }))
                 isEditMode.value = true
                 surveyId.value = templateId
+                survey.value = { ...survey.value }
             }
             return
         }
@@ -489,6 +490,9 @@
                 }
             }
         }
+
+        console.log('survey перед сохранением:', JSON.stringify(survey.value.questions))
+        loading.value = true
 
         loading.value = true
 
