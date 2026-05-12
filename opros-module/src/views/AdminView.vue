@@ -117,17 +117,16 @@
             </div>
             <!-- ШАБЛОНЫ -->
             <div v-if="activeTab === 'templates'" class="tab-content">
-                <div v-if="loadingTemplates" class="text-center py-4">Загрузка...</div>
-
-                <div v-else class="templates-admin-grid">
+                <div v-if="loadingTemplates" class="loader-wrapper"><div class="custom-spinner"></div><p>Загружаем шаблоны...</p></div>
+                <div v-else-if="allTemplates.length === 0" class="empty-state"><div class="empty-icon">📄</div><h2>Нет шаблонов</h2><p>В системе пока нет созданных шаблонов.</p></div>
+                <div v-else class="surveys-admin-grid">
                     <div v-for="tmpl in allTemplates" :key="tmpl.id" class="survey-card">
                         <div class="card-main">
                             <h3 class="survey-title">{{ tmpl.title }}</h3>
                             <p class="survey-desc">{{ tmpl.description || 'Без описания' }}</p>
                             <div class="survey-meta">
-                                <span v-if="tmpl.departments?.name">🏢 {{ tmpl.departments.name }}</span>
-                                <span v-if="tmpl.user_id">👤 Пользовательский</span>
-                                <span v-else>📋 Системный</span>
+                                <span v-if="tmpl.departments?.name" class="meta-dept">🏢 {{ tmpl.departments.name }}</span>
+                                <span class="meta-owner">{{ tmpl.user_id ? '👤 Пользовательский' : '📋 Системный' }}</span>
                             </div>
                         </div>
                         <div class="card-actions">
