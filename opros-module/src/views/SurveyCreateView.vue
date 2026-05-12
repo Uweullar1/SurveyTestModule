@@ -380,25 +380,21 @@
 
             if (tmpl) {
                 const questions = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions
-                survey.value.is_private = tmpl.settings.is_private || false
-                survey.value.is_survey = tmpl.settings.is_survey || false
-                survey.value.is_closed = tmpl.settings.is_closed || false
-                survey.value.max_responses = tmpl.settings.max_responses || 0
-                survey.value.expires_at = tmpl.settings.expires_at || null
+
                 survey.value.title = tmpl.title
                 survey.value.description = tmpl.description || ''
                 survey.value.department_id = tmpl.department_id || ''
-                survey.value.questions = questions.map(q => ({
-                    id: Date.now() + Math.random(),
-                    text: q.text,
-                    type: q.type,
-                    required: q.required || false,
-                    choices: (q.choices || []).map(c => ({
-                        id: Date.now() + Math.random(),
-                        text: c.text,
-                        is_correct: c.is_correct || false
-                    }))
-                }))
+
+                // Настройки из settings
+                if (tmpl.settings) {
+                    survey.value.is_private = tmpl.settings.is_private || false
+                    survey.value.is_survey = tmpl.settings.is_survey || false
+                    survey.value.is_closed = tmpl.settings.is_closed || false
+                    survey.value.max_responses = tmpl.settings.max_responses || 0
+                    survey.value.expires_at = tmpl.settings.expires_at || null
+                }
+
+                survey.value.questions = questions.map(q => ({ ... }))
                 isEditMode.value = true
                 surveyId.value = templateId
             }
