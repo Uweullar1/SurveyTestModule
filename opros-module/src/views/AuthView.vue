@@ -144,8 +144,39 @@
                         department_id: departmentId.value || null,
                         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
                     })
+                
+            } else {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email.value.trim(),
+                    password: password.value
+                })
+
+                if (error) throw error
+
+                if (data.user) {
+                    await supabase.from('profiles').insert({
+                        id: data.user.id,
+                        first_name: firstName.value.trim(),
+                        last_name: lastName.value.trim(),
+                        username: username.value.trim(),
+                        department_id: departmentId.value || null,
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
+                    })
                 }
 
+                // Автоматический вход после регистрации
+                const { error: loginError } = await supabase.auth.signInWithPassword({
+                    email: email.value.trim(),
+                    password: password.value
+                })
+
+                if (!loginError) {
+                    router.push('/')
+                } else {
+                    alert('Регистрация прошла успешно! Теперь войдите.')
+                    isLogin.value = true
+                }
+            }
                 alert('Регистрация прошла успешно!\nПроверьте почту для подтверждения аккаунта.')
                 isLogin.value = true
             }
