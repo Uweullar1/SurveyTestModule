@@ -1,7 +1,10 @@
 <template>
     <div class="notif-wrapper">
         <button @click="toggle" class="notif-bell">
-            🔔
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
             <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
         </button>
 
@@ -115,11 +118,19 @@
     .notif-bell {
         background: none;
         border: none;
-        font-size: 1.3rem;
         cursor: pointer;
         position: relative;
-        padding: 4px;
+        padding: 6px;
+        color: #212844;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.15s;
     }
+
+        .notif-bell:hover {
+            color: #DF2935;
+        }
 
     .notif-badge {
         position: absolute;
