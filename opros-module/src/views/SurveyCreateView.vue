@@ -394,7 +394,17 @@
                     survey.value.expires_at = tmpl.settings.expires_at || null
                 }
 
-                survey.value.questions = questions.map(q => ({ ... }))
+                survey.value.questions = questions.map(q => ({
+                    id: Date.now() + Math.random(),
+                    text: q.text,
+                    type: q.type,
+                    required: q.required || false,
+                    choices: (q.choices || []).map(c => ({
+                        id: Date.now() + Math.random(),
+                        text: c.text,
+                        is_correct: c.is_correct || false
+                    }))
+                }))
                 isEditMode.value = true
                 surveyId.value = templateId
             }
