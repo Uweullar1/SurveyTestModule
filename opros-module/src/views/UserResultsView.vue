@@ -60,8 +60,7 @@
                 </div>
 
                 <!-- Правильный ответ (для выбора) -->
-                <div v-if="!isSurvey && q?.question_type !== 'text' && q?.question_type !== 'scale'"
-                     class="correct-answer mt-2">
+                <div v-if="!isSurvey && !q.no_evaluation && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mt-2">
                     <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
                 </div>
             </div>
@@ -190,11 +189,12 @@
             : 'answer-wrong'
     }
 
-    const maxScore = computed(() => questions.value.filter(q => q?.question_type !== 'scale').length)
+    const maxScore = computed(() => questions.value.filter(q => q?.question_type !== 'scale' && !q.no_evaluation).length)
     const totalScore = computed(() => {
         let score = 0
         questions.value.forEach(q => {
             if (!q?.question_type || q.question_type === 'scale') return
+            if (q.no_evaluation) return
             const ansList = allAnswers.value.filter(a => a.question_id === q.id)
             if (ansList.length === 0) return
             if (q.question_type === 'text') {

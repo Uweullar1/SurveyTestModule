@@ -135,6 +135,7 @@
                 if (!isSurvey) {
                     questions?.forEach(q => {
                         if (q.question_type === 'scale') return
+                        if (q.no_evaluation) return
                         maxScore++
                         const ansList = (answers || []).filter(a => a.question_id === q.id)
                         if (ansList.length === 0) return

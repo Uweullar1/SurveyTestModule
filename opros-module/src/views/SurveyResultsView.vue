@@ -185,6 +185,7 @@
             let totalScore = 0, maxScore = 0
             questions.value.forEach(q => {
                 if (q.question_type === 'scale') return
+                if (q.no_evaluation) return
                 maxScore++
                 const ansList = allAnswers.value.filter(a => a.response_id === resp.id && a.question_id === q.id)
                 if (ansList.length === 0) return
@@ -217,6 +218,7 @@
         } else if (sortField.value === 'date') {
             result.sort((a, b) => sortOrder.value === 'desc' ? new Date(b.submitted_at) - new Date(a.submitted_at) : new Date(a.submitted_at) - new Date(b.submitted_at))
         }
+
 
         return result
     })

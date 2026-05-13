@@ -104,6 +104,10 @@
                             <input type="checkbox" v-model="question.required">
                             <span>Обязательный</span>
                         </label>
+                        <label class="required-check">
+                            <input type="checkbox" v-model="question.no_evaluation">
+                            <span>Не оценивать</span>
+                        </label>
                         <button @click="removeQuestion(qIndex)" v-if="survey.questions.length > 1" class="btn-remove-question">Удалить</button>
                     </div>
                 </div>
@@ -349,6 +353,7 @@
                 text: q.text || '',
                 type: q.question_type || 'radio',
                 required: q.required || false,
+                no_evaluation: q.no_evaluation || false,
                 choices: questionChoices.length > 0
                     ? questionChoices
                     : [{ text: '', is_correct: false }]
@@ -448,6 +453,7 @@
             text: '',
             type,
             required: false,
+            no_evaluation: false,
             choices: (type === 'text' || type === 'scale') ? [] : [{ text: '', is_correct: false }]
         })
     }
@@ -628,7 +634,8 @@
                         text: q.text.trim(),
                         question_type: q.type,
                         order,
-                        required: q.required || false
+                        required: q.required || false,
+                        no_evaluation: q.no_evaluation || false
                     })
                     .select()
                     .single()
