@@ -36,13 +36,14 @@
                 <div class="question-header">
                     <span class="question-num">{{ i + 1 }}</span>
                     <span class="question-text">{{ q?.text || 'Вопрос без текста' }}</span>
-                    <span v-if="!isSurvey" :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
+                    <span v-if="!isSurvey && !q.no_evaluation" :class="isCorrect(q) ? 'status-ok' : 'status-fail'">
                         {{ getStatusLabel(q) }}
                     </span>
+                    <span v-else-if="q.no_evaluation" class="status-neutral">—</span>
                 </div>
 
                 <!-- Ответ пользователя -->
-                <div class="answer-section" :class="isSurvey ? 'neutral-ans-block' : getAnswerClass(q)">
+                <div class="answer-section" :class="(isSurvey || q.no_evaluation) ? 'neutral-ans-block' : getAnswerClass(q)">
                     <strong>Ваш ответ:</strong> {{ formatUserAnswer(q) }}
                 </div>
 
@@ -383,5 +384,9 @@
         border-left: 5px solid #dee2e6;
     }
 
-
+    .status-neutral {
+        color: #888;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
 </style>
