@@ -146,18 +146,25 @@
             loading.value = true
 
             const { data: sData } = await supabase
-                .from('surveys').select('title, is_survey').eq('id', surveyId).single()
+                .from('surveys')
+                .select('title, is_survey')
+                .eq('id', surveyId).single()
             surveyTitle.value = sData?.title || 'Опрос без названия'
             isSurvey.value = sData?.is_survey || false
 
             const { data: qData } = await supabase
-                .from('questions').select(`id, text, question_type, order, choices (id, text, is_correct)`)
-                .eq('survey_id', surveyId).order('order')
+                .from('questions')
+                .select ('id, text, question_type, no_evaluation, choices(id, text, is_correct)')
+                .eq('survey_id', surveyId)
+                .order('order')
             if (!qData) throw new Error('Questions not loaded')
             questions.value = qData
 
             const { data: rData } = await supabase
-                .from('responses').select('*').eq('survey_id', surveyId).order('submitted_at', { ascending: false })
+                .from('responses')
+                .select('*')
+                .eq('survey_id', surveyId)
+                .order('submitted_at', { ascending: false })
             allResponses.value = rData || []
 
             if (allResponses.value.length > 0) {

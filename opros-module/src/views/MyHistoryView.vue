@@ -112,7 +112,7 @@
             const enriched = await Promise.all((data || []).map(async (res) => {
                 const { data: questions } = await supabase
                     .from('questions')
-                    .select('id, question_type, choices(id, is_correct)')
+                    .select('id, question_type, no_evaluation, choices(id, is_correct)')
                     .eq('survey_id', res.survey_id)
 
                 const { data: answers } = await supabase
