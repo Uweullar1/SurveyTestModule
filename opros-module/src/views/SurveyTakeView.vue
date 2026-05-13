@@ -167,12 +167,7 @@
             survey.value = data
 
             if (survey.value.is_private) {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user?.id !== survey.value.user_id) {
-                    alert('Этот опрос доступен только по прямой ссылке.')
-                    router.push('/')
-                    return
-                }
+               
             }
 
             if (data.is_closed) {
