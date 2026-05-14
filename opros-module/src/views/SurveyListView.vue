@@ -61,40 +61,64 @@
             </div>
 
             <!-- Сетка опросов -->
-            <div v-else class="surveys-grid">
-                <div v-for="survey in filteredSurveys" :key="survey.id" class="survey-card-link">
-                    <div class="survey-card" @click="handleCardClick(survey)">
-                        <div class="card-deco"></div>
-                        <div class="card-content">
-                            <div class="title-row">
-                                <span class="survey-label">ОПРОС</span>
-                                <span v-if="survey.departments?.name" class="department-badge">
-                                    {{ survey.departments.name }}
-                                </span>
-                                <!-- Статус прохождения -->
-                                <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">
-                                    ✓
-                                </span>
-                            </div>
-                            <h3 class="survey-title">{{ survey.title }}</h3>
-                            <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
-
-                            <div class="card-footer">
-                                <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                 <!--<button v-if="user && survey.user_id === user.id"
-                                        @click.stop="goToResults(survey.id)"
-                                        class="admin-btn">
-                                    Результаты
-                                </button>-->
-                                <span class="open-btn">
-                                    {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
-                                </span>
-                            </div>
+            <!-- ОПРОСЫ ДЕПАРТАМЕНТА -->
+            <div v-if="deptSurveys.length > 0" class="surveys-section">
+                <h3 class="section-title">📋 Опросы вашего департамента</h3>
+                <div class="surveys-grid">
+                    <div v-for="survey in deptSurveys" :key="survey.id" class="survey-card-link">
+                        <div class="survey-card" @click="handleCardClick(survey)">
+                            <div class="card-deco"></div>
+                            <div class="card-content">
+                                <div class="title-row">
+                                    <span class="survey-label">ОПРОС</span>
+                                    <span v-if="survey.departments?.name" class="department-badge">
+                                        {{ survey.departments.name }}
+                                    </span>
+                                    <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
+                                </div>
+                                <h3 class="survey-title">{{ survey.title }}</h3>
+                                <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                                <div class="card-footer">
+                                    <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                    <span class="open-btn">
+                                        {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
+
+            <!-- ОБЩИЕ ОПРОСЫ -->
+            <div v-if="generalSurveys.length > 0" class="surveys-section">
+                <h3 class="section-title">🌐 Общие опросы</h3>
+                <div class="surveys-grid">
+                    <div v-for="survey in generalSurveys" :key="survey.id" class="survey-card-link">
+                        <div class="survey-card" @click="handleCardClick(survey)">
+                            <div class="card-deco"></div>
+                            <div class="card-content">
+                                <div class="title-row">
+                                    <span class="survey-label">ОПРОС</span>
+                                    <span v-if="survey.departments?.name" class="department-badge">
+                                        {{ survey.departments.name }}
+                                    </span>
+                                    <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
+                                </div>
+                                <h3 class="survey-title">{{ survey.title }}</h3>
+                                <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                                <div class="card-footer">
+                                    <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                    <span class="open-btn">
+                                        {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         </div>
     </template>
 
@@ -235,6 +259,14 @@
                 loading.value = false
             }
         })
+
+        const deptSurveys = computed(() =>
+            filteredSurveys.value.filter(s => s.department_id === userDepartmentId.value)
+        )
+
+        const generalSurveys = computed(() =>
+            filteredSurveys.value.filter(s => !s.department_id)
+        )
     </script>
 
     <style scoped>
@@ -867,6 +899,18 @@
             cursor: pointer;
             font-size: 0.85rem;
             transition: transform 0.2s;
+        }
+        .surveys-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #212844;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #eee;
         }
 
             .admin-btn:hover {
