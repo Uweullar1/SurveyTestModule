@@ -63,7 +63,7 @@
             <!-- Сетка опросов -->
             <!-- ОПРОСЫ ДЕПАРТАМЕНТА -->
             <div v-if="deptSurveys.length > 0" class="surveys-section">
-                <h3 class="section-title">📋 Опросы вашего департамента</h3>
+                <h3 class="section-title">📋 Опросы департамента</h3>
                 <div class="surveys-grid">
                     <div v-for="survey in deptSurveys" :key="survey.id" class="survey-card-link">
                         <div class="survey-card" @click="handleCardClick(survey)">
