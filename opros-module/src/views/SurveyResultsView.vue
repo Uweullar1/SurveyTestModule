@@ -23,14 +23,14 @@
                 <div class="summary-table-wrapper mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3 class="fw-bold m-0">Сводка результатов ({{ allResponses.length }})</h3>
-                        <div class="d-flex align-items-center gap-2">
-                            <select v-model="filterDate" class="filter-select-sm">
+                        <div class="export-bar">
+                            <select v-model="filterDate" class="export-select">
                                 <option value="all">Всё время</option>
                                 <option value="today">Сегодня</option>
                                 <option value="week">Неделя</option>
                                 <option value="month">Месяц</option>
                             </select>
-                            <button @click="exportToCSV" class="btn-export">📥 Экспорт CSV</button>
+                            <button @click="exportToCSV" class="export-btn">📥 Экспорт CSV</button>
                         </div>
                     </div>
 
@@ -659,46 +659,44 @@
             color: #212844;
         }
 
-    .filter-select-sm {
+    
+    .export-bar {
+        display: flex;
+        align-items: center;
+    }
+
+    .export-select {
         height: 38px;
         padding: 0 14px;
         border: 2px solid #212844;
-        border-radius: 10px;
+        border-right: none;
+        border-radius: 10px 0 0 10px;
         font-size: 0.8rem;
         font-weight: 700;
         color: #212844;
         background: white;
         cursor: pointer;
-        transition: all 0.2s;
     }
 
-        .filter-select-sm:hover {
-            border-color: #DF2935;
-        }
-
-        .filter-select-sm:focus {
+        .export-select:focus {
             outline: none;
-            border-color: #DF2935;
         }
 
-    .btn-export {
+    .export-btn {
         height: 38px;
         padding: 0 16px;
         border: 2px solid #212844;
-        border-radius: 10px;
+        border-radius: 0 10px 10px 0;
         background: white;
         font-weight: 700;
         font-size: 0.8rem;
         color: #212844;
         cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
         white-space: nowrap;
+        transition: all 0.2s;
     }
 
-        .btn-export:hover {
+        .export-btn:hover {
             background: #212844;
             color: #F2C4CE;
         }
