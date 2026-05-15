@@ -21,7 +21,10 @@
 
                 <!-- СВОДНАЯ ТАБЛИЦА -->
                 <div class="summary-table-wrapper mb-4">
-                    <h3 class="fw-bold mb-3">Сводка результатов ({{ allResponses.length }})</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="fw-bold m-0">Сводка результатов ({{ allResponses.length }})</h3>
+                        <button @click="exportToCSV" class="btn-export">📥 Экспорт CSV</button>
+                    </div>
 
                     <!-- СТАТИСТИКА ВНУТРИ ТАБЛИЦЫ -->
                     <div class="stats-inline" v-if="!isSurvey && allResponses.length > 0">
@@ -310,6 +313,32 @@
     }
 
     const formatDate = (date) => new Date(date).toLocaleString('ru-RU')
+
+    const exportToCSV = () => {
+        // Заголовки
+        const headers = ['Участник', 'Баллы', 'Статус', 'Дата']
+
+        // Данные
+        const rows = allResponsesWithScores.value.map(r => [
+            r.profiles?.full_name || 'Неизвестный',
+            `${r.totalScore}/${r.maxScore}`,
+            r.passed ? 'Сдал' : 'Не сдал',
+            formatDate(r.submitted_at)
+        ])
+
+        // Собираем CSV
+        let csv = headers.join(',') + '\n'
+        rows.forEach(row => {
+            csv += row.map(cell => `"${cell}"`).join(',') + '\n'
+        })
+
+        // Скачиваем
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}.csv`
+        link.click()
+    }
 </script>
 
 <style scoped>
@@ -605,5 +634,21 @@
 
         .sortable:hover {
             color: #212844;
+        }
+
+    .btn-export {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        padding: 8px 18px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-export:hover {
+            background: #212844;
+            color: #F2C4CE;
         }
 </style>
