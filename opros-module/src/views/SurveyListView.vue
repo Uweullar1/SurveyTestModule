@@ -134,12 +134,13 @@
     const filterSurveys = () => {
         let result = [...surveys.value]
 
-        const now = new Date()
-        result = result.filter(s => {
-            if (s.is_closed) return false
-            if (s.expires_at && new Date(s.expires_at) < now) return false
-            return true
-        })
+        // ВРЕМЕННО отключаем фильтр закрытых/истекших для диагностики
+        // const now = new Date()
+        // result = result.filter(s => {
+        //     if (s.is_closed) return false
+        //     if (s.expires_at && new Date(s.expires_at) < now) return false
+        //     return true
+        // })
 
         if (searchQuery.value.trim()) {
             const q = searchQuery.value.toLowerCase()
@@ -148,10 +149,7 @@
         if (filterDepartment.value) {
             result = result.filter(s => s.department_id === filterDepartment.value)
         }
-        // Убираем фильтр по статусу прохождения — он работает некорректно
-        // Статус пройден/не пройден пусть остается только для фильтра в выпадающем списке
-        // но не скрывает опросы
-        console.log('После фильтрации:', filteredSurveys.value.length)
+
         filteredSurveys.value = result
     }
 
