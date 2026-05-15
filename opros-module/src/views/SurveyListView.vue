@@ -185,10 +185,7 @@
     })
 
     const generalSurveys = computed(() => {
-        return filteredSurveys.value.filter(s =>
-            !s.department_id &&
-            s.user_id !== user.value?.id
-        )
+        return filteredSurveys.value.filter(s => !s.department_id)
     })
 
     onMounted(async () => {
