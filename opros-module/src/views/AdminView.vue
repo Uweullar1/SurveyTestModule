@@ -24,6 +24,7 @@
                             <div>
                                 <div class="user-name">{{ profile.first_name }} {{ profile.last_name }}</div>
                                 <div class="user-email">{{ profile.username || '—' }}</div>
+                                <div class="user-phone" v-if="profile.phone">{{ profile.phone }}</div>
                             </div>
                         </div>
                         <div class="user-controls">
@@ -221,7 +222,7 @@
         departments.value = depts || []
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, username, avatar_url, department_id, can_create')
+            .select('id, first_name, last_name, username, phone, avatar_url, department_id, can_create')
             .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
@@ -835,5 +836,9 @@
             padding: 8px 12px;
             font-size: 0.75rem;
         }
+    }
+    .user-phone {
+        font-size: 0.8rem;
+        color: #888;
     }
 </style>

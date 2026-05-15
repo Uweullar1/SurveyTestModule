@@ -408,8 +408,8 @@
         }
 
     .passed-badge {
-        background: #d1e7dd;
-        color: #0f5132;
+        background: #B0D7FF;
+        color: #212844;
         width: 22px;
         height: 22px;
         border-radius: 50%;
@@ -418,7 +418,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1.5px solid;
+        border: 1.5px solid #212844;
         flex-shrink: 0;
     }
 
