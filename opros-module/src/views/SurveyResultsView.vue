@@ -201,7 +201,6 @@
 
     const exportToCSV = () => {
         // Фильтр по дате
-        const filterDate = ref('all') // 'all' | 'today' | 'week' | 'month'
 
         let data = [...allResponsesWithScores.value]
         const now = new Date()
