@@ -659,15 +659,43 @@
             color: #212844;
         }
 
-    .btn-export {
-        background: white;
+    .filter-select-sm {
+        height: 38px;
+        padding: 0 14px;
         border: 2px solid #212844;
-        border-radius: 12px;
-        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 0.8rem;
         font-weight: 700;
-        font-size: 0.85rem;
+        color: #212844;
+        background: white;
         cursor: pointer;
         transition: all 0.2s;
+    }
+
+        .filter-select-sm:hover {
+            border-color: #DF2935;
+        }
+
+        .filter-select-sm:focus {
+            outline: none;
+            border-color: #DF2935;
+        }
+
+    .btn-export {
+        height: 38px;
+        padding: 0 16px;
+        border: 2px solid #212844;
+        border-radius: 10px;
+        background: white;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: #212844;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
     }
 
         .btn-export:hover {
