@@ -180,8 +180,7 @@
     const deptSurveys = computed(() => {
         if (!userDepartmentId.value) return []
         return filteredSurveys.value.filter(s =>
-            s.department_id === userDepartmentId.value &&
-            s.user_id !== user.value?.id
+            s.department_id === userDepartmentId.value
         )
     })
 
