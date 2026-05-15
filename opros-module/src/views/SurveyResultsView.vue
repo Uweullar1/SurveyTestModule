@@ -23,7 +23,15 @@
                 <div class="summary-table-wrapper mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3 class="fw-bold m-0">Сводка результатов ({{ allResponses.length }})</h3>
-                        <button @click="exportToCSV" class="btn-export">📥 Экспорт CSV</button>
+                        <div class="d-flex align-items-center gap-2">
+                            <select v-model="filterDate" class="filter-select-sm">
+                                <option value="all">Всё время</option>
+                                <option value="today">Сегодня</option>
+                                <option value="week">Неделя</option>
+                                <option value="month">Месяц</option>
+                            </select>
+                            <button @click="exportToCSV" class="btn-export">📥 Экспорт CSV</button>
+                        </div>
                     </div>
 
                     <!-- СТАТИСТИКА ВНУТРИ ТАБЛИЦЫ -->
@@ -140,6 +148,7 @@
     const editData = reactive({})
     const profiles = ref({})
     const isSurvey = ref(false)
+    const filterDate = ref('all')
 
     onMounted(async () => {
         const surveyId = route.params.id
@@ -189,6 +198,45 @@
         }
     })
 
+
+    const exportToCSV = () => {
+        // Фильтр по дате
+        const filterDate = ref('all') // 'all' | 'today' | 'week' | 'month'
+
+        let data = [...allResponsesWithScores.value]
+        const now = new Date()
+
+        if (filterDate.value === 'today') {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            data = data.filter(r => new Date(r.submitted_at) >= today)
+        } else if (filterDate.value === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            data = data.filter(r => new Date(r.submitted_at) >= weekAgo)
+        } else if (filterDate.value === 'month') {
+            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+            data = data.filter(r => new Date(r.submitted_at) >= monthAgo)
+        }
+
+        const headers = ['Участник', 'Баллы', 'Статус', 'Дата']
+        const rows = data.map(r => [
+            r.profiles?.full_name || 'Неизвестный',
+            `${r.totalScore}/${r.maxScore}`,
+            r.passed ? 'Сдал' : 'Не сдал',
+            formatDate(r.submitted_at)
+        ])
+
+        let csv = headers.join(',') + '\n'
+        rows.forEach(row => {
+            csv += row.map(cell => `"${cell}"`).join(',') + '\n'
+        })
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        const period = filterDate.value === 'all' ? 'все' : filterDate.value
+        link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}_${period}.csv`
+        link.click()
+    }
 
     const allResponsesWithScores = computed(() => {
         let result = allResponses.value.map(resp => {
