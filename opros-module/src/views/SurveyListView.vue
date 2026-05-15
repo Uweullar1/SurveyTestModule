@@ -148,14 +148,11 @@
         if (filterDepartment.value) {
             result = result.filter(s => s.department_id === filterDepartment.value)
         }
-        if (filterPassed.value === 'passed') {
-            result = result.filter(s => passedSurveyIds.value.includes(s.id))
-        } else if (filterPassed.value === 'not_passed') {
-            result = result.filter(s => !passedSurveyIds.value.includes(s.id))
-        }
+        // Убираем фильтр по статусу прохождения — он работает некорректно
+        // Статус пройден/не пройден пусть остается только для фильтра в выпадающем списке
+        // но не скрывает опросы
+
         filteredSurveys.value = result
-
-
     }
 
     const activeFiltersCount = computed(() => {
