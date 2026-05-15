@@ -118,6 +118,35 @@
                     </div>
                 </div>
             </div>
+
+
+            <!-- МОИ ОПРОСЫ -->
+            <div v-if="mySurveys.length > 0" class="surveys-section">
+                <h3 class="section-title">📝 Мои опросы</h3>
+                <div class="surveys-grid">
+                    <div v-for="survey in mySurveys" :key="survey.id" class="survey-card-link">
+                        <div class="survey-card" @click="handleCardClick(survey)">
+                            <div class="card-deco"></div>
+                            <div class="card-content">
+                                <div class="title-row">
+                                    <span class="survey-label">ОПРОС</span>
+                                    <span v-if="survey.departments?.name" class="department-badge">
+                                        {{ survey.departments.name }}
+                                    </span>
+                                    <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
+                                </div>
+                                <h3 class="survey-title">{{ survey.title }}</h3>
+                                <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
+                                <div class="card-footer">
+                                    <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
+                                    <span class="open-btn">
+                                        {{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
         </section>
         </div>
     </template>
@@ -266,6 +295,18 @@
 
         const generalSurveys = computed(() =>
             filteredSurveys.value.filter(s => !s.department_id)
+        )
+
+        const mySurveys = computed(() =>
+            filteredSurveys.value.filter(s => s.user_id === user.value?.id && s.department_id !== userDepartmentId.value)
+        )
+
+        const deptSurveys = computed(() =>
+            filteredSurveys.value.filter(s => s.department_id === userDepartmentId.value && s.user_id !== user.value?.id)
+        )
+
+        const generalSurveys = computed(() =>
+            filteredSurveys.value.filter(s => !s.department_id && s.user_id !== user.value?.id)
         )
     </script>
 
