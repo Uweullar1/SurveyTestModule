@@ -242,6 +242,9 @@
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
             filterSurveys()
+            console.log('mySurveys:', mySurveys.value.length, mySurveys.value.map(s => s.title))
+            console.log('deptSurveys:', deptSurveys.value.length, deptSurveys.value.map(s => s.title))
+            console.log('generalSurveys:', generalSurveys.value.length, generalSurveys.value.map(s => s.title))
         } catch (e) {
             console.error('Ошибка загрузки опросов:', e)
         } finally {
