@@ -133,7 +133,10 @@
 
     const filterSurveys = () => {
         let result = [...surveys.value]
-
+        console.log('Всего опросов:', result.length)
+        console.log('Опросы:', result.map(s => ({ title: s.title, dept: s.department_id, user_id: s.user_id })))
+        console.log('Мой userDepartmentId:', userDepartmentId.value)
+        console.log('Мой userId:', user.value?.id)
         // ВРЕМЕННО отключаем фильтр закрытых/истекших для диагностики
         // const now = new Date()
         // result = result.filter(s => {
@@ -151,6 +154,7 @@
         }
 
         filteredSurveys.value = result
+        console.log('После фильтрации:', filteredSurveys.value.length)
     }
 
     const activeFiltersCount = computed(() => {
