@@ -199,43 +199,7 @@
     })
 
 
-    const exportToCSV = () => {
-        // Фильтр по дате
-
-        let data = [...allResponsesWithScores.value]
-        const now = new Date()
-
-        if (filterDate.value === 'today') {
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            data = data.filter(r => new Date(r.submitted_at) >= today)
-        } else if (filterDate.value === 'week') {
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            data = data.filter(r => new Date(r.submitted_at) >= weekAgo)
-        } else if (filterDate.value === 'month') {
-            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
-            data = data.filter(r => new Date(r.submitted_at) >= monthAgo)
-        }
-
-        const headers = ['Участник', 'Баллы', 'Статус', 'Дата']
-        const rows = data.map(r => [
-            r.profiles?.full_name || 'Неизвестный',
-            `${r.totalScore}/${r.maxScore}`,
-            r.passed ? 'Сдал' : 'Не сдал',
-            formatDate(r.submitted_at)
-        ])
-
-        let csv = headers.join(',') + '\n'
-        rows.forEach(row => {
-            csv += row.map(cell => `"${cell}"`).join(',') + '\n'
-        })
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        const period = filterDate.value === 'all' ? 'все' : filterDate.value
-        link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}_${period}.csv`
-        link.click()
-    }
+    
 
     const allResponsesWithScores = computed(() => {
         let result = allResponses.value.map(resp => {
@@ -362,28 +326,40 @@
     const formatDate = (date) => new Date(date).toLocaleString('ru-RU')
 
     const exportToCSV = () => {
-        // Заголовки
-        const headers = ['Участник', 'Баллы', 'Статус', 'Дата']
+        // Фильтр по дате
 
-        // Данные
-        const rows = allResponsesWithScores.value.map(r => [
+        let data = [...allResponsesWithScores.value]
+        const now = new Date()
+
+        if (filterDate.value === 'today') {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            data = data.filter(r => new Date(r.submitted_at) >= today)
+        } else if (filterDate.value === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            data = data.filter(r => new Date(r.submitted_at) >= weekAgo)
+        } else if (filterDate.value === 'month') {
+            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+            data = data.filter(r => new Date(r.submitted_at) >= monthAgo)
+        }
+
+        const headers = ['Участник', 'Баллы', 'Статус', 'Дата']
+        const rows = data.map(r => [
             r.profiles?.full_name || 'Неизвестный',
             `${r.totalScore}/${r.maxScore}`,
             r.passed ? 'Сдал' : 'Не сдал',
             formatDate(r.submitted_at)
         ])
 
-        // Собираем CSV
         let csv = headers.join(',') + '\n'
         rows.forEach(row => {
             csv += row.map(cell => `"${cell}"`).join(',') + '\n'
         })
 
-        // Скачиваем
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
         link.href = URL.createObjectURL(blob)
-        link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}.csv`
+        const period = filterDate.value === 'all' ? 'все' : filterDate.value
+        link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}_${period}.csv`
         link.click()
     }
 </script>
