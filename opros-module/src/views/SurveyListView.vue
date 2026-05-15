@@ -51,7 +51,7 @@
 
             <div v-else>
                 <!-- МОИ ОПРОСЫ -->
-                <div v-if="mySurveys.length > 0" class="surveys-section">
+                <div v-if="mySurveys.length > 0 && (canCreate || isAdmin)" class="surveys-section">
                     <h3 class="section-title">📝 Мои опросы</h3>
                     <div class="surveys-grid">
                         <div v-for="survey in mySurveys" :key="survey.id" class="survey-card-link">
@@ -143,6 +143,9 @@
     const departments = ref([])
     const passedSurveyIds = ref([])
 
+    const canCreate = ref(false)
+    const isAdmin = ref(false)
+
     const showFilters = ref(false)
     const searchQuery = ref('')
     const filterDepartment = ref('')
@@ -184,17 +187,25 @@
         filterSurveys()
     }
 
-    const mySurveys = computed(() =>
-        filteredSurveys.value.filter(s => s.user_id === user.value?.id)
-    )
+    const mySurveys = computed(() => {
+        if (!user.value?.id) return []
+        return filteredSurveys.value.filter(s => s.user_id === user.value.id)
+    })
 
-    const deptSurveys = computed(() =>
-        filteredSurveys.value.filter(s => s.department_id === userDepartmentId.value && s.user_id !== user.value?.id)
-    )
+    const deptSurveys = computed(() => {
+        if (!userDepartmentId.value) return []
+        return filteredSurveys.value.filter(s =>
+            s.department_id === userDepartmentId.value &&
+            s.user_id !== user.value?.id
+        )
+    })
 
-    const generalSurveys = computed(() =>
-        filteredSurveys.value.filter(s => !s.department_id && s.user_id !== user.value?.id)
-    )
+    const generalSurveys = computed(() => {
+        return filteredSurveys.value.filter(s =>
+            !s.department_id &&
+            s.user_id !== user.value?.id
+        )
+    })
 
     onMounted(async () => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -206,8 +217,22 @@
             const { data: depts } = await supabase.from('departments').select('*').order('name')
             departments.value = depts || []
 
-            const { data: profile } = await supabase.from('profiles').select('department_id').eq('id', user.value.id).single()
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('department_id, can_create')
+                .eq('id', user.value.id)
+                .single()
+
             userDepartmentId.value = profile?.department_id || null
+            canCreate.value = profile?.can_create || false
+
+            const { data: adminCheck } = await supabase
+                .from('admins')
+                .select('user_id')
+                .eq('user_id', user.value.id)
+                .maybeSingle()
+
+            isAdmin.value = !!adminCheck
 
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
