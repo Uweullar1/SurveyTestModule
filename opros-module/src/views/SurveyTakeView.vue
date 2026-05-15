@@ -311,6 +311,20 @@
                 })
             }
 
+            // Уведомление всем админам
+            const { data: admins } = await supabase.from('admins').select('user_id')
+            if (admins) {
+                for (const admin of admins) {
+                    if (admin.user_id !== session?.user?.id) {
+                        await notificationsService.send(admin.user_id, 'Новое прохождение опроса', {
+                            message: `Пользователь прошел опрос "${survey.value.title}"`,
+                            icon: '📋',
+                            link: `/results/${surveyId}/admin`
+                        })
+                    }
+                }
+            }
+
             if (survey.value.is_survey) {
                 alert('Спасибо за прохождение опроса!')
                 router.push('/my-history')

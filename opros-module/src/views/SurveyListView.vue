@@ -50,30 +50,6 @@
             <div v-else-if="filteredSurveys.length === 0" class="empty-state">Ничего не найдено</div>
 
             <div v-else>
-                <!-- МОИ ОПРОСЫ -->
-                <div v-if="mySurveys.length > 0 && (canCreate || isAdmin)" class="surveys-section">
-                    <h3 class="section-title">📝 Мои опросы</h3>
-                    <div class="surveys-grid">
-                        <div v-for="survey in mySurveys" :key="survey.id" class="survey-card-link">
-                            <div class="survey-card" @click="handleCardClick(survey)">
-                                <div class="card-deco"></div>
-                                <div class="card-content">
-                                    <div class="title-row">
-                                        <span class="survey-label">ОПРОС</span>
-                                        <span v-if="survey.departments?.name" class="department-badge">{{ survey.departments.name }}</span>
-                                        <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
-                                    </div>
-                                    <h3 class="survey-title">{{ survey.title }}</h3>
-                                    <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
-                                    <div class="card-footer">
-                                        <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                        <span class="open-btn">{{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- ОПРОСЫ ДЕПАРТАМЕНТА -->
                 <div v-if="deptSurveys.length > 0" class="surveys-section">
@@ -157,6 +133,14 @@
 
     const filterSurveys = () => {
         let result = [...surveys.value]
+
+        const now = new Date()
+        result = result.filter(s => {
+            if (s.is_closed) return false
+            if (s.expires_at && new Date(s.expires_at) < now) return false
+            return true
+        })
+
         if (searchQuery.value.trim()) {
             const q = searchQuery.value.toLowerCase()
             result = result.filter(s => s.title?.toLowerCase().includes(q))
@@ -170,6 +154,8 @@
             result = result.filter(s => !passedSurveyIds.value.includes(s.id))
         }
         filteredSurveys.value = result
+
+
     }
 
     const activeFiltersCount = computed(() => {
