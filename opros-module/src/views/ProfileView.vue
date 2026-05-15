@@ -53,7 +53,11 @@
                 <!-- Номер телефона -->
                 <div class="form-group">
                     <label>Телефон</label>
-                    <input v-model="profile.phone" type="tel" class="profile-input" placeholder="+7 (999) 123-45-67" />
+                    <input v-model="profile.phone"
+                           type="tel"
+                           class="profile-input"
+                           placeholder="+7 (___) ___-__-__"
+                           @input="profile.phone = formatPhone(profile.phone)" />
                 </div>
 
                 <!-- Департамент -->
@@ -195,6 +199,10 @@
                 .eq('id', user.id)
                 .single()
 
+            if (data.phone) {
+                profile.value.phone = formatPhone(data.phone)
+            }
+
             if (error && error.code === 'PGRST116') {
                 // PGRST116 = "no rows returned"
                 console.warn('Профиль не найден — возможно аккаунт был удалён')
@@ -306,6 +314,9 @@
         try {
             const { data: { user } } = await supabase.auth.getUser()
 
+            const cleanedPhone = profile.value.phone.replace(/\D/g, '')
+            const phoneForDB = cleanedPhone ? '+' + cleanedPhone : null
+
             const { error } = await supabase
                 .from('profiles')
                 .update({
@@ -397,6 +408,24 @@
             console.error(err)
             alert('Не удалось полностью удалить аккаунт. Попробуйте позже.')
         }
+    }
+
+    const formatPhone = (value) => {
+        if (!value) return ''
+        // Убираем всё кроме цифр
+        let cleaned = value.replace(/\D/g, '')
+        // Если начинается с 8, меняем на +7
+        if (cleaned.startsWith('8')) cleaned = '7' + cleaned.substring(1)
+        if (!cleaned.startsWith('7')) cleaned = '7' + cleaned
+        // Обрезаем до 11 цифр
+        cleaned = cleaned.substring(0, 11)
+        // Форматируем: +7 (XXX) XXX-XX-XX
+        if (cleaned.length >= 1) cleaned = '+' + cleaned
+        if (cleaned.length >= 2) cleaned = cleaned.substring(0, 2) + ' (' + cleaned.substring(2)
+        if (cleaned.length >= 7) cleaned = cleaned.substring(0, 7) + ') ' + cleaned.substring(7)
+        if (cleaned.length >= 12) cleaned = cleaned.substring(0, 12) + '-' + cleaned.substring(12)
+        if (cleaned.length >= 15) cleaned = cleaned.substring(0, 15) + '-' + cleaned.substring(15)
+        return cleaned.substring(0, 18)
     }
 </script>
 

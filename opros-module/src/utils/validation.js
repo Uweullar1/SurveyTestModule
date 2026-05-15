@@ -91,6 +91,13 @@ export const profileRules = {
         if (String(value).length < 6) return 'Пароль минимум 6 символов'
         if (String(value).length > 128) return 'Пароль слишком длинный'
         return ''
+    },
+    phone: (value) => {
+        if (!value || String(value).trim() === '') return ''
+        const cleaned = value.replace(/[\s\-\+\(\)]/g, '')
+        if (cleaned.length < 11) return 'Номер должен содержать 11 цифр'
+        if (!/^(\+7|8)\d{10}$/.test(value.replace(/[\s\-\+\(\)]/g, ''))) return 'Некорректный номер'
+        return ''
     }
 }
 
