@@ -70,7 +70,7 @@
                 // Загрузка профиля
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('avatar_url, can_create')
+                    .select('avatar_url, can_create, education_completed')
                     .eq('id', user.id)
                     .single()
 
@@ -88,6 +88,22 @@
                         }
                     }
                 }
+
+                const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+                if (!profile.education_completed && !canCreate.value && !isAdmin.value) {
+                    const { data: passed } = await supabase
+                        .from('responses')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('survey_id', ANKETA_ID)
+                        .limit(1)
+
+                    if (!passed || passed.length === 0) {
+                        router.push(`/take/${ANKETA_ID}`)
+                        return
+                    }
+                }
+
             } else {
                 isLoggedIn.value = false
                 userAvatar.value = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'

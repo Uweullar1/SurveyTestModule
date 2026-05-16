@@ -104,7 +104,7 @@
                             <input type="checkbox" v-model="question.required">
                             <span>Обязательный</span>
                         </label>
-                        <label class="required-check">
+                        <label v-if="!survey.is_survey" class="required-check">
                             <input type="checkbox" v-model="question.no_evaluation">
                             <span>Не оценивать</span>
                         </label>
@@ -404,6 +404,7 @@
                     text: q.text,
                     type: q.type,
                     required: q.required || false,
+                    no_evaluation: q.no_evaluation || false,  // ← добавь
                     choices: (q.choices || []).map(c => ({
                         id: Date.now() + Math.random(),
                         text: c.text,
@@ -507,6 +508,8 @@
             const templateQuestions = survey.value.questions.map(q => ({
                 text: q.text,
                 type: q.type,
+                required: q.required || false,
+                no_evaluation: q.no_evaluation || false,
                 choices: q.choices?.map(c => ({
                     text: c.text,
                     is_correct: c.is_correct
@@ -552,6 +555,8 @@
             const templateQuestions = survey.value.questions.map(q => ({
                 text: q.text,
                 type: q.type,
+                required: q.required || false,
+                no_evaluation: q.no_evaluation || false,
                 choices: q.choices?.map(c => ({
                     text: c.text,
                     is_correct: c.is_correct

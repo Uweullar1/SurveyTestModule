@@ -300,6 +300,12 @@
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
+            // Если это анкета кандидата — отмечаем что заполнена
+            const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+            if (surveyId === ANKETA_ID) {
+                await supabase.from('profiles').update({ education_completed: true }).eq('id', session.user.id)
+            }
+
             // Проверяем, есть ли текстовые вопросы
             const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
 
