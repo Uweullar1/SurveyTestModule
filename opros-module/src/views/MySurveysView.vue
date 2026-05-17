@@ -90,12 +90,34 @@ const loading = ref(true)
 
         let specialSurveys = []
         if (profile?.can_create) {
-            const { data: special } = await supabase
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('department_id')
+                .eq('id', user.id)
+                .single()
+
+            const creatorDeptId = profileData?.department_id
+
+            if (creatorDeptId) {
+                // Опросы для стажеров из департамента создателя
+                const { data: special } = await supabase
+                    .from('surveys')
+                    .select('*, departments(name)')
+                    .eq('is_for_interns', true)
+                    .eq('department_id', creatorDeptId)
+                    .order('created_at', { ascending: false })
+
+                specialSurveys = special || []
+            }
+
+            // Плюс анкета кандидата (без департамента)
+            const { data: anketa } = await supabase
                 .from('surveys')
                 .select('*, departments(name)')
                 .eq('is_visible_to_creators', true)
                 .order('created_at', { ascending: false })
-            specialSurveys = special || []
+
+            specialSurveys = [...specialSurveys, ...(anketa || [])]
         }
 
         // Объединяем и убираем дубликаты
