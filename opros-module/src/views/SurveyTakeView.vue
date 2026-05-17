@@ -331,12 +331,19 @@
                 }
             }
 
+            if (surveyId === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c') {
+                alert('Анкета отправлена! Ожидайте дальнейших инструкций.')
+                router.push('/')
+                return
+            }
+
             if (survey.value.is_survey) {
                 alert('Спасибо за прохождение опроса!')
                 router.push('/my-history')
             } else {
                 router.push(`/my-results/${responseId}`)
             }
+
 
         } catch (err) {
             console.error("Ошибка при submitResponses:", err)

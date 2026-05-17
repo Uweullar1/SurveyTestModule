@@ -40,6 +40,10 @@
                             <div class="switches">
                                 <button @click="toggleCreate(profile)" :class="['switch-btn', { active: profile.can_create }]">✏️ Создатель</button>
                                 <button @click="toggleAdmin(profile)" :class="['switch-btn', { active: adminIds.includes(profile.id) }]">👑 Админ</button>
+                                <button @click="toggleIntern(profile)"
+                                        :class="['switch-btn', { active: profile.is_intern }]">
+                                    🎓 Стажер
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -168,6 +172,14 @@
     const resultSurveyFilter = ref('')
     const resultDeptFilter = ref('')
 
+
+
+    const toggleIntern = async (profile) => {
+        const newVal = !profile.is_intern
+        const { error } = await supabase.from('profiles').update({ is_intern: newVal }).eq('id', profile.id)
+        if (!error) profile.is_intern = newVal
+    }
+
     const toggleSort = (field) => {
         if (sortField.value === field) {
             sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
@@ -222,7 +234,7 @@
         departments.value = depts || []
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, username, phone, avatar_url, department_id, can_create')
+            .select('id, first_name, last_name, username, avatar_url, department_id, can_create, is_intern')
             .order('last_name')
         users.value = profiles || []
         loadingUsers.value = false
