@@ -67,6 +67,13 @@
             </div>
 
             <div class="setting-row">
+                <label>
+                    <input type="checkbox" v-model="survey.is_for_interns">
+                    <span>Опрос для стажеров (виден только кандидатам со статусом стажера)</span>
+                </label>
+            </div>
+
+            <div class="setting-row">
                 <label><input type="checkbox" v-model="survey.is_private"> Приватный опрос (доступен только по прямой ссылке)</label>
             </div>
             <div class="setting-row">
@@ -201,7 +208,8 @@
         expires_at: null,
         department_id: '',
         is_survey: false,
-        questions: []
+        questions: [],
+        is_for_interns: false
     })
 
     watch(survey, (newVal) => {
@@ -329,6 +337,7 @@
         survey.value.expires_at = surveyData.expires_at ? surveyData.expires_at.slice(0, 16) : null
         survey.value.department_id = surveyData.department_id || ''
         survey.value.is_survey = !!surveyData.is_survey
+        survey.value.is_for_interns = !!surveyData.is_for_interns
 
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
@@ -599,7 +608,8 @@
                 expires_at: expiresAt,
                 is_closed: !!survey.value.is_closed,
                 department_id: survey.value.department_id || null,
-                is_survey: !!survey.value.is_survey
+                is_survey: !!survey.value.is_survey,
+                is_for_interns: !!survey.value.is_for_interns
             }
 
             let savedId = surveyId.value

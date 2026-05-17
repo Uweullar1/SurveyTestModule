@@ -198,34 +198,44 @@
             const { data: depts } = await supabase.from('departments').select('*').order('name')
             departments.value = depts || []
 
+            // ОДИН запрос профиля со всеми нужными полями
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('department_id, can_create')
+                .select('department_id, can_create, is_intern')
                 .eq('id', user.value.id)
                 .single()
 
             userDepartmentId.value = profile?.department_id || null
             canCreate.value = profile?.can_create || false
+            const isIntern = profile?.is_intern || false
 
             const { data: adminCheck } = await supabase
                 .from('admins')
                 .select('user_id')
                 .eq('user_id', user.value.id)
                 .maybeSingle()
-
             isAdmin.value = !!adminCheck
 
+            // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-            if (userDepartmentId.value) {
+            if (isIntern && userDepartmentId.value) {
+                // Стажер видит только опросы для стажеров своего департамента + свои
                 query = query.or(
-                    `and(is_private.eq.false,department_id.eq.${userDepartmentId.value}),` +
-                    `and(is_private.eq.false,department_id.is.null),` +
+                    `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
+                    `user_id.eq.${user.value.id}`
+                )
+            } else if (userDepartmentId.value) {
+                // Обычный сотрудник
+                query = query.or(
+                    `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
+                    `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
+                // Кандидат без департамента
                 query = query.or(
-                    `and(is_private.eq.false,department_id.is.null),` +
+                    `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             }
@@ -238,9 +248,6 @@
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
             filterSurveys()
-            console.log('mySurveys:', mySurveys.value.length, mySurveys.value.map(s => s.title))
-            console.log('deptSurveys:', deptSurveys.value.length, deptSurveys.value.map(s => s.title))
-            console.log('generalSurveys:', generalSurveys.value.length, generalSurveys.value.map(s => s.title))
         } catch (e) {
             console.error('Ошибка загрузки опросов:', e)
         } finally {
