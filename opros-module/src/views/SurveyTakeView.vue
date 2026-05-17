@@ -301,31 +301,29 @@
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
             // Если это анкета кандидата — отмечаем что заполнена
+            // Уведомление всем создателям и админам о новой анкете
             const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
             if (surveyId === ANKETA_ID) {
-                await supabase.from('profiles').update({ education_completed: true }).eq('id', session.user.id)
-            }
+                // Получаем всех создателей
+                const { data: creators } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('can_create', true)
 
-            // Проверяем, есть ли текстовые вопросы
-            const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
+                // Получаем всех админов
+                const { data: admins } = await supabase.from('admins').select('user_id')
 
-            if (hasTextQuestions && session?.user?.id !== survey.value.user_id) {
-                await notificationsService.send(survey.value.user_id, 'Требуется проверка ответов', {
-                    message: `Новые ответы в опросе "${survey.value.title}"`,
-                    icon: '🔍',
-                    link: `/results/${surveyId}/admin`
-                })
-            }
+                // Объединяем id
+                const notifyIds = new Set()
+                creators?.forEach(c => notifyIds.add(c.id))
+                admins?.forEach(a => notifyIds.add(a.user_id))
 
-            // Уведомление всем админам
-            const { data: admins } = await supabase.from('admins').select('user_id')
-            if (admins) {
-                for (const admin of admins) {
-                    if (admin.user_id !== session?.user?.id) {
-                        await notificationsService.send(admin.user_id, 'Новое прохождение опроса', {
-                            message: `Пользователь прошел опрос "${survey.value.title}"`,
+                for (const userId of notifyIds) {
+                    if (userId !== session?.user?.id) {
+                        await notificationsService.send(userId, 'Новая анкета кандидата', {
+                            message: 'Кандидат заполнил анкету. Требуется проверка.',
                             icon: '📋',
-                            link: `/results/${surveyId}/admin`
+                            link: `/results/${ANKETA_ID}/admin`
                         })
                     }
                 }

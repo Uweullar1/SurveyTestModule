@@ -70,48 +70,64 @@ const router = useRouter()
 const mySurveys = ref([])
 const loading = ref(true)
 
-const loadMySurveys = async () => {
+    const loadMySurveys = async () => {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return router.push('/login')
 
-        const { data, error } = await supabase
+        // Свои опросы
+        const { data: ownSurveys } = await supabase
             .from('surveys')
             .select('*, departments(name)')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
 
-        if (error) console.error(error)
-        else {
-            // Для каждого опроса проверяем, есть ли непроверенные ответы
-            const enriched = await Promise.all((data || []).map(async (survey) => {
-                // Есть ли текстовые вопросы в опросе
-                const { data: textQuestions } = await supabase
-                    .from('questions')
-                    .select('id')
-                    .eq('survey_id', survey.id)
-                    .eq('question_type', 'text')
+        // Проверяем, создатель ли пользователь
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('can_create')
+            .eq('id', user.id)
+            .single()
 
-                if (!textQuestions || textQuestions.length === 0) {
-                    return { ...survey, needsCheck: false, uncheckedCount: 0 }
-                }
-
-                // Есть ли ответы с score = null (непроверенные)
-                const questionIds = textQuestions.map(q => q.id)
-                const { data: uncheckedAnswers } = await supabase
-                    .from('answers')
-                    .select('response_id')
-                    .in('question_id', questionIds)
-                    .is('score', null)
-
-                const uniqueResponses = new Set((uncheckedAnswers || []).map(a => a.response_id))
-                return { ...survey, needsCheck: uniqueResponses.size > 0, uncheckedCount: uniqueResponses.size }
-            }))
-
-            mySurveys.value = enriched
+        let specialSurveys = []
+        if (profile?.can_create) {
+            const { data: special } = await supabase
+                .from('surveys')
+                .select('*, departments(name)')
+                .eq('is_visible_to_creators', true)
+                .order('created_at', { ascending: false })
+            specialSurveys = special || []
         }
 
+        // Объединяем и убираем дубликаты
+        const allSurveys = [...(ownSurveys || []), ...specialSurveys]
+        const unique = allSurveys.filter((s, i, arr) => arr.findIndex(t => t.id === s.id) === i)
+
+        // Для каждого опроса проверяем непроверенные ответы
+        const enriched = await Promise.all(unique.map(async (survey) => {
+            const { data: textQuestions } = await supabase
+                .from('questions')
+                .select('id')
+                .eq('survey_id', survey.id)
+                .eq('question_type', 'text')
+
+            if (!textQuestions || textQuestions.length === 0) {
+                return { ...survey, needsCheck: false, uncheckedCount: 0 }
+            }
+
+            const questionIds = textQuestions.map(q => q.id)
+            const { data: uncheckedAnswers } = await supabase
+                .from('answers')
+                .select('response_id')
+                .in('question_id', questionIds)
+                .is('score', null)
+
+            const uniqueResponses = new Set((uncheckedAnswers || []).map(a => a.response_id))
+            return { ...survey, needsCheck: uniqueResponses.size > 0, uncheckedCount: uniqueResponses.size }
+        }))
+
+        mySurveys.value = enriched
         loading.value = false
-}
+    }
 
 const viewResults = (id) => {
     router.push(`/results/${id}/admin`)
