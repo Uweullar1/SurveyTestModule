@@ -303,13 +303,6 @@
                     await supabase.from('answers').update({ score: item.passed ? 1 : 0, feedback: item.feedback || '' }).eq('id', item.id)
                 }
             }
-
-            // Общий фидбек по прохождению
-            const overallFeedback = prompt('Общий комментарий по прохождению (необязательно):', '')
-            if (overallFeedback) {
-                await supabase.from('responses').update({ feedback: overallFeedback }).eq('id', selectedResponse.value.id)
-            }
-
             alert('Результаты сохранены!')
             if (selectedResponse.value?.user_id) {
                 await notificationsService.send(selectedResponse.value.user_id, 'Ваш ответ проверен', {

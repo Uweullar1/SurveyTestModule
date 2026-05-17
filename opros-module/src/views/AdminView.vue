@@ -113,7 +113,10 @@
                                 <td>{{ item.surveyTitle }}</td>
                                 <td><span v-if="item.departmentName" class="dept-tag">{{ item.departmentName }}</span><span v-else>—</span></td>
                                 <td><span class="score-badge">{{ item.totalScore }} / {{ item.maxScore }}</span></td>
-                                <td><span :class="item.passed ? 'status-passed' : 'status-failed'">{{ item.passed ? 'Сдал' : 'Не сдал' }}</span></td>
+                                <td>
+                                    <span v-if="item.isSurvey" class="badge-survey">📋 Пройден</span>
+                                    <span v-else :class="item.passed ? 'status-passed' : 'status-failed'">{{ item.passed ? 'Сдал' : 'Не сдал' }}</span>
+                                </td>
                                 <td class="small">{{ formatDate(item.submittedAt) }}</td>
                             </tr>
                         </tbody>
@@ -205,7 +208,7 @@
             return users.value.filter(u => u.first_name?.toLowerCase().includes(q) || u.last_name?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q))
         })
 
-        const filteredResults = computed(() => {
+    const filteredResults = computed(() => {
         let res = [...allResults.value]
     
         // Фильтры
@@ -268,7 +271,7 @@
 
         const { data: responses } = await supabase
             .from('responses')
-            .select(`id, submitted_at, survey_id, user_id, surveys!inner(title, department_id, departments(name))`)
+            .select(`id, submitted_at, survey_id, user_id, surveys!inner(title, department_id, departments(name), is_survey)`)
             .order('submitted_at', { ascending: false })
 
         if (!responses) { loadingResults.value = false; return }
@@ -283,7 +286,7 @@
         // Загружаем вопросы с choices
         const { data: allQuestions } = await supabase
             .from('questions')
-            .select('id, question_type, survey_id, choices(id, is_correct)')
+            .select('id, question_type, no_evaluation, survey_id, choices(id, is_correct)')
             .in('survey_id', surveyIds)
 
         // Загружаем профили
@@ -301,7 +304,7 @@
             let maxScore = 0
 
             surveyQuestions.forEach(q => {
-                if (q.question_type === 'scale') return
+                if (q.question_type === 'scale' || q.no_evaluation) return
                 maxScore++
 
                 const ansList = respAnswers.filter(a => a.question_id === q.id)
@@ -334,7 +337,8 @@
                 submittedAt: resp.submitted_at,
                 totalScore,
                 maxScore,
-                passed
+                passed,
+                isSurvey: resp.surveys?.is_survey || false 
             }
         })
 
@@ -382,13 +386,13 @@
             loadingTemplates.value = false
        }
 
-        const deleteTemplate = async (id) => {
+    const deleteTemplate = async (id) => {
             if (!confirm('Удалить шаблон?')) return
             await supabase.from('templates').delete().eq('id', id)
             allTemplates.value = allTemplates.value.filter(t => t.id !== id)
         }
 
-        const editTemplate = (tmpl) => {
+    const editTemplate = (tmpl) => {
             // Редирект на создание шаблона с id
             router.push(`/edit-template/${tmpl.id}`)
         }
