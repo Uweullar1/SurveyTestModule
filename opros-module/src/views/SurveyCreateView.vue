@@ -74,6 +74,16 @@
             </div>
 
             <div class="setting-row">
+                <label>Предыдущий опрос (откроется только после его прохождения):</label>
+                <select v-model="survey.prerequisite_survey_id" class="dept-select">
+                    <option value="">Без ограничения</option>
+                    <option v-for="s in availablePrerequisites" :key="s.id" :value="s.id">
+                        {{ s.title }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="setting-row">
                 <label><input type="checkbox" v-model="survey.is_private"> Приватный опрос (доступен только по прямой ссылке)</label>
             </div>
             <div class="setting-row">
@@ -186,8 +196,10 @@
     import { notificationsService } from '../utils/notifications'
 
     const router = useRouter()
-    const route = useRoute() 
+    const route = useRoute()
 
+
+    const availablePrerequisites = ref([])
     const templates = ref([])
     const showTemplates = ref(false)
     const departments = ref([])
@@ -338,6 +350,7 @@
         survey.value.department_id = surveyData.department_id || ''
         survey.value.is_survey = !!surveyData.is_survey
         survey.value.is_for_interns = !!surveyData.is_for_interns
+        survey.value.prerequisite_survey_id = surveyData.prerequisite_survey_id || ''
 
         survey.value.questions = questionsData.map(q => {
             const questionChoices = choicesData
@@ -385,6 +398,15 @@
         }
 
         await loadDepartments()
+
+        const loadPrerequisites = async () => {
+            const { data } = await supabase
+                .from('surveys')
+                .select('id, title')
+                .eq('is_for_interns', true)
+                .order('created_at')
+            availablePrerequisites.value = data || []
+        }
 
         // === РЕДАКТИРОВАНИЕ ШАБЛОНА ===
         if (route.path.includes('/edit-template')) {
@@ -609,6 +631,8 @@
                 is_closed: !!survey.value.is_closed,
                 department_id: survey.value.department_id || null,
                 is_survey: !!survey.value.is_survey,
+                is_for_interns: !!survey.value.is_for_interns,
+                prerequisite_survey_id: survey.value.prerequisite_survey_id || null,
                 is_for_interns: !!survey.value.is_for_interns
             }
 
@@ -715,8 +739,9 @@
         } finally {
             loading.value = false
         }
-    }                   
+    }
 </script>
+
 
 
 <style scoped>
@@ -1254,6 +1279,7 @@
         opacity: 1;
         transform: translateX(0);
     }
+
     .required-check {
         display: flex;
         align-items: center;
@@ -1268,6 +1294,7 @@
         .required-check input {
             cursor: pointer;
         }
+
     @media (max-width: 600px) {
         .create-container {
             padding: 40px 12px;

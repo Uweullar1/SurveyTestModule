@@ -198,7 +198,6 @@
             const { data: depts } = await supabase.from('departments').select('*').order('name')
             departments.value = depts || []
 
-            // ОДИН запрос профиля со всеми нужными полями
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('department_id, can_create, is_intern')
@@ -216,24 +215,27 @@
                 .maybeSingle()
             isAdmin.value = !!adminCheck
 
-            // ОДИН запрос опросов
+            // ЗАГРУЖАЕМ responses ДО фильтрации
+            const { data: responses } = await supabase
+                .from('responses')
+                .select('survey_id')
+                .eq('user_id', user.value.id)
+            passedSurveyIds.value = (responses || []).map(r => r.survey_id)
+
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
             if (isIntern && userDepartmentId.value) {
-                // Стажер видит только опросы для стажеров своего департамента + свои
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else if (userDepartmentId.value) {
-                // Обычный сотрудник
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                // Кандидат без департамента
                 query = query.or(
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
@@ -244,8 +246,15 @@
             if (error) throw error
             surveys.value = data || []
 
-            const { data: responses } = await supabase.from('responses').select('survey_id').eq('user_id', user.value.id)
-            passedSurveyIds.value = (responses || []).map(r => r.survey_id)
+            // Фильтр для стажеров — скрываем если не пройден предыдущий
+            if (isIntern) {
+                const passedIds = (responses || []).map(r => r.survey_id)
+                surveys.value = surveys.value.filter(s => {
+                    if (!s.is_for_interns) return false
+                    if (!s.prerequisite_survey_id) return true
+                    return passedIds.includes(s.prerequisite_survey_id)
+                })
+            }
 
             filterSurveys()
         } catch (e) {
