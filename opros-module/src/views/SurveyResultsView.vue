@@ -114,8 +114,17 @@
                             </div>
                         </div>
 
+                        <div class="overall-feedback mt-4 p-3">
+                            <h5>Общий комментарий по прохождению</h5>
+                            <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
+                            <button @click="saveOverallFeedback" class="btn-save-final mt-2">💬 Отправить фидбек</button>
+                        </div>
+
                         <div class="publish-bottom">
-                            <button @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
+                            <div class="action-buttons">
+                                <button v-if="!isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
+                                <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
+                            </div>
                             <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
                                 <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
                                 СОХРАНИТЬ РЕЗУЛЬТАТЫ
@@ -150,6 +159,15 @@
     const profiles = ref({})
     const isSurvey = ref(false)
     const filterDate = ref('all')
+    const overallFeedback = ref('')
+
+
+    const saveOverallFeedback = async () => {
+        if (!overallFeedback.value.trim()) return alert('Введите комментарий')
+        await supabase.from('responses').update({ feedback: overallFeedback.value }).eq('id', selectedResponse.value.id)
+        alert('Фидбек отправлен!')
+        overallFeedback.value = ''
+    }
 
     onMounted(async () => {
         const surveyId = route.params.id
@@ -366,6 +384,38 @@
         link.href = URL.createObjectURL(blob)
         const period = filterDate.value === 'all' ? 'все' : filterDate.value
         link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}_${period}.csv`
+        link.click()
+    }
+
+    const exportInternFullData = async () => {
+        const resp = selectedResponse.value
+        if (!resp) return alert('Выберите участника')
+
+        // Загружаем все ответы этого пользователя на все опросы стажировки
+        const { data: allResponses } = await supabase
+            .from('responses')
+            .select('id, submitted_at, survey_id, surveys!inner(title)')
+            .eq('user_id', resp.user_id)
+            .order('submitted_at')
+
+        let csv = 'Опрос,Дата,Вопрос,Ответ\n'
+
+        for (const r of allResponses || []) {
+            const { data: answers } = await supabase
+                .from('answers')
+                .select('text_answer, scale_value, question_id, questions!inner(text)')
+                .eq('response_id', r.id)
+
+            for (const a of answers || []) {
+                const answer = a.text_answer || a.scale_value || '—'
+                csv += `"${r.surveys.title}","${formatDate(r.submitted_at)}","${a.questions.text}","${answer}"\n`
+            }
+        }
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `стажер_данные.csv`
         link.click()
     }
 
@@ -740,6 +790,29 @@
     }
 
         .btn-send-admin:hover {
+            background: #212844;
+            color: #F2C4CE;
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .btn-export-full {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-export-full:hover {
             background: #212844;
             color: #F2C4CE;
         }

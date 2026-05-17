@@ -66,6 +66,11 @@
                 </div>
             </div>
 
+            <div v-if="responseFeedback" class="overall-feedback-display mb-4 p-3">
+                <h5>💬 Комментарий проверяющего:</h5>
+                <p>{{ responseFeedback }}</p>
+            </div>
+
             <div class="publish-bottom">
                 <button @click="goBack" class="btn-back">
                     ← Вернуться в историю
@@ -88,6 +93,8 @@
     const allAnswers = ref([])
     const loading = ref(true)
     const isSurvey = ref(false)
+    const responseFeedback = ref('')
+
 
     const goBack = () => router.push('/my-history')
 
@@ -126,6 +133,14 @@
                 .select('*')
                 .eq('response_id', responseId)
             allAnswers.value = aData || []
+
+            const { data: respData } = await supabase
+                .from('responses')
+                .select('feedback')
+                .eq('id', responseId)
+                .single()
+            responseFeedback.value = respData?.feedback || ''
+
         } catch (err) {
             console.error('Ошибка загрузки:', err)
         } finally {
@@ -388,5 +403,17 @@
         color: #888;
         font-weight: 700;
         font-size: 0.8rem;
+    }
+
+    .overall-feedback {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 16px;
+    }
+
+    .overall-feedback-display {
+        background: #FDFDF1;
+        border: 2px solid #212844;
+        border-radius: 16px;
     }
 </style>
