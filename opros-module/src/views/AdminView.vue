@@ -149,6 +149,7 @@
     import { ref, onMounted, computed } from 'vue'
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
+    import { notificationsService } from '../utils/notifications'
 
     const router = useRouter()
     const activeTab = ref('users')
@@ -177,7 +178,16 @@
     const toggleIntern = async (profile) => {
         const newVal = !profile.is_intern
         const { error } = await supabase.from('profiles').update({ is_intern: newVal }).eq('id', profile.id)
-        if (!error) profile.is_intern = newVal
+        if (!error) {
+            profile.is_intern = newVal
+            if (newVal) {
+                await notificationsService.send(profile.id, 'Вы назначены стажером', {
+                    message: 'Вам открыт доступ к тестам для стажеров. Проверьте главную страницу.',
+                    icon: '🎓',
+                    link: '/'
+                })
+            }
+        }
     }
 
     const toggleSort = (field) => {

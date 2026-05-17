@@ -97,13 +97,14 @@ const loadMySurveys = async () => {
 
                 // Есть ли ответы с score = null (непроверенные)
                 const questionIds = textQuestions.map(q => q.id)
-                const { count } = await supabase
+                const { data: uncheckedAnswers } = await supabase
                     .from('answers')
-                    .select('*', { count: 'exact', head: true })
+                    .select('response_id')
                     .in('question_id', questionIds)
                     .is('score', null)
 
-                return { ...survey, needsCheck: count > 0, uncheckedCount: count || 0 }
+                const uniqueResponses = new Set((uncheckedAnswers || []).map(a => a.response_id))
+                return { ...survey, needsCheck: uniqueResponses.size > 0, uncheckedCount: uniqueResponses.size }
             }))
 
             mySurveys.value = enriched
