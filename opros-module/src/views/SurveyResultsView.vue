@@ -115,6 +115,7 @@
                         </div>
 
                         <div class="publish-bottom">
+                            <button @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
                             <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
                                 <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
                                 СОХРАНИТЬ РЕЗУЛЬТАТЫ
@@ -198,8 +199,6 @@
         }
     })
 
-
-    
 
     const allResponsesWithScores = computed(() => {
         let result = allResponses.value.map(resp => {
@@ -286,6 +285,13 @@
                     await supabase.from('answers').update({ score: item.passed ? 1 : 0, feedback: item.feedback || '' }).eq('id', item.id)
                 }
             }
+
+            // Общий фидбек по прохождению
+            const overallFeedback = prompt('Общий комментарий по прохождению (необязательно):', '')
+            if (overallFeedback) {
+                await supabase.from('responses').update({ feedback: overallFeedback }).eq('id', selectedResponse.value.id)
+            }
+
             alert('Результаты сохранены!')
             if (selectedResponse.value?.user_id) {
                 await notificationsService.send(selectedResponse.value.user_id, 'Ваш ответ проверен', {
@@ -361,6 +367,26 @@
         const period = filterDate.value === 'all' ? 'все' : filterDate.value
         link.download = `результаты_${surveyTitle.value.replace(/\s+/g, '_')}_${period}.csv`
         link.click()
+    }
+
+    const sendToAdmin = async () => {
+        if (!selectedResponse.value) return alert('Выберите участника')
+
+        // Отмечаем response как отправленный
+        await supabase.from('responses').update({ sent_to_admin: true }).eq('id', selectedResponse.value.id)
+
+        // Уведомление админам
+        const { data: admins } = await supabase.from('admins').select('user_id')
+        if (admins) {
+            for (const admin of admins) {
+                await notificationsService.send(admin.user_id, 'Кандидат на рассмотрение', {
+                    message: `Создатель отправил кандидата на согласование. Опрос: "${surveyTitle.value}"`,
+                    icon: '📤',
+                    link: `/results/${route.params.id}/admin`
+                })
+            }
+        }
+        alert('Отправлено руководителю!')
     }
 </script>
 
@@ -697,6 +723,23 @@
     }
 
         .export-btn:hover {
+            background: #212844;
+            color: #F2C4CE;
+        }
+
+    .btn-send-admin {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        padding: 12px 24px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-bottom: 12px;
+        margin-right: 12px;
+        transition: all 0.2s;
+    }
+
+        .btn-send-admin:hover {
             background: #212844;
             color: #F2C4CE;
         }

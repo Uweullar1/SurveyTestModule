@@ -335,6 +335,49 @@
                 return
             }
 
+            // Если это опрос для стажеров — проверяем, все ли пройдены
+            if (survey.value.is_for_interns && survey.value.department_id) {
+                const { data: internSurveys } = await supabase
+                    .from('surveys')
+                    .select('id')
+                    .eq('department_id', survey.value.department_id)
+                    .eq('is_for_interns', true)
+
+                const internSurveyIds = (internSurveys || []).map(s => s.id)
+
+                const { data: passedAll } = await supabase
+                    .from('responses')
+                    .select('survey_id')
+                    .eq('user_id', session.user.id)
+                    .in('survey_id', internSurveyIds)
+
+                const passedIds = [...new Set((passedAll || []).map(r => r.survey_id))]
+
+                if (passedIds.length === internSurveyIds.length && internSurveyIds.length > 0) {
+                    await notificationsService.send(session.user.id, 'Все тесты пройдены!', {
+                        message: 'Ваши ответы проверят в течение 3 рабочих дней. Мы свяжемся с вами.',
+                        icon: '✅',
+                        link: '/my-history'
+                    })
+
+                    const { data: deptCreators } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('department_id', survey.value.department_id)
+                        .eq('can_create', true)
+
+                    if (deptCreators) {
+                        for (const creator of deptCreators) {
+                            await notificationsService.send(creator.id, 'Стажер завершил все тесты', {
+                                message: 'Кандидат прошел все опросы стажировки. Требуется проверка.',
+                                icon: '🎓',
+                                link: `/results/${surveyId}/admin`
+                            })
+                        }
+                    }
+                }
+            }
+
             if (survey.value.is_survey) {
                 alert('Спасибо за прохождение опроса!')
                 router.push('/my-history')
