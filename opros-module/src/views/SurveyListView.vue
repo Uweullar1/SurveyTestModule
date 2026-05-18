@@ -198,15 +198,17 @@
             const { data: depts } = await supabase.from('departments').select('*').order('name')
             departments.value = depts || []
 
+            // ОДИН запрос профиля
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('department_id, can_create, is_intern')
+                .select('department_id, can_create, is_intern, education_completed')
                 .eq('id', user.value.id)
                 .single()
 
             userDepartmentId.value = profile?.department_id || null
             canCreate.value = profile?.can_create || false
             const isIntern = profile?.is_intern || false
+            const educationCompleted = profile?.education_completed || false
 
             const { data: adminCheck } = await supabase
                 .from('admins')
@@ -215,31 +217,33 @@
                 .maybeSingle()
             isAdmin.value = !!adminCheck
 
-            // ЗАГРУЖАЕМ responses ДО фильтрации
             const { data: responses } = await supabase
                 .from('responses')
                 .select('survey_id')
                 .eq('user_id', user.value.id)
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
+            // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-            if (profile?.education_completed && !profile?.department_id) {
-                query = query.or(`user_id.eq.${user.value.id}`)
-            }
-
-            if (isIntern && userDepartmentId.value) {
+            if (educationCompleted && !userDepartmentId.value && !canCreate.value) {
+                // Только что прошел анкету, ждет назначения — только свои
+                query = query.eq('user_id', user.value.id)
+            } else if (isIntern && userDepartmentId.value) {
+                // Стажер
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else if (userDepartmentId.value) {
+                // Обычный сотрудник
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
+                // Кандидат без департамента
                 query = query.or(
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
@@ -250,8 +254,7 @@
             if (error) throw error
             surveys.value = data || []
 
-
-            // Фильтр для стажеров — скрываем если не пройден предыдущий
+            // Фильтр для стажеров
             if (isIntern) {
                 const passedIds = (responses || []).map(r => r.survey_id)
                 surveys.value = surveys.value.filter(s => {
