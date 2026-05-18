@@ -66,10 +66,6 @@
 
     const formErrors = ref({})
 
-    onMounted(async () => {
-        const { data } = await supabase.from('departments').select('*').order('name')
-        departments.value = data || []
-    })
 
     const resetPassword = async () => {
         if (!resetEmail.value) return alert('Введите email')
