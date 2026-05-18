@@ -152,8 +152,9 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
-                        <div class="export-bar">
-                            <button @click="exportAllCandidates" class="export-btn" style="border-radius: 10px;">📥 Экспорт всех</button>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="results-count" style="border-bottom: none; padding: 0;">{{ hrCandidates.length }} кандидатов</div>
+                            <button @click="exportAllCandidates" class="export-btn">📥 Экспорт всех</button>
                         </div>
                     </div>
 
@@ -1116,4 +1117,10 @@
         justify-content: space-between;
         gap: 12px;
     }
+    .export-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
 </style>
