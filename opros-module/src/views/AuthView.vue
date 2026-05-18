@@ -16,9 +16,10 @@
 
                             <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
                             <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
+                            <input v-model="phone" type="tel" class="auth-input" placeholder="Номер телефона" />
                         </template>
 
-                        <input v-model="phone" type="tel" class="auth-input" placeholder="Номер телефона" />
+                        
 
                         <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
                         <div v-if="formErrors.email" class="error-message">{{ formErrors.email }}</div>
