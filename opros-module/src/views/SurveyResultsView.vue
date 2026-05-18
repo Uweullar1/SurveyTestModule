@@ -172,6 +172,8 @@
 
 
     const saveOverallFeedback = async () => {
+        console.log('Кнопка нажата, selectedResponse:', selectedResponse.value?.id)
+        console.log('overallFeedback:', overallFeedback.value)
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
         console.log('Сохраняю фидбек:', overallFeedback.value, 'для response:', selectedResponse.value?.id)
 
