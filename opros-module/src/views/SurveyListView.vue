@@ -224,6 +224,10 @@
 
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
+            if (profile?.education_completed && !profile?.department_id) {
+                query = query.or(`user_id.eq.${user.value.id}`)
+            }
+
             if (isIntern && userDepartmentId.value) {
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
@@ -245,6 +249,7 @@
             const { data, error } = await query
             if (error) throw error
             surveys.value = data || []
+
 
             // Фильтр для стажеров — скрываем если не пройден предыдущий
             if (isIntern) {

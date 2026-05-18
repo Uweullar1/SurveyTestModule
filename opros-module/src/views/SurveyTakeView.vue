@@ -300,20 +300,22 @@
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
-            // Если это анкета кандидата — отмечаем что заполнена
-            // Уведомление всем создателям и админам о новой анкете
             const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+
+            // === АНКЕТА КАНДИДАТА ===
             if (surveyId === ANKETA_ID) {
-                // Получаем всех создателей
-                const { data: creators } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('can_create', true)
+                await supabase.from('profiles').update({ education_completed: true }).eq('id', session.user.id)
 
-                // Получаем всех админов
+                // Уведомление кандидату
+                await notificationsService.send(session.user.id, 'Анкета отправлена!', {
+                    message: 'Ваша анкета будет рассмотрена в течение 3 рабочих дней. Мы свяжемся с вами.',
+                    icon: '📋',
+                    link: '/'
+                })
+
+                // Уведомление всем создателям и админам
+                const { data: creators } = await supabase.from('profiles').select('id').eq('can_create', true)
                 const { data: admins } = await supabase.from('admins').select('user_id')
-
-                // Объединяем id
                 const notifyIds = new Set()
                 creators?.forEach(c => notifyIds.add(c.id))
                 admins?.forEach(a => notifyIds.add(a.user_id))
@@ -327,15 +329,13 @@
                         })
                     }
                 }
-            }
 
-            if (surveyId === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c') {
                 alert('Анкета отправлена! Ожидайте дальнейших инструкций.')
                 router.push('/')
                 return
             }
 
-            // Если это опрос для стажеров — проверяем, все ли пройдены
+            // === ОПРОСЫ ДЛЯ СТАЖЕРОВ ===
             if (survey.value.is_for_interns && survey.value.department_id) {
                 const { data: internSurveys } = await supabase
                     .from('surveys')
@@ -344,7 +344,6 @@
                     .eq('is_for_interns', true)
 
                 const internSurveyIds = (internSurveys || []).map(s => s.id)
-
                 const { data: passedAll } = await supabase
                     .from('responses')
                     .select('survey_id')
@@ -378,6 +377,31 @@
                 }
             }
 
+            // === УВЕДОМЛЕНИЕ АДМИНАМ О ПРОХОЖДЕНИИ ===
+            const { data: admins } = await supabase.from('admins').select('user_id')
+            if (admins) {
+                for (const admin of admins) {
+                    if (admin.user_id !== session?.user?.id) {
+                        await notificationsService.send(admin.user_id, 'Новое прохождение опроса', {
+                            message: `Пользователь прошел опрос "${survey.value.title}"`,
+                            icon: '📋',
+                            link: `/results/${surveyId}/admin`
+                        })
+                    }
+                }
+            }
+
+            // === ТЕКСТОВЫЕ ВОПРОСЫ ===
+            const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
+            if (hasTextQuestions && session?.user?.id !== survey.value.user_id) {
+                await notificationsService.send(survey.value.user_id, 'Требуется проверка ответов', {
+                    message: `Новые ответы в опросе "${survey.value.title}"`,
+                    icon: '🔍',
+                    link: `/results/${surveyId}/admin`
+                })
+            }
+
+            // === РЕДИРЕКТ ===
             if (survey.value.is_survey) {
                 alert('Спасибо за прохождение опроса!')
                 router.push('/my-history')
