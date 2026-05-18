@@ -112,38 +112,35 @@
                 if (error) throw error
                 router.push('/')
             } else {
-            // Проверка уникальности телефона ДО регистрации
-            if (phone.value) {
-                const cleanedPhone = '+' + phone.value.replace(/\D/g, '')
-                const { data: existing } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('phone', cleanedPhone)
-                    .limit(1)
+                // Проверка уникальности телефона
+                if (phone.value) {
+                    const cleanedPhone = '+' + phone.value.replace(/\D/g, '')
+                    const { data: existing } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('phone', cleanedPhone)
+                        .limit(1)
 
-                if (existing && existing.length > 0) {
-                    alert('Пользователь с таким номером телефона уже зарегистрирован')
-                    return
+                    if (existing && existing.length > 0) {
+                        alert('Пользователь с таким номером телефона уже зарегистрирован')
+                        return
+                    }
                 }
-            }
 
                 const { data, error } = await supabase.auth.signUp({
                     email: email.value.trim(),
-                    password: password.value
+                    password: password.value,
+                    options: {
+                        data: {
+                            first_name: firstName.value.trim(),
+                            last_name: lastName.value.trim(),
+                            username: username.value.trim(),
+                            phone: phone.value ? '+' + phone.value.replace(/\D/g, '') : null
+                        }
+                    }
                 })
 
                 if (error) throw error
-
-                if (data.user) {
-                    await supabase.from('profiles').insert({
-                        id: data.user.id,
-                        first_name: firstName.value.trim(),
-                        last_name: lastName.value.trim(),
-                        username: username.value.trim(),
-                        phone: '+' + phone.value.replace(/\D/g, '') || null,
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
-                    })
-                }
 
                 // Автоматический вход после регистрации
                 const { error: loginError } = await supabase.auth.signInWithPassword({
