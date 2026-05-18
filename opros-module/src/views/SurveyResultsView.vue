@@ -172,39 +172,29 @@
 
 
     const saveOverallFeedback = async () => {
-            if (!overallFeedback.value.trim()) return alert('Введите комментарий')
+        if (!overallFeedback.value.trim()) return alert('Введите комментарий')
 
-            const respId = selectedResponse.value.id
-            console.log('ID:', respId)
-            console.log('Feedback text:', overallFeedback.value)
+        const respId = selectedResponse.value.id
+        console.log('ID:', respId)
+        console.log('Feedback text:', overallFeedback.value)
 
-            // Проверим, существует ли запись
-            const { data: checkData, error: checkError } = await supabase
-                .from('responses')
-                .select('id')
-                .eq('id', respId)
-                .single()
+        const { error } = await supabase.rpc('update_response_feedback', {
+            response_id: respId,
+            new_feedback: overallFeedback.value
+        })
 
-            console.log('Проверка записи:', checkData, checkError)
-
-        const { data, error } = await supabase
-            .from('responses')
-            .update({ feedback: overallFeedback.value })
-            .eq('id', respId)
-            .select()
-
-            console.log('Update результат:', data, 'Ошибка:', error)
+        console.log('RPC ошибка:', error)
 
         if (error) {
             alert('Ошибка: ' + error.message)
         } else {
-            console.log('Фидбек успешно сохранен!')
             existingFeedback.value = overallFeedback.value
             if (selectedResponse.value) {
                 selectedResponse.value.feedback = overallFeedback.value
             }
             alert('Фидбек отправлен!')
             overallFeedback.value = ''
+        }
 
             // Уведомление пользователю
             if (selectedResponse.value?.user_id) {
@@ -214,7 +204,6 @@
                     link: `/my-results/${selectedResponse.value.id}`
                 })
             }
-        }
     }
 
     onMounted(async () => {
