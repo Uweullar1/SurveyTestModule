@@ -174,6 +174,16 @@
     const saveOverallFeedback = async () => {
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
         await supabase.from('responses').update({ feedback: overallFeedback.value }).eq('id', selectedResponse.value.id)
+
+        // Уведомление пользователю
+        if (selectedResponse.value?.user_id) {
+            await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
+                message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
+                icon: '💬',
+                link: `/my-results/${selectedResponse.value.id}`
+            })
+        }
+
         alert('Фидбек отправлен!')
         overallFeedback.value = ''
     }
