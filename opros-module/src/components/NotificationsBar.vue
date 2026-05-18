@@ -152,7 +152,7 @@
         position: absolute;
         right: 0;
         top: 100%;
-        width: 340px;
+        width: 380px; /* Было 340px — чуть шире */
         max-height: 450px;
         overflow-y: auto;
         background: white;
@@ -228,9 +228,18 @@
         font-size: 0.75rem;
         color: #666;
         margin-top: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* Убираем обрезку */
+        white-space: normal; /* Было: nowrap */
+        overflow: visible; /* Было: hidden */
+        text-overflow: clip; /* Было: ellipsis */
+        word-wrap: break-word; /* Перенос длинных слов */
+        word-break: break-word; /* Запасной вариант */
+        line-height: 1.3; /* Чуть больше межстрочный */
+        max-height: 4em; /* Максимум ~3 строки */
+        overflow: hidden; /* Если всё же длинный текст — обрезаем */
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* Показывать максимум 3 строки */
+        -webkit-box-orient: vertical;
     }
 
     .notif-time {
