@@ -16,19 +16,9 @@
 
                             <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
                             <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
-
-                            <!-- Выбор департамента -->
-                            <div class="dept-select-wrapper">
-                                <select v-model="departmentId" class="auth-input auth-select">
-                                    <option value="">Без департамента (можно выбрать позже)</option>
-                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">
-                                        {{ dept.name }}
-                                    </option>
-                                </select>
-                                <span class="dept-arrow">▾</span>
-                            </div>
-                            <div v-if="formErrors.departmentId" class="error-message">{{ formErrors.departmentId }}</div>
                         </template>
+
+                        <input v-model="phone" type="tel" class="auth-input" placeholder="Номер телефона" />
 
                         <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
                         <div v-if="formErrors.email" class="error-message">{{ formErrors.email }}</div>
@@ -72,8 +62,7 @@
     const username = ref('')
     const email = ref('')
     const password = ref('')
-    const departmentId = ref('')
-    const departments = ref([])
+    const phone = ref('')
 
     const formErrors = ref({})
 
@@ -108,7 +97,6 @@
             formErrors.value.firstName = profileRules.firstName(firstName.value)
             formErrors.value.lastName = profileRules.lastName(lastName.value)
             formErrors.value.username = profileRules.username(username.value)
-
         }
 
         formErrors.value.email = profileRules.email(email.value)
@@ -128,6 +116,21 @@
                 if (error) throw error
                 router.push('/')
             } else {
+                // Проверка уникальности телефона
+                if (phone.value) {
+                    const cleanedPhone = phone.value.replace(/\D/g, '')
+                    const { data: existing } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('phone', cleanedPhone)
+                        .limit(1)
+
+                    if (existing && existing.length > 0) {
+                        alert('Пользователь с таким номером телефона уже зарегистрирован')
+                        return
+                    }
+                }
+
                 const { data, error } = await supabase.auth.signUp({
                     email: email.value.trim(),
                     password: password.value
@@ -141,25 +144,8 @@
                         first_name: firstName.value.trim(),
                         last_name: lastName.value.trim(),
                         username: username.value.trim(),
-                        department_id: departmentId.value || null,
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
-                    })
-                
-            } else {
-                const { data, error } = await supabase.auth.signUp({
-                    email: email.value.trim(),
-                    password: password.value
-                })
-
-                if (error) throw error
-
-                if (data.user) {
-                    await supabase.from('profiles').insert({
-                        id: data.user.id,
-                        first_name: firstName.value.trim(),
-                        last_name: lastName.value.trim(),
-                        username: username.value.trim(),
-                        department_id: departmentId.value || null,
+                        phone: phone.value.replace(/\D/g, '') || null,
+                        department_id: null,
                         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username.value || 'user'}`
                     })
                 }
@@ -176,9 +162,6 @@
                     alert('Регистрация прошла успешно! Теперь войдите.')
                     isLogin.value = true
                 }
-            }
-                alert('Регистрация прошла успешно!\nПроверьте почту для подтверждения аккаунта.')
-                isLogin.value = true
             }
         } catch (err) {
             alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'))
