@@ -150,17 +150,12 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="results-count" style="border-bottom: none; padding: 0;">{{ hrCandidates.length }} кандидатов</div>
-                            <button @click="exportAllCandidates" class="export-btn">📥 Экспорт всех</button>
-                        </div>
-                    </div>
-
                     <!-- Таблица кандидатов -->
                     <div class="results-table-wrapper">
-                        <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2" style="border-bottom: 1px solid #eee;">
+                            <span class="fw-bold" style="font-size: 0.85rem; color: #888;">{{ hrCandidates.length }} кандидатов</span>
+                            <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт всех</button>
+                        </div>
                         <table class="results-table">
                             <thead>
                                 <tr>
@@ -168,8 +163,9 @@
                                     <th>Телефон</th>
                                     <th>Департамент</th>
                                     <th>Анкета</th>
-                                    <th>Тесты (сдано/всего)</th>
+                                    <th>Тесты</th>
                                     <th>Статус</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -180,12 +176,12 @@
                                     <td>{{ c.anketaDone ? '✅' : '❌' }}</td>
                                     <td>{{ c.testsPassed }}/{{ c.testsTotal }}</td>
                                     <td>
-                                        <span v-if="c.allTestsCompleted" class="badge-survey">Тесты пройдены</span>
+                                        <span v-if="c.allTestsCompleted" class="badge-survey">Пройдены</span>
                                         <span v-else-if="c.anketaDone" class="status-failed">В процессе</span>
-                                        <span v-else class="status-failed">Анкета не пройдена</span>
+                                        <span v-else class="status-failed">Ожидает</span>
                                     </td>
                                     <td>
-                                        <button @click="exportCandidate(c)" class="btn-view-sm">📥</button>
+                                        <button @click="exportCandidate(c)" class="btn-view-sm" title="Экспорт данных кандидата">📥</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -1122,5 +1118,24 @@
         align-items: center;
         gap: 8px;
     }
+
+    .btn-export-sm {
+        height: 34px;
+        padding: 0 14px;
+        border: 2px solid #212844;
+        border-radius: 10px;
+        background: white;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: #212844;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+        .btn-export-sm:hover {
+            background: #212844;
+            color: #F2C4CE;
+        }
 
 </style>
