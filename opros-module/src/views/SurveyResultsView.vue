@@ -114,6 +114,32 @@
                             </div>
                         </div>
 
+                        <!-- ФОРМА ПРИНЯТИЯ НА СТАЖИРОВКУ (только для анкеты) -->
+                        <div v-if="isAnketa && !isAdmin" class="accept-section mt-4">
+                            <button v-if="!showAcceptForm"
+                                    @click="showAcceptForm = true"
+                                    class="btn-accept">
+                                ✅ Принять на стажировку
+                            </button>
+
+                            <div v-if="showAcceptForm" class="accept-form mt-3 p-4">
+                                <h5>Принять кандидата на стажировку</h5>
+                                <label>Выберите департамент:</label>
+                                <select v-model="internDepartmentId" class="dept-select mb-3">
+                                    <option value="">— выберите департамент —</option>
+                                    <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                </select>
+                                <div class="accept-actions">
+                                    <button @click="acceptIntern" class="btn-confirm" :disabled="!internDepartmentId">
+                                        ✅ Подтвердить и принять
+                                    </button>
+                                    <button @click="showAcceptForm = false" class="btn-cancel">
+                                        Отмена
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Админ видит фидбек создателя -->
                         <div v-if="isAdmin && existingFeedback" class="overall-feedback-display mt-4 p-3">
                             <h5>💬 Фидбек проверяющего:</h5>
@@ -129,13 +155,10 @@
 
                         <div class="publish-bottom">
                             <div class="action-buttons">
-                                <button v-if="isAnketa && !isAdmin" @click="acceptIntern" class="btn-accept">✅ Принять на стажировку</button>
                                 <button v-if="!isAnketa && !isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
                                 <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
                             </div>
-
                             <button v-if="!isAnketa" @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
-                                <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
                                 СОХРАНИТЬ РЕЗУЛЬТАТЫ
                             </button>
                         </div>
@@ -171,6 +194,10 @@
     const isSurvey = ref(false)
     const filterDate = ref('all')
     const overallFeedback = ref('')
+
+    const internDepartmentId = ref('')
+    const departments = ref([])
+    const showAcceptForm = ref(false)
 
 
     const saveOverallFeedback = async () => {
@@ -224,15 +251,22 @@
 
             const { data: qData } = await supabase
                 .from('questions')
-                .select ('id, text, question_type, no_evaluation, choices(id, text, is_correct)')
+                .select('id, text, question_type, no_evaluation, choices(id, text, is_correct)')
                 .eq('survey_id', surveyId)
                 .order('order')
             if (!qData) throw new Error('Questions not loaded')
             questions.value = qData
 
+            // ✅ Загружаем департаменты ВСЕГДА (вынесли до проверки ответов)
+            const { data: depts } = await supabase
+                .from('departments')
+                .select('*')
+                .order('name')
+            departments.value = depts || []
+
             const { data: rData } = await supabase
                 .from('responses')
-                .select('*')  // здесь feedback уже должен быть, если есть колонка
+                .select('*')
                 .eq('survey_id', surveyId)
                 .order('submitted_at', { ascending: false })
             allResponses.value = rData || []
@@ -246,6 +280,7 @@
                         .in('id', userIds)
                     if (profilesData) profilesData.forEach(p => { profiles.value[p.id] = p })
                 }
+
                 const { data: { user } } = await supabase.auth.getUser()
                 const { data: adminCheck } = await supabase
                     .from('admins')
@@ -494,23 +529,19 @@
 
     const acceptIntern = async () => {
         if (!selectedResponse.value) return alert('Выберите кандидата')
+        if (!internDepartmentId.value) return alert('Выберите департамент')
 
         const userId = selectedResponse.value.user_id
 
-        const { data: myProfile } = await supabase
-            .from('profiles')
-            .select('department_id')
-            .eq('id', (await supabase.auth.getUser()).data.user.id)
-            .single()
-
-        if (!myProfile?.department_id) {
-            return alert('У вас не указан департамент. Обратитесь к администратору.')
-        }
-
-        await supabase.from('profiles').update({
-            department_id: myProfile.department_id,
+        const { error } = await supabase.from('profiles').update({
+            department_id: internDepartmentId.value,
             is_intern: true
         }).eq('id', userId)
+
+        if (error) {
+            console.error('Ошибка при назначении стажера:', error)
+            return alert('Ошибка: ' + error.message)
+        }
 
         await notificationsService.send(userId, 'Вы приняты на стажировку!', {
             message: 'Вам открыт доступ к тестам. Проверьте главную страницу.',
@@ -519,6 +550,15 @@
         })
 
         alert('Кандидат принят на стажировку!')
+
+        // ✅ Сбрасываем форму
+        showAcceptForm.value = false
+        internDepartmentId.value = ''
+
+        // ✅ Обновляем данные пользователя в таблице
+        if (profiles.value[userId]) {
+            profiles.value[userId].is_intern = true
+        }
     }
 
 </script>
@@ -927,6 +967,63 @@
 
         .btn-accept:hover {
             background: #198754;
+            color: white;
+        }
+
+    .accept-form {
+        background: white;
+        border: 2px solid #198754;
+        border-radius: 16px;
+    }
+
+        .accept-form h5 {
+            color: #198754;
+            font-weight: 800;
+        }
+
+    .accept-section {
+        margin-top: 20px;
+    }
+
+    .accept-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .btn-confirm {
+        background: #198754;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-confirm:hover {
+            background: #157347;
+        }
+
+        .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .btn-cancel {
+        background: white;
+        border: 2px solid #dc3545;
+        color: #dc3545;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-cancel:hover {
+            background: #dc3545;
             color: white;
         }
 </style>
