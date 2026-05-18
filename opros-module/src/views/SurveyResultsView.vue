@@ -187,10 +187,11 @@
 
             console.log('Проверка записи:', checkData, checkError)
 
-            const { data, error } = await supabase
-                .from('responses')
-                .update({ feedback: overallFeedback.value })
-                .eq('id', respId)
+        const { data, error } = await supabase
+            .from('responses')
+            .update({ feedback: overallFeedback.value })
+            .eq('id', respId)
+            .select()
 
             console.log('Update результат:', data, 'Ошибка:', error)
 
