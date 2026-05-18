@@ -115,7 +115,9 @@
                                 <td><span class="score-badge">{{ item.totalScore }} / {{ item.maxScore }}</span></td>
                                 <td>
                                     <span v-if="item.isSurvey" class="badge-survey">📋 Пройден</span>
-                                    <span v-else :class="item.passed ? 'status-passed' : 'status-failed'">{{ item.passed ? 'Сдал' : 'Не сдал' }}</span>
+                                    <span v-else :class="item.passed ? 'status-passed' : 'status-failed'">
+                                        {{ item.passed ? 'Сдал' : 'Не сдал' }}
+                                    </span>
                                 </td>
                                 <td class="small">{{ formatDate(item.submittedAt) }}</td>
                             </tr>
