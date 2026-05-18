@@ -451,7 +451,10 @@
             .from('profiles')
             .select('id, first_name, last_name, username, avatar_url, department_id, can_create, is_intern')
             .order('last_name')
-        users.value = profiles || []
+        users.value = (profiles || []).map(p => ({
+            ...p,
+            department_id: p.department_id || ''
+        }))
         loadingUsers.value = false
         const { data: admins } = await supabase
             .from('admins')
