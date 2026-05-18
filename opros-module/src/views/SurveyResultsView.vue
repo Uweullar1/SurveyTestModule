@@ -256,26 +256,26 @@
 
     onMounted(async () => {
         const surveyId = route.params.id
-        console.log('Current survey ID:', surveyId)  // Отладка
-        console.log('Is anketa?:', surveyId === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')  // Отладка
+        console.log('Current survey ID:', surveyId)
 
         if (!surveyId) { loading.value = false; return }
 
         try {
             loading.value = true
 
-            // Проверяем роль пользователя
+            // Получаем текущего АВТОРИЗОВАННОГО пользователя
             const { data: { user } } = await supabase.auth.getUser()
+
             if (user) {
-                const { data: profile } = await supabase
+                // Проверяем профиль ТЕКУЩЕГО пользователя
+                const { data: currentProfile } = await supabase
                     .from('profiles')
-                    .select('role, department_id')  // Добавил department_id для отладки
+                    .select('role')
                     .eq('id', user.id)
                     .single()
 
-                console.log('User profile:', profile)  // Отладка
-                isCreator.value = profile?.role === 'creator'
-                console.log('isCreator:', isCreator.value)  // Отладка
+                console.log('Current user profile:', currentProfile)
+                isCreator.value = currentProfile?.role === 'creator'
             }
 
             const { data: sData } = await supabase
