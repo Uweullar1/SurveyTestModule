@@ -148,10 +148,6 @@
                             <div class="stat-label">Прошли все тесты</div>
                             <div class="stat-value">{{ hrStats.allTestsCompleted }}</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Отправлено руководителю</div>
-                            <div class="stat-value">{{ hrStats.sentToAdmin }}</div>
-                        </div>
                     </div>
 
                     <!-- Таблица кандидатов -->
@@ -176,9 +172,9 @@
                                     <td>{{ c.anketaDone ? '✅' : '❌' }}</td>
                                     <td>{{ c.testsPassed }}/{{ c.testsTotal }}</td>
                                     <td>
-                                        <span v-if="c.sentToAdmin" class="status-passed">На рассмотрении</span>
-                                        <span v-else-if="c.allTestsCompleted" class="badge-survey">Тесты пройдены</span>
-                                        <span v-else class="status-failed">В процессе</span>
+                                        <span v-if="c.allTestsCompleted" class="badge-survey">Тесты пройдены</span>
+                                        <span v-else-if="c.anketaDone" class="status-failed">В процессе</span>
+                                        <span v-else class="status-failed">Анкета не пройдена</span>
                                     </td>
                                 </tr>
                             </tbody>
