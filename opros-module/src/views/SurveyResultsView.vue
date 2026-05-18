@@ -550,8 +550,6 @@
         alert('Отправлено руководителю!')
     }
 
-    const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
-
     const acceptIntern = async () => {
         if (!selectedResponse.value) return alert('Выберите кандидата')
         if (!internDepartmentId.value) return alert('Выберите департамент')
