@@ -172,18 +172,27 @@
 
 
     const saveOverallFeedback = async () => {
-        if (!overallFeedback.value.trim()) return alert('Введите комментарий')
+            if (!overallFeedback.value.trim()) return alert('Введите комментарий')
 
-        const respId = selectedResponse.value.id
-        console.log('ID для обновления:', respId)
+            const respId = selectedResponse.value.id
+            console.log('ID:', respId)
+            console.log('Feedback text:', overallFeedback.value)
 
-        const { data, error } = await supabase
-            .from('responses')
-            .update({ feedback: overallFeedback.value })
-            .eq('id', respId)
+            // Проверим, существует ли запись
+            const { data: checkData, error: checkError } = await supabase
+                .from('responses')
+                .select('id')
+                .eq('id', respId)
+                .single()
 
-        console.log('Результат update:', data)
-        console.log('Ошибка update:', error)
+            console.log('Проверка записи:', checkData, checkError)
+
+            const { data, error } = await supabase
+                .from('responses')
+                .update({ feedback: overallFeedback.value })
+                .eq('id', respId)
+
+            console.log('Update результат:', data, 'Ошибка:', error)
 
         if (error) {
             alert('Ошибка: ' + error.message)
