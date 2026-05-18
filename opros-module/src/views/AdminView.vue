@@ -1018,4 +1018,46 @@
         font-size: 0.8rem;
         color: #888;
     }
+
+    /* HR-Отчеты */
+    .stats-row {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        flex: 1;
+        min-width: 160px;
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 16px;
+        padding: 16px;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 4px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #212844;
+    }
+
+    .stat-value-small {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .dept-stat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
 </style>
