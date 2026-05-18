@@ -18,7 +18,6 @@
 
             <div v-else>
 
-
                 <!-- СВОДНАЯ ТАБЛИЦА -->
                 <div class="summary-table-wrapper mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -83,107 +82,107 @@
                     <div class="user-info-header mb-4">
                         <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
                         <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
+
+                        <!-- ОТЛАДКА: потом удалить -->
+                        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
+                            Debug: isAnketa={{ isAnketa }}, isCreator={{ isCreator }}, isAdmin={{ isAdmin }}
+                        </div>
                     </div>
 
-                    <!-- ОТЛАДКА: потом удалить -->
-                    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
-                        Debug: isAnketa={{ isAnketa }}, isCreator={{ isCreator }}, isAdmin={{ isAdmin }}
+                    <div v-for="q in questions" :key="q.id" class="question-block mb-4">
+                        <h5 class="question-heading mb-2">{{ q.text }}</h5>
+
+                        <div class="answer-display mb-2">
+                            <div class="answer-label">Ответ пользователя:</div>
+                            <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
+                        </div>
+
+                        <div v-if="!isSurvey && !q.no_evaluation && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-3">
+                            <div class="answer-label">Правильный ответ:</div>
+                            <div class="answer-text correct">{{ getCorrectAnswers(q) }}</div>
+                        </div>
+
+                        <div v-if="q.question_type === 'text' && !isSurvey" class="eval-box mt-2 p-3">
+                            <div class="eval-row">
+                                <label class="eval-check">
+                                    <input type="checkbox" v-model="editData[q.id].passed">
+                                    <span class="eval-check-text">Зачтено</span>
+                                </label>
+                                <div class="eval-comment">
+                                    <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий...">
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="!isSurvey && q.question_type !== 'text'" class="auto-status mt-1">
+                            <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
+                        </div>
                     </div>
-                </div>
 
-                <div v-for="q in questions" :key="q.id" class="question-block mb-4">
-                    <h5 class="question-heading mb-2">{{ q.text }}</h5>
+                    <!-- ФОРМА ПРИНЯТИЯ НА СТАЖИРОВКУ -->
+                    <div v-if="isAnketa && isCreator && !isAdmin" class="accept-section mt-4">
+                        <button v-if="!showAcceptForm"
+                                @click="showAcceptForm = true"
+                                class="btn-accept">
+                            ✅ Принять на стажировку
+                        </button>
 
-                    <div class="answer-display mb-2">
-                        <div class="answer-label">Ответ пользователя:</div>
-                        <div class="answer-text">{{ formatAnswer(q, selectedResponse.id) }}</div>
-                    </div>
+                        <div v-if="showAcceptForm" class="accept-form mt-3 p-4">
+                            <h5>🎓 Принять кандидата на стажировку</h5>
+                            <p class="text-muted mb-3">Выберите департамент, в который будет зачислен стажер:</p>
 
-                    <div v-if="!isSurvey && !q.no_evaluation && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mb-3">
-                        <div class="answer-label">Правильный ответ:</div>
-                        <div class="answer-text correct">{{ getCorrectAnswers(q) }}</div>
-                    </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold">Департамент:</label>
+                                <select v-model="internDepartmentId"
+                                        class="form-select dept-select">
+                                    <option value="">— выберите департамент —</option>
+                                    <option v-for="d in departments"
+                                            :key="d.id"
+                                            :value="d.id">
+                                        {{ d.name }}
+                                    </option>
+                                </select>
+                            </div>
 
-                    <div v-if="q.question_type === 'text' && !isSurvey" class="eval-box mt-2 p-3">
-                        <div class="eval-row">
-                            <label class="eval-check">
-                                <input type="checkbox" v-model="editData[q.id].passed">
-                                <span class="eval-check-text">Зачтено</span>
-                            </label>
-                            <div class="eval-comment">
-                                <input type="text" v-model="editData[q.id].feedback" class="eval-input" placeholder="Комментарий...">
+                            <div class="accept-actions">
+                                <button @click="acceptIntern"
+                                        class="btn-confirm"
+                                        :disabled="!internDepartmentId">
+                                    ✅ Подтвердить и принять
+                                </button>
+                                <button @click="showAcceptForm = false; internDepartmentId = ''"
+                                        class="btn-cancel">
+                                    Отмена
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <div v-if="!isSurvey && q.question_type !== 'text'" class="auto-status mt-1">
-                        <i class="bi bi-patch-check-fill text-success"></i> Проверено автоматически
+
+                    <!-- Админ видит фидбек создателя -->
+                    <div v-if="isAdmin && existingFeedback" class="overall-feedback-display mt-4 p-3">
+                        <h5>💬 Фидбек проверяющего:</h5>
+                        <p>{{ existingFeedback }}</p>
                     </div>
-                </div>
 
-                <!-- ФОРМА ПРИНЯТИЯ НА СТАЖИРОВКУ -->
-                <div v-if="isAnketa && isCreator && !isAdmin && selectedResponse" class="accept-section mt-4">
-                    <button v-if="!showAcceptForm"
-                            @click="showAcceptForm = true"
-                            class="btn-accept">
-                        ✅ Принять на стажировку
-                    </button>
+                    <!-- Создатель может оставить фидбек -->
+                    <div v-if="!isAdmin" class="overall-feedback mt-4 p-3">
+                        <h5>Общий комментарий по прохождению</h5>
+                        <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
+                        <button @click="saveOverallFeedback" class="btn-save-final mt-2">💬 Отправить фидбек</button>
+                    </div>
 
-                    <div v-if="showAcceptForm" class="accept-form mt-3 p-4">
-                        <h5>🎓 Принять кандидата на стажировку</h5>
-                        <p class="text-muted mb-3">Выберите департамент, в который будет зачислен стажер:</p>
-
-                        <div class="form-group mb-3">
-                            <label class="form-label fw-bold">Департамент:</label>
-                            <select v-model="internDepartmentId"
-                                    class="form-select dept-select">
-                                <option value="">— выберите департамент —</option>
-                                <option v-for="d in departments"
-                                        :key="d.id"
-                                        :value="d.id">
-                                    {{ d.name }}
-                                </option>
-                            </select>
+                    <div class="publish-bottom">
+                        <div class="action-buttons">
+                            <button v-if="!isAnketa && !isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
+                            <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
                         </div>
-
-                        <div class="accept-actions">
-                            <button @click="acceptIntern"
-                                    class="btn-confirm"
-                                    :disabled="!internDepartmentId">
-                                ✅ Подтвердить и принять
-                            </button>
-                            <button @click="showAcceptForm = false; internDepartmentId = ''"
-                                    class="btn-cancel">
-                                Отмена
-                            </button>
-                        </div>
+                        <button v-if="!isAnketa" @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
+                            СОХРАНИТЬ РЕЗУЛЬТАТЫ
+                        </button>
                     </div>
-                </div>
-
-                <!-- Админ видит фидбек создателя -->
-                <div v-if="isAdmin && existingFeedback" class="overall-feedback-display mt-4 p-3">
-                    <h5>💬 Фидбек проверяющего:</h5>
-                    <p>{{ existingFeedback }}</p>
-                </div>
-
-                <!-- Создатель может оставить фидбек -->
-                <div v-if="!isAdmin" class="overall-feedback mt-4 p-3">
-                    <h5>Общий комментарий по прохождению</h5>
-                    <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
-                    <button @click="saveOverallFeedback" class="btn-save-final mt-2">💬 Отправить фидбек</button>
-                </div>
-
-                <div class="publish-bottom">
-                    <div class="action-buttons">
-                        <button v-if="!isAnketa && !isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
-                        <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
-                    </div>
-                    <button v-if="!isAnketa" @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
-                        СОХРАНИТЬ РЕЗУЛЬТАТЫ
-                    </button>
                 </div>
             </div>
-                </div>
         </div>
+    </div>
 </template>
 
 <script setup>
