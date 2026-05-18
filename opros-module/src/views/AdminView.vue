@@ -150,6 +150,13 @@
                         </div>
                     </div>
 
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
+                        <div class="export-bar">
+                            <button @click="exportAllCandidates" class="export-btn" style="border-radius: 10px;">📥 Экспорт всех</button>
+                        </div>
+                    </div>
+
                     <!-- Таблица кандидатов -->
                     <div class="results-table-wrapper">
                         <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
@@ -175,6 +182,9 @@
                                         <span v-if="c.allTestsCompleted" class="badge-survey">Тесты пройдены</span>
                                         <span v-else-if="c.anketaDone" class="status-failed">В процессе</span>
                                         <span v-else class="status-failed">Анкета не пройдена</span>
+                                    </td>
+                                    <td>
+                                        <button @click="exportCandidate(c)" class="btn-view-sm">📥</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -247,6 +257,56 @@
         sentToAdmin: 0
     })
 
+
+
+    const exportAllCandidates = () => {
+        const headers = ['Кандидат', 'Телефон', 'Департамент', 'Анкета', 'Тесты', 'Статус']
+        const rows = hrCandidates.value.map(c => [
+            c.name,
+            c.phone || '—',
+            c.department,
+            c.anketaDone ? 'Пройдена' : 'Не пройдена',
+            `${c.testsPassed}/${c.testsTotal}`,
+            c.allTestsCompleted ? 'Тесты пройдены' : 'В процессе'
+        ])
+
+        let csv = headers.join(',') + '\n'
+        rows.forEach(row => csv += row.map(cell => `"${cell}"`).join(',') + '\n')
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = 'hr_кандидаты.csv'
+        link.click()
+    }
+
+    const exportCandidate = async (candidate) => {
+        // Загружаем все ответы кандидата
+        const { data: allResp } = await supabase
+            .from('responses')
+            .select('id, submitted_at, survey_id, surveys!inner(title)')
+            .eq('user_id', candidate.id)
+            .order('submitted_at')
+
+        let csv = 'Опрос,Дата,Вопрос,Ответ\n'
+
+        for (const r of allResp || []) {
+            const { data: answers } = await supabase
+                .from('answers')
+                .select('text_answer, scale_value, question_id, questions!inner(text)')
+                .eq('response_id', r.id)
+
+            for (const a of answers || []) {
+                csv += `"${r.surveys.title}","${new Date(r.submitted_at).toLocaleDateString('ru-RU')}","${a.questions.text}","${a.text_answer || a.scale_value || '—'}"\n`
+            }
+        }
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `кандидат_${candidate.name.replace(/\s+/g, '_')}.csv`
+        link.click()
+    }
 
     const loadHRData = async () => {
         loadingHR.value = true
