@@ -83,12 +83,6 @@
                         <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
                         <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
 
-                        <!-- ОТЛАДКА: потом удалить -->
-                        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
-                            Debug: isAnketa={{ isAnketa }}, isCreator={{ isCreator }}, isAdmin={{ isAdmin }}
-                        </div>
-                    </div>
-
                     <div v-for="q in questions" :key="q.id" class="question-block mb-4">
                         <h5 class="question-heading mb-2">{{ q.text }}</h5>
 
@@ -216,6 +210,7 @@
     const departments = ref([])
     const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
     const isCreator = ref(false)
+    const selectedDeptForIntern = ref('')
 
 
 
@@ -294,10 +289,7 @@
             questions.value = qData
 
             // Загружаем департаменты ВСЕГДА
-            const { data: depts } = await supabase
-                .from('departments')
-                .select('*')
-                .order('name')
+            const { data: depts } = await supabase.from('departments').select('*').order('name')
             departments.value = depts || []
 
             const { data: rData } = await supabase
@@ -562,38 +554,26 @@
 
     const acceptIntern = async () => {
         if (!selectedResponse.value) return alert('Выберите кандидата')
-        if (!internDepartmentId.value) return alert('Выберите департамент')
+        if (!selectedDeptForIntern.value) return alert('Выберите департамент')
 
         const userId = selectedResponse.value.user_id
-        const selectedDept = departments.value.find(d => d.id === internDepartmentId.value)
 
-        const { error } = await supabase.from('profiles').update({
-            department_id: internDepartmentId.value,
+        await supabase.from('profiles').update({
+            department_id: selectedDeptForIntern.value,
             is_intern: true
         }).eq('id', userId)
 
-        if (error) {
-            console.error('Ошибка при назначении стажера:', error)
-            return alert('Ошибка: ' + error.message)
-        }
+        // Получаем название департамента для уведомления
+        const deptName = departments.value.find(d => d.id === selectedDeptForIntern.value)?.name || 'выбранный департамент'
 
         await notificationsService.send(userId, 'Вы приняты на стажировку!', {
-            message: `Вы зачислены в департамент "${selectedDept?.name}". Вам открыт доступ к тестам.`,
+            message: `Вы назначены стажером в департамент "${deptName}". Открыт доступ к тестам.`,
             icon: '🎓',
             link: '/'
         })
 
-        alert(`Кандидат успешно принят на стажировку в департамент "${selectedDept?.name}"!`)
-
-        // Сбрасываем форму
-        showAcceptForm.value = false
-        internDepartmentId.value = ''
-
-        // Обновляем данные пользователя в интерфейсе
-        if (profiles.value[userId]) {
-            profiles.value[userId].is_intern = true
-            profiles.value[userId].department_id = internDepartmentId.value
-        }
+        alert('Кандидат принят на стажировку!')
+        selectedDeptForIntern.value = ''
     }
 
 </script>
