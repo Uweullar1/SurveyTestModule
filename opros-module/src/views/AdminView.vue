@@ -35,7 +35,7 @@
                             <div class="dept-mini">
                                 <div class="dept-select-wrap">
                                     <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
-                                        <option :value="">Без департамента</option>
+                                        <option value="">Без департамента</option>
                                         <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                                     </select>
                                     <span class="dept-arrow">▾</span>
