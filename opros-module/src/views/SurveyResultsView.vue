@@ -129,7 +129,7 @@
 
                         <div class="publish-bottom">
                             <div class="action-buttons">
-                                <button v-if="!isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
+                                <button v-if="!isAdmin" @click="sendToAdmin"  class="btn-send-admin" >📤 На рассмотрение руководителю</button>
                                 <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
                             </div>
                             <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
@@ -155,7 +155,7 @@
     const sortField = ref('score') // 'score' | 'name' | 'date'
     const sortOrder = ref('desc') // 'asc' | 'desc'
 
-
+    const isAdmin = ref(false)
     const existingFeedback = ref('')
     const loading = ref(true)
     const submitting = ref(false)
@@ -202,7 +202,7 @@
 
             const { data: rData } = await supabase
                 .from('responses')
-                .select('*')
+                .select('*')  // здесь feedback уже должен быть, если есть колонка
                 .eq('survey_id', surveyId)
                 .order('submitted_at', { ascending: false })
             allResponses.value = rData || []
@@ -211,12 +211,31 @@
                 const userIds = [...new Set(allResponses.value.map(r => r.user_id).filter(Boolean))]
                 if (userIds.length > 0) {
                     const { data: profilesData } = await supabase
-                        .from('profiles').select('id, first_name, last_name').in('id', userIds)
+                        .from('profiles')
+                        .select('id, first_name, last_name')
+                        .in('id', userIds)
                     if (profilesData) profilesData.forEach(p => { profiles.value[p.id] = p })
                 }
+                const { data: { user } } = await supabase.auth.getUser()
+                const { data: adminCheck } = await supabase
+                    .from('admins')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle()
+                isAdmin.value = !!adminCheck
+
                 const respIds = allResponses.value.map(r => r.id)
-                const { data: aData } = await supabase.from('answers').select('*').in('response_id', respIds)
+                const { data: aData } = await supabase
+                    .from('answers')
+                    .select('*')
+                    .in('response_id', respIds)
                 allAnswers.value = aData || []
+            }
+
+            const selectedUserId = route.query.user
+            if (selectedUserId && allResponses.value.length > 0) {
+                const resp = allResponsesWithScores.value.find(r => r.user_id === selectedUserId)
+                if (resp) selectUser(resp)
             }
         } catch (err) {
             console.error("Ошибка загрузки:", err.message)
@@ -426,22 +445,21 @@
     const sendToAdmin = async () => {
         if (!selectedResponse.value) return alert('Выберите участника')
 
-        // Отмечаем response как отправленный
         await supabase.from('responses').update({ sent_to_admin: true }).eq('id', selectedResponse.value.id)
 
-        // Уведомление админам
         const { data: admins } = await supabase.from('admins').select('user_id')
         if (admins) {
             for (const admin of admins) {
                 await notificationsService.send(admin.user_id, 'Кандидат на рассмотрение', {
                     message: `Создатель отправил кандидата на согласование. Опрос: "${surveyTitle.value}"`,
                     icon: '📤',
-                    link: `/results/${route.params.id}/admin`
+                    link: `/results/${route.params.id}/admin?user=${selectedResponse.value.user_id}`
                 })
             }
         }
         alert('Отправлено руководителю!')
     }
+
 </script>
 
 <style scoped>

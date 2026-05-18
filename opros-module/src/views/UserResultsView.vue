@@ -48,7 +48,7 @@
                 </div>
 
                 <!-- Фидбек для текстовых -->
-                <div v-if="q?.question_type === 'text' && !isSurvey" class="feedback-block mt-3 p-3">
+               <!-- <div v-if="q?.question_type === 'text' && !isSurvey" class="feedback-block mt-3 p-3">
                     <div class="feedback-header">
                         <span class="feedback-label">Комментарий проверяющего</span>
                     </div>
@@ -61,8 +61,7 @@
                     <div class="feedback-text" v-else-if="getFeedback(q)">
                         «{{ getFeedback(q) }}»
                     </div>
-                </div>
-
+                </div>-->
                 <!-- Правильный ответ (для выбора) -->
                 <div v-if="!isSurvey && !q.no_evaluation && (q.question_type === 'radio' || q.question_type === 'checkbox')" class="correct-answer mt-2">
                     <strong>Правильный ответ:</strong> {{ getCorrectAnswerText(q) }}
