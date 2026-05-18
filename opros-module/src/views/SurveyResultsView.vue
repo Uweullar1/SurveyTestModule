@@ -114,8 +114,8 @@
                             </div>
                         </div>
 
-                        <!-- ФОРМА ПРИНЯТИЯ НА СТАЖИРОВКУ (только для анкеты) -->
-                        <div v-if="isAnketa && !isAdmin" class="accept-section mt-4">
+                        <!-- ФОРМА ПРИНЯТИЯ НА СТАЖИРОВКУ (только для анкеты и только для создателей) -->
+                        <div v-if="isAnketa && isCreator && !isAdmin" class="accept-section mt-4">
                             <button v-if="!showAcceptForm"
                                     @click="showAcceptForm = true"
                                     class="btn-accept">
@@ -123,17 +123,30 @@
                             </button>
 
                             <div v-if="showAcceptForm" class="accept-form mt-3 p-4">
-                                <h5>Принять кандидата на стажировку</h5>
-                                <label>Выберите департамент:</label>
-                                <select v-model="internDepartmentId" class="dept-select mb-3">
-                                    <option value="">— выберите департамент —</option>
-                                    <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
-                                </select>
+                                <h5>🎓 Принять кандидата на стажировку</h5>
+                                <p class="text-muted mb-3">Выберите департамент, в который будет зачислен стажер:</p>
+
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Департамент:</label>
+                                    <select v-model="internDepartmentId"
+                                            class="form-select dept-select">
+                                        <option value="">— выберите департамент —</option>
+                                        <option v-for="d in departments"
+                                                :key="d.id"
+                                                :value="d.id">
+                                            {{ d.name }}
+                                        </option>
+                                    </select>
+                                </div>
+
                                 <div class="accept-actions">
-                                    <button @click="acceptIntern" class="btn-confirm" :disabled="!internDepartmentId">
+                                    <button @click="acceptIntern"
+                                            class="btn-confirm"
+                                            :disabled="!internDepartmentId">
                                         ✅ Подтвердить и принять
                                     </button>
-                                    <button @click="showAcceptForm = false" class="btn-cancel">
+                                    <button @click="showAcceptForm = false; internDepartmentId = ''"
+                                            class="btn-cancel">
                                         Отмена
                                     </button>
                                 </div>
@@ -194,10 +207,13 @@
     const isSurvey = ref(false)
     const filterDate = ref('all')
     const overallFeedback = ref('')
-
+    const showAcceptForm = ref(false)
     const internDepartmentId = ref('')
     const departments = ref([])
     const showAcceptForm = ref(false)
+    const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
+    const isCreator = ref(false) // Добавь для проверки роли создателя
+
 
 
     const saveOverallFeedback = async () => {
@@ -242,6 +258,17 @@
         try {
             loading.value = true
 
+            // Проверяем роль пользователя
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+                isCreator.value = profile?.role === 'creator'
+            }
+
             const { data: sData } = await supabase
                 .from('surveys')
                 .select('title, is_survey')
@@ -257,7 +284,7 @@
             if (!qData) throw new Error('Questions not loaded')
             questions.value = qData
 
-            // ✅ Загружаем департаменты ВСЕГДА (вынесли до проверки ответов)
+            // Загружаем департаменты ВСЕГДА
             const { data: depts } = await supabase
                 .from('departments')
                 .select('*')
@@ -281,7 +308,6 @@
                     if (profilesData) profilesData.forEach(p => { profiles.value[p.id] = p })
                 }
 
-                const { data: { user } } = await supabase.auth.getUser()
                 const { data: adminCheck } = await supabase
                     .from('admins')
                     .select('user_id')
@@ -532,6 +558,7 @@
         if (!internDepartmentId.value) return alert('Выберите департамент')
 
         const userId = selectedResponse.value.user_id
+        const selectedDept = departments.value.find(d => d.id === internDepartmentId.value)
 
         const { error } = await supabase.from('profiles').update({
             department_id: internDepartmentId.value,
@@ -544,20 +571,21 @@
         }
 
         await notificationsService.send(userId, 'Вы приняты на стажировку!', {
-            message: 'Вам открыт доступ к тестам. Проверьте главную страницу.',
+            message: `Вы зачислены в департамент "${selectedDept?.name}". Вам открыт доступ к тестам.`,
             icon: '🎓',
             link: '/'
         })
 
-        alert('Кандидат принят на стажировку!')
+        alert(`Кандидат успешно принят на стажировку в департамент "${selectedDept?.name}"!`)
 
-        // ✅ Сбрасываем форму
+        // Сбрасываем форму
         showAcceptForm.value = false
         internDepartmentId.value = ''
 
-        // ✅ Обновляем данные пользователя в таблице
+        // Обновляем данные пользователя в интерфейсе
         if (profiles.value[userId]) {
             profiles.value[userId].is_intern = true
+            profiles.value[userId].department_id = internDepartmentId.value
         }
     }
 
@@ -970,25 +998,53 @@
             color: white;
         }
 
+    .accept-section {
+        margin-top: 20px;
+        border-top: 2px solid #e9ecef;
+        padding-top: 20px;
+    }
+
     .accept-form {
         background: white;
         border: 2px solid #198754;
         border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(25, 135, 84, 0.1);
     }
 
         .accept-form h5 {
             color: #198754;
             font-weight: 800;
+            margin-bottom: 8px;
         }
 
-    .accept-section {
-        margin-top: 20px;
+    .dept-select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #212844;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
     }
+
+        .dept-select:focus {
+            outline: none;
+            border-color: #198754;
+            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1);
+        }
+
+        .dept-select option {
+            padding: 8px;
+            font-weight: 500;
+        }
 
     .accept-actions {
         display: flex;
         gap: 12px;
-        margin-top: 16px;
+        margin-top: 20px;
     }
 
     .btn-confirm {
@@ -1000,10 +1056,12 @@
         font-weight: 700;
         cursor: pointer;
         transition: all 0.2s;
+        flex: 1;
     }
 
-        .btn-confirm:hover {
+        .btn-confirm:hover:not(:disabled) {
             background: #157347;
+            transform: translateY(-1px);
         }
 
         .btn-confirm:disabled {
@@ -1026,4 +1084,11 @@
             background: #dc3545;
             color: white;
         }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #212844;
+        font-size: 0.9rem;
+    }
 </style>
