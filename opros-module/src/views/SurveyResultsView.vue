@@ -210,9 +210,8 @@
     const showAcceptForm = ref(false)
     const internDepartmentId = ref('')
     const departments = ref([])
-    const showAcceptForm = ref(false)
     const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
-    const isCreator = ref(false) // Добавь для проверки роли создателя
+    const isCreator = ref(false)
 
 
 
