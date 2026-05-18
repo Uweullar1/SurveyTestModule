@@ -152,9 +152,9 @@
 
                     <!-- Таблица кандидатов -->
                     <div class="results-table-wrapper">
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2" style="border-bottom: 1px solid #eee;">
-                            <span class="fw-bold" style="font-size: 0.85rem; color: #888;">{{ hrCandidates.length }} кандидатов</span>
-                            <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт всех</button>
+                        <div class="d-flex justify-content-between align-items-center" style="padding: 12px 16px; border-bottom: 1px solid #eee;">
+                            <span style="font-weight: 800; font-size: 0.8rem; color: #212844;">{{ hrCandidates.length }} кандидатов</span>
+                            <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт</button>
                         </div>
                         <table class="results-table">
                             <thead>
@@ -1120,17 +1120,16 @@
     }
 
     .btn-export-sm {
-        height: 34px;
-        padding: 0 14px;
+        height: 30px;
+        padding: 0 12px;
         border: 2px solid #212844;
-        border-radius: 10px;
+        border-radius: 8px;
         background: white;
         font-weight: 700;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: #212844;
         cursor: pointer;
         transition: all 0.2s;
-        white-space: nowrap;
     }
 
         .btn-export-sm:hover {
