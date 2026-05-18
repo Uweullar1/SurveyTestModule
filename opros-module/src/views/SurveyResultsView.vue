@@ -259,17 +259,16 @@
 
             const { data: { user } } = await supabase.auth.getUser()
 
-            // Проверяем, является ли пользователь создателем этого опроса
-            if (user && surveyId) {
-                const { data: survey } = await supabase
-                    .from('surveys')
-                    .select('creator_id')
-                    .eq('id', surveyId)
+            // Проверяем, является ли пользователь создателем через can_create в profiles
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('can_create')
+                    .eq('id', user.id)
                     .single()
 
-                // Пользователь — создатель, если его id совпадает с creator_id опроса
-                isCreator.value = survey?.creator_id === user.id
-                console.log('isCreator:', isCreator.value, 'user.id:', user.id, 'creator_id:', survey?.creator_id)
+                isCreator.value = profile?.can_create === true
+                console.log('isCreator:', isCreator.value, 'can_create:', profile?.can_create)
             }
 
             const { data: sData } = await supabase
