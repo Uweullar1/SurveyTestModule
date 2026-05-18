@@ -341,6 +341,7 @@
                 isSurvey: resp.surveys?.is_survey || false 
             }
         })
+        console.log('Results:', results.map(r => ({ title: r.surveyTitle, score: r.totalScore, max: r.maxScore, passed: r.passed, isSurvey: r.isSurvey })))
 
         allResults.value = results
         loadingResults.value = false
