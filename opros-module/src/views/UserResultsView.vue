@@ -55,8 +55,11 @@
                     <div class="feedback-text" v-if="getFeedback(q)">
                         «{{ getFeedback(q) }}»
                     </div>
-                    <div class="feedback-text text-muted" v-else>
+                    <div class="feedback-text text-muted" v-if="!getFeedback(q) && getScore(q) === '—'">
                         Ещё не проверено
+                    </div>
+                    <div class="feedback-text" v-else-if="getFeedback(q)">
+                        «{{ getFeedback(q) }}»
                     </div>
                 </div>
 

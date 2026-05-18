@@ -114,7 +114,14 @@
                             </div>
                         </div>
 
-                        <div class="overall-feedback mt-4 p-3">
+                        <!-- Админ видит фидбек создателя -->
+                        <div v-if="isAdmin && existingFeedback" class="overall-feedback-display mt-4 p-3">
+                            <h5>💬 Фидбек проверяющего:</h5>
+                            <p>{{ existingFeedback }}</p>
+                        </div>
+
+                        <!-- Создатель может оставить фидбек -->
+                        <div v-if="!isAdmin" class="overall-feedback mt-4 p-3">
                             <h5>Общий комментарий по прохождению</h5>
                             <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
                             <button @click="saveOverallFeedback" class="btn-save-final mt-2">💬 Отправить фидбек</button>
@@ -148,6 +155,8 @@
     const sortField = ref('score') // 'score' | 'name' | 'date'
     const sortOrder = ref('desc') // 'asc' | 'desc'
 
+
+    const existingFeedback = ref('')
     const loading = ref(true)
     const submitting = ref(false)
     const surveyTitle = ref('')
@@ -241,7 +250,8 @@
                 totalScore, maxScore,
                 passed: maxScore > 0 ? totalScore / maxScore >= 0.6 : true,
                 hasUnchecked: allAnswers.value.some(a => a.response_id === resp.id && questions.value.find(q => q.id === a.question_id)?.question_type === 'text' && a.score === null),
-                profiles: { full_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || `Участник #${allResponses.value.indexOf(resp) + 1}` : `Участник #${allResponses.value.indexOf(resp) + 1}` }
+                profiles: { full_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || `Участник #${allResponses.value.indexOf(resp) + 1}` : `Участник #${allResponses.value.indexOf(resp) + 1}` },
+                feedback: resp.feedback || null
             }
         })
 
@@ -288,6 +298,7 @@
 
     const selectUser = (resp) => {
         selectedResponse.value = resp
+        existingFeedback.value = resp.feedback || ''
         questions.value.forEach(q => {
             const existing = allAnswers.value.find(a => a.question_id === q.id && a.response_id === resp.id)
             editData[q.id] = { id: existing?.id, passed: existing?.score > 0, feedback: existing?.feedback || '' }
@@ -809,4 +820,18 @@
             background: #212844;
             color: #F2C4CE;
         }
+
+    .overall-feedback-display {
+        background: #FDFDF1;
+        border: 2px solid #212844;
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .overall-feedback {
+        background: white;
+        border: 2px solid #212844;
+        border-radius: 16px;
+        padding: 20px;
+    }
 </style>
