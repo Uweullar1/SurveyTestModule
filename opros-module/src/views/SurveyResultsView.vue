@@ -177,15 +177,18 @@
         const respId = selectedResponse.value.id
         console.log('ID для обновления:', respId)
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('responses')
             .update({ feedback: overallFeedback.value })
             .eq('id', respId)
 
+        console.log('Результат update:', data)
+        console.log('Ошибка update:', error)
+
         if (error) {
-            console.error('Ошибка:', error)
             alert('Ошибка: ' + error.message)
         } else {
+            console.log('Фидбек успешно сохранен!')
             existingFeedback.value = overallFeedback.value
             if (selectedResponse.value) {
                 selectedResponse.value.feedback = overallFeedback.value
