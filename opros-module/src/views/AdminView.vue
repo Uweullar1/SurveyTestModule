@@ -7,6 +7,10 @@
                 <button @click="activeTab = 'users'" :class="['tab', { active: activeTab === 'users' }]">👥 Пользователи</button>
                 <button @click="activeTab = 'surveys'" :class="['tab', { active: activeTab === 'surveys' }]">📋 Все опросы</button>
                 <button @click="activeTab = 'results'" :class="['tab', { active: activeTab === 'results' }]">📊 Результаты</button>
+                <button @click="activeTab = 'hr'"
+                        :class="['tab', { active: activeTab === 'hr' }]">
+                    📊 HR-Отчеты
+                </button>
                 <button @click="activeTab = 'templates'"
                         :class="['tab', { active: activeTab === 'templates' }]">
                     📄 Шаблоны
@@ -125,6 +129,65 @@
                     </table>
                 </div>
             </div>
+
+            <!-- HR-ОТЧЕТЫ -->
+            <div v-if="activeTab === 'hr'" class="tab-content">
+                <div v-if="loadingHR" class="text-center py-4">Загрузка...</div>
+                <div v-else>
+                    <!-- Сводка -->
+                    <div class="stats-row mb-4">
+                        <div class="stat-card">
+                            <div class="stat-label">Всего кандидатов</div>
+                            <div class="stat-value">{{ hrStats.totalCandidates }}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Прошли анкету</div>
+                            <div class="stat-value">{{ hrStats.anketaCompleted }}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Прошли все тесты</div>
+                            <div class="stat-value">{{ hrStats.allTestsCompleted }}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Отправлено руководителю</div>
+                            <div class="stat-value">{{ hrStats.sentToAdmin }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Таблица кандидатов -->
+                    <div class="results-table-wrapper">
+                        <div class="results-count">{{ hrCandidates.length }} кандидатов</div>
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Кандидат</th>
+                                    <th>Телефон</th>
+                                    <th>Департамент</th>
+                                    <th>Анкета</th>
+                                    <th>Тесты (сдано/всего)</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="c in hrCandidates" :key="c.id">
+                                    <td><div class="fw-bold">{{ c.name }}</div></td>
+                                    <td>{{ c.phone || '—' }}</td>
+                                    <td>{{ c.department || '—' }}</td>
+                                    <td>{{ c.anketaDone ? '✅' : '❌' }}</td>
+                                    <td>{{ c.testsPassed }}/{{ c.testsTotal }}</td>
+                                    <td>
+                                        <span v-if="c.sentToAdmin" class="status-passed">На рассмотрении</span>
+                                        <span v-else-if="c.allTestsCompleted" class="badge-survey">Тесты пройдены</span>
+                                        <span v-else class="status-failed">В процессе</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- ШАБЛОНЫ -->
             <div v-if="activeTab === 'templates'" class="tab-content">
                 <div v-if="loadingTemplates" class="loader-wrapper"><div class="custom-spinner"></div><p>Загружаем шаблоны...</p></div>
@@ -179,6 +242,90 @@
     const resultDeptFilter = ref('')
 
 
+    const loadingHR = ref(false)
+    const hrCandidates = ref([])
+    const hrStats = ref({
+        totalCandidates: 0,
+        anketaCompleted: 0,
+        allTestsCompleted: 0,
+        sentToAdmin: 0
+    })
+
+
+    const loadHRData = async () => {
+        loadingHR.value = true
+
+        // Все кандидаты (is_intern = true ИЛИ кто прошел анкету)
+        const { data: candidates } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, department_id, education_completed, is_intern, departments(name)')
+            .or('is_intern.eq.true,education_completed.eq.true')
+            .order('last_name')
+
+        if (!candidates) { loadingHR.value = false; return }
+
+        const enriched = await Promise.all(candidates.map(async (c) => {
+            // Проверяем прохождение анкеты
+            const { data: anketaResp } = await supabase
+                .from('responses')
+                .select('id')
+                .eq('user_id', c.id)
+                .eq('survey_id', 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
+                .limit(1)
+
+            // Загружаем все стажировочные опросы для департамента кандидата
+            const { data: internSurveys } = await supabase
+                .from('surveys')
+                .select('id')
+                .eq('department_id', c.department_id)
+                .eq('is_for_interns', true)
+
+            const surveyIds = (internSurveys || []).map(s => s.id)
+
+            // Проверяем сколько пройдено
+            let testsPassed = 0
+            if (surveyIds.length > 0) {
+                const { data: passedSurveys } = await supabase
+                    .from('responses')
+                    .select('survey_id')
+                    .eq('user_id', c.id)
+                    .in('survey_id', surveyIds)
+
+                const uniquePassed = [...new Set((passedSurveys || []).map(r => r.survey_id))]
+                testsPassed = uniquePassed.length
+            }
+
+            // Проверяем отправлено ли руководителю
+            const { data: sentCheck } = await supabase
+                .from('responses')
+                .select('id')
+                .eq('user_id', c.id)
+                .eq('sent_to_admin', true)
+                .limit(1)
+
+            return {
+                id: c.id,
+                name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Без имени',
+                phone: c.phone || null,
+                department: c.departments?.name || '—',
+                anketaDone: anketaResp?.length > 0,
+                testsPassed: testsPassed,
+                testsTotal: surveyIds.length,
+                allTestsCompleted: testsPassed === surveyIds.length && surveyIds.length > 0,
+                sentToAdmin: sentCheck?.length > 0
+            }
+        }))
+
+        hrCandidates.value = enriched
+        hrStats.value = {
+            totalCandidates: enriched.length,
+            anketaCompleted: enriched.filter(c => c.anketaDone).length,
+            allTestsCompleted: enriched.filter(c => c.allTestsCompleted).length,
+            sentToAdmin: enriched.filter(c => c.sentToAdmin).length
+        }
+
+        loadingHR.value = false
+    }
 
     const toggleIntern = async (profile) => {
         const newVal = !profile.is_intern
@@ -266,6 +413,7 @@
         loadingSurveys.value = false
         await loadResults()
         await loadTemplates()
+        await loadHRData()
     }
 
     const loadResults = async () => {
