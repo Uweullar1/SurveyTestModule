@@ -176,24 +176,31 @@
 
         const respId = selectedResponse.value.id
         console.log('ID для обновления:', respId)
-        console.log('Текст фидбека:', overallFeedback.value)
 
-        // Пробуем обновить с явным указанием id
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('responses')
             .update({ feedback: overallFeedback.value })
             .eq('id', respId)
-            .select('feedback')
-            .single()
 
-        console.log('Результат:', data, 'Ошибка:', error)
-
-        if (!error) {
+        if (error) {
+            console.error('Ошибка:', error)
+            alert('Ошибка: ' + error.message)
+        } else {
             existingFeedback.value = overallFeedback.value
+            if (selectedResponse.value) {
+                selectedResponse.value.feedback = overallFeedback.value
+            }
             alert('Фидбек отправлен!')
             overallFeedback.value = ''
-        } else {
-            alert('Ошибка: ' + error.message)
+
+            // Уведомление пользователю
+            if (selectedResponse.value?.user_id) {
+                await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
+                    message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
+                    icon: '💬',
+                    link: `/my-results/${selectedResponse.value.id}`
+                })
+            }
         }
     }
 
