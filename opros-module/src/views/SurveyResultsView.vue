@@ -496,22 +496,22 @@
         if (!selectedResponse.value) return alert('Выберите кандидата')
 
         const userId = selectedResponse.value.user_id
-        const creatorDeptId = // нужно получить департамент создателя
 
-    // Получаем департамент текущего пользователя (создателя)
-    const { data: myProfile } = await supabase
+        const { data: myProfile } = await supabase
             .from('profiles')
             .select('department_id')
             .eq('id', (await supabase.auth.getUser()).data.user.id)
             .single()
 
-        // Назначаем департамент и статус стажера
+        if (!myProfile?.department_id) {
+            return alert('У вас не указан департамент. Обратитесь к администратору.')
+        }
+
         await supabase.from('profiles').update({
             department_id: myProfile.department_id,
             is_intern: true
         }).eq('id', userId)
 
-        // Уведомление кандидату
         await notificationsService.send(userId, 'Вы приняты на стажировку!', {
             message: 'Вам открыт доступ к тестам. Проверьте главную страницу.',
             icon: '🎓',
