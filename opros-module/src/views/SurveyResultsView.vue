@@ -82,6 +82,7 @@
                     <div class="user-info-header mb-4">
                         <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
                         <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
+                     </div>
 
                     <div v-for="q in questions" :key="q.id" class="question-block mb-4">
                         <h5 class="question-heading mb-2">{{ q.text }}</h5>
