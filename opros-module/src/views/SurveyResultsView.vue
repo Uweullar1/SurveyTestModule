@@ -172,19 +172,24 @@
 
 
     const saveOverallFeedback = async () => {
-        console.log('Кнопка нажата, selectedResponse:', selectedResponse.value?.id)
-        console.log('overallFeedback:', overallFeedback.value)
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
-        console.log('Сохраняю фидбек:', overallFeedback.value, 'для response:', selectedResponse.value?.id)
 
-        const { error } = await supabase
+        const respId = selectedResponse.value.id
+        console.log('ID для обновления:', respId)
+        console.log('Текст фидбека:', overallFeedback.value)
+
+        // Пробуем обновить с явным указанием id
+        const { data, error } = await supabase
             .from('responses')
             .update({ feedback: overallFeedback.value })
-            .eq('id', selectedResponse.value.id)
+            .eq('id', respId)
+            .select('feedback')
+            .single()
 
-        console.log('Ошибка сохранения:', error)
+        console.log('Результат:', data, 'Ошибка:', error)
 
         if (!error) {
+            existingFeedback.value = overallFeedback.value
             alert('Фидбек отправлен!')
             overallFeedback.value = ''
         } else {
