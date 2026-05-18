@@ -16,7 +16,7 @@
 
                             <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
                             <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
-                            <input v-model="phone" type="tel" class="auth-input" placeholder="Номер телефона" />
+                            
                         </template>
 
                         
@@ -136,7 +136,6 @@
                             first_name: firstName.value.trim(),
                             last_name: lastName.value.trim(),
                             username: username.value.trim(),
-                            phone: phone.value ? '+' + phone.value.replace(/\D/g, '') : null
                         }
                     }
                 })
