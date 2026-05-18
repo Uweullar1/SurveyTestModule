@@ -211,7 +211,7 @@
     const departments = ref([])
     const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
     const isCreator = ref(false)
-    const selectedDeptForIntern = ref('')
+
 
 
 
@@ -252,26 +252,24 @@
 
     onMounted(async () => {
         const surveyId = route.params.id
-        console.log('Current survey ID:', surveyId)
-
         if (!surveyId) { loading.value = false; return }
 
         try {
             loading.value = true
 
-            // Получаем текущего АВТОРИЗОВАННОГО пользователя
             const { data: { user } } = await supabase.auth.getUser()
 
-            if (user) {
-                // Проверяем профиль ТЕКУЩЕГО пользователя
-                const { data: currentProfile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
+            // Проверяем, является ли пользователь создателем этого опроса
+            if (user && surveyId) {
+                const { data: survey } = await supabase
+                    .from('surveys')
+                    .select('creator_id')
+                    .eq('id', surveyId)
                     .single()
 
-                console.log('Current user profile:', currentProfile)
-                isCreator.value = currentProfile?.role === 'creator'
+                // Пользователь — создатель, если его id совпадает с creator_id опроса
+                isCreator.value = survey?.creator_id === user.id
+                console.log('isCreator:', isCreator.value, 'user.id:', user.id, 'creator_id:', survey?.creator_id)
             }
 
             const { data: sData } = await supabase
@@ -289,8 +287,11 @@
             if (!qData) throw new Error('Questions not loaded')
             questions.value = qData
 
-            // Загружаем департаменты ВСЕГДА
-            const { data: depts } = await supabase.from('departments').select('*').order('name')
+            // Загружаем департаменты
+            const { data: depts } = await supabase
+                .from('departments')
+                .select('*')
+                .order('name')
             departments.value = depts || []
 
             const { data: rData } = await supabase
@@ -555,17 +556,22 @@
 
     const acceptIntern = async () => {
         if (!selectedResponse.value) return alert('Выберите кандидата')
-        if (!selectedDeptForIntern.value) return alert('Выберите департамент')
+        if (!internDepartmentId.value) return alert('Выберите департамент')
 
         const userId = selectedResponse.value.user_id
 
-        await supabase.from('profiles').update({
-            department_id: selectedDeptForIntern.value,
+        const { error } = await supabase.from('profiles').update({
+            department_id: internDepartmentId.value,
             is_intern: true
         }).eq('id', userId)
 
+        if (error) {
+            console.error('Ошибка:', error)
+            return alert('Ошибка при назначении: ' + error.message)
+        }
+
         // Получаем название департамента для уведомления
-        const deptName = departments.value.find(d => d.id === selectedDeptForIntern.value)?.name || 'выбранный департамент'
+        const deptName = departments.value.find(d => d.id === internDepartmentId.value)?.name || 'выбранный департамент'
 
         await notificationsService.send(userId, 'Вы приняты на стажировку!', {
             message: `Вы назначены стажером в департамент "${deptName}". Открыт доступ к тестам.`,
@@ -573,10 +579,18 @@
             link: '/'
         })
 
-        alert('Кандидат принят на стажировку!')
-        selectedDeptForIntern.value = ''
-    }
+        alert(`Кандидат принят на стажировку в департамент "${deptName}"!`)
 
+        // Сбрасываем форму
+        showAcceptForm.value = false
+        internDepartmentId.value = ''
+
+        // Обновляем данные в интерфейсе
+        if (profiles.value[userId]) {
+            profiles.value[userId].is_intern = true
+            profiles.value[userId].department_id = internDepartmentId.value
+        }
+    }
 </script>
 
 <style scoped>
