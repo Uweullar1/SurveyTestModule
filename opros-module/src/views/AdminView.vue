@@ -554,7 +554,10 @@
 
     const resetResultFilters = () => { resultSearch.value = ''; resultSurveyFilter.value = ''; resultDeptFilter.value = '' }
 
-    const updateDepartment = async (p) => { await supabase.from('profiles').update({ department_id: p.department_id }).eq('id', p.id) }
+    const updateDepartment = async (p) => {
+        const newDept = p.department_id || null
+        await supabase.from('profiles').update({ department_id: newDept }).eq('id', p.id)
+    }
 
     const toggleCreate = async (p) => {
         const n = !p.can_create; const { error } = await supabase.from('profiles').update({ can_create: n }).eq('id', p.id); if (!error) p.can_create = n
