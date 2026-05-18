@@ -35,7 +35,7 @@
                             <div class="dept-mini">
                                 <div class="dept-select-wrap">
                                     <select v-model="profile.department_id" @change="updateDepartment(profile)" class="mini-select">
-                                        <option value="">Без департамента</option>
+                                        <option :value="">Без департамента</option>
                                         <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                                     </select>
                                     <span class="dept-arrow">▾</span>
@@ -555,7 +555,7 @@
     const resetResultFilters = () => { resultSearch.value = ''; resultSurveyFilter.value = ''; resultDeptFilter.value = '' }
 
     const updateDepartment = async (p) => {
-        const newDept = p.department_id || null
+        const newDept = p.department_id === '' ? null : p.department_id
         await supabase.from('profiles').update({ department_id: newDept }).eq('id', p.id)
     }
 
