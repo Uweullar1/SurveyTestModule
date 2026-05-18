@@ -256,8 +256,6 @@
 
     onMounted(async () => {
         const surveyId = route.params.id
-
-        const surveyId = route.params.id
         console.log('Current survey ID:', surveyId)  // Отладка
         console.log('Is anketa?:', surveyId === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')  // Отладка
 
