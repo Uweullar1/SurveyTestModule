@@ -129,10 +129,12 @@
 
                         <div class="publish-bottom">
                             <div class="action-buttons">
-                                <button v-if="!isAdmin" @click="sendToAdmin"  class="btn-send-admin" >📤 На рассмотрение руководителю</button>
+                                <button v-if="isAnketa && !isAdmin" @click="acceptIntern" class="btn-accept">✅ Принять на стажировку</button>
+                                <button v-if="!isAnketa && !isAdmin" @click="sendToAdmin" class="btn-send-admin">📤 На рассмотрение руководителю</button>
                                 <button @click="exportInternFullData" class="btn-export-full">📥 Экспорт всех данных</button>
                             </div>
-                            <button @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
+
+                            <button v-if="!isAnketa" @click="saveEvaluation" :disabled="submitting" class="btn-save-final shadow-lg">
                                 <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
                                 СОХРАНИТЬ РЕЗУЛЬТАТЫ
                             </button>
@@ -486,6 +488,37 @@
             }
         }
         alert('Отправлено руководителю!')
+    }
+
+    const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
+
+    const acceptIntern = async () => {
+        if (!selectedResponse.value) return alert('Выберите кандидата')
+
+        const userId = selectedResponse.value.user_id
+        const creatorDeptId = // нужно получить департамент создателя
+
+    // Получаем департамент текущего пользователя (создателя)
+    const { data: myProfile } = await supabase
+            .from('profiles')
+            .select('department_id')
+            .eq('id', (await supabase.auth.getUser()).data.user.id)
+            .single()
+
+        // Назначаем департамент и статус стажера
+        await supabase.from('profiles').update({
+            department_id: myProfile.department_id,
+            is_intern: true
+        }).eq('id', userId)
+
+        // Уведомление кандидату
+        await notificationsService.send(userId, 'Вы приняты на стажировку!', {
+            message: 'Вам открыт доступ к тестам. Проверьте главную страницу.',
+            icon: '🎓',
+            link: '/'
+        })
+
+        alert('Кандидат принят на стажировку!')
     }
 
 </script>
@@ -880,4 +913,20 @@
         border-radius: 16px;
         padding: 20px;
     }
+
+    .btn-accept {
+        background: #d1e7dd;
+        border: 2px solid #198754;
+        border-radius: 14px;
+        padding: 12px 24px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-right: 12px;
+        transition: all 0.2s;
+    }
+
+        .btn-accept:hover {
+            background: #198754;
+            color: white;
+        }
 </style>
