@@ -173,19 +173,21 @@
 
     const saveOverallFeedback = async () => {
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
-        await supabase.from('responses').update({ feedback: overallFeedback.value }).eq('id', selectedResponse.value.id)
+        console.log('Сохраняю фидбек:', overallFeedback.value, 'для response:', selectedResponse.value?.id)
 
-        // Уведомление пользователю
-        if (selectedResponse.value?.user_id) {
-            await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
-                message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
-                icon: '💬',
-                link: `/my-results/${selectedResponse.value.id}`
-            })
+        const { error } = await supabase
+            .from('responses')
+            .update({ feedback: overallFeedback.value })
+            .eq('id', selectedResponse.value.id)
+
+        console.log('Ошибка сохранения:', error)
+
+        if (!error) {
+            alert('Фидбек отправлен!')
+            overallFeedback.value = ''
+        } else {
+            alert('Ошибка: ' + error.message)
         }
-
-        alert('Фидбек отправлен!')
-        overallFeedback.value = ''
     }
 
     onMounted(async () => {
