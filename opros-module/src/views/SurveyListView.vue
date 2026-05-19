@@ -97,10 +97,11 @@
                                     <div class="title-row">
                                         <span class="survey-label">ОПРОС</span>
                                         <span v-if="survey.departments?.name" class="department-badge">{{ survey.departments.name }}</span>
-                                        <span v-if="surveyStatuses[survey.id]"
-                                              :class="'status-badge status-' + surveyStatuses[survey.id]"
-                                              :title="statusLabels[surveyStatuses[survey.id]]">
-                                            {{ statusIcons[surveyStatuses[survey.id]] }}
+                                        <span v-if="surveyStatuses[survey.id]" class="status-indicator">
+                                            <span :class="'status-dot-' + surveyStatuses[survey.id]"></span>
+                                            <span :class="'status-text-' + surveyStatuses[survey.id]">
+                                                {{ statusLabels[surveyStatuses[survey.id]] }}
+                                            </span>
                                         </span>
                                     </div>
                                     <h3 class="survey-title">{{ survey.title }}</h3>
@@ -128,10 +129,11 @@
                                     <div class="title-row">
                                         <span class="survey-label">ОПРОС</span>
                                         <span v-if="survey.departments?.name" class="department-badge">{{ survey.departments.name }}</span>
-                                        <span v-if="surveyStatuses[survey.id]"
-                                              :class="'status-badge status-' + surveyStatuses[survey.id]"
-                                              :title="statusLabels[surveyStatuses[survey.id]]">
-                                            {{ statusIcons[surveyStatuses[survey.id]] }}
+                                        <span v-if="surveyStatuses[survey.id]" class="status-indicator">
+                                            <span :class="'status-dot-' + surveyStatuses[survey.id]"></span>
+                                            <span :class="'status-text-' + surveyStatuses[survey.id]">
+                                                {{ statusLabels[surveyStatuses[survey.id]] }}
+                                            </span>
                                         </span>
                                     </div>
                                     <h3 class="survey-title">{{ survey.title }}</h3>
@@ -178,13 +180,6 @@
 
     const handleCardClick = (survey) => {
         router.push(`/take/${survey.id}`)
-    }
-
-
-    const statusIcons = {
-        completed: '📋',
-        pending: '⏳',
-        reviewed: '💬'
     }
 
     const statusLabels = {
@@ -516,48 +511,47 @@
             color: #DF2935;
         }
 
-    .status-badge {
-        position: relative;
-        cursor: help;
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    .status-dot-completed,
+    .status-dot-pending,
+    .status-dot-reviewed {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
     }
 
-        .status-badge:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: #212844;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            white-space: nowrap;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-    .status-completed {
-        background: #e9ecef;
-        color: #495057;
+    .status-dot-completed {
+        background: #adb5bd; /* серый */
     }
 
-    .status-pending {
-        background: #fff3cd;
-        color: #856404;
-        border-color: #ffc107;
+    .status-dot-pending {
+        background: #ffc107; /* жёлтый */
     }
 
-    .status-reviewed {
-        background: #d1e7dd;
-        color: #0f5132;
-        border-color: #198754;
+    .status-dot-reviewed {
+        background: #198754; /* зелёный */
     }
 
-    .completed-text {
-        color: #6c757d !important;
+    /* Цветной текст */
+    .status-text-completed {
+        color: #6c757d; /* серый */
     }
+
+    .status-text-pending {
+        color: #cc9a06; /* тёмно-жёлтый */
+    }
+
+    .status-text-reviewed {
+        color: #198754; /* зелёный */
+    }
+
 
     .empty-state {
         text-align: center;
