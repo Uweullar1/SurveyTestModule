@@ -261,6 +261,51 @@
                 .eq('user_id', user.value.id)
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
+            const { data: responses } = await supabase
+                .from('responses')
+                .select('survey_id, feedback')
+                .eq('user_id', user.value.id)
+
+            // Для каждого ответа проверяем, есть ли непроверенные текстовые вопросы
+            const responseStatuses = {}
+            const responseIds = (responses || []).map(r => r.id)
+
+            if (responseIds.length > 0) {
+                // Загружаем ответы на вопросы для этих responses
+                const { data: answers } = await supabase
+                    .from('answers')
+                    .select('response_id, score, question_id, questions!inner(question_type)')
+                    .in('response_id', responseIds)
+
+                // Группируем по response_id
+                const answersByResponse = {}
+                    ; (answers || []).forEach(a => {
+                        if (!answersByResponse[a.response_id]) answersByResponse[a.response_id] = []
+                        answersByResponse[a.response_id].push(a)
+                    })
+
+                    // Определяем статус для каждого response
+                    ; (responses || []).forEach(r => {
+                        passedSurveyIds.value.push(r.survey_id)
+                        const ansList = answersByResponse[r.id] || []
+
+                        // Есть ли текстовые вопросы без оценки (score === null)?
+                        const hasUncheckedText = ansList.some(a =>
+                            a.questions?.question_type === 'text' && a.score === null
+                        )
+
+                        if (hasUncheckedText) {
+                            responseStatuses[r.survey_id] = 'pending' // На проверке
+                        } else if (r.feedback) {
+                            responseStatuses[r.survey_id] = 'reviewed' // Проверен с фидбеком
+                        } else {
+                            responseStatuses[r.survey_id] = 'completed' // Пройден (автопроверка)
+                        }
+                    })
+            }
+
+            surveyStatuses.value = responseStatuses
+
             // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
