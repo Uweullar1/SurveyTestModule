@@ -3,6 +3,9 @@
         <section class="container surveys-section">
             <div class="section-header">
                 <h2>Доступные опросы</h2>
+                <button @click="refreshStatuses" class="btn-refresh" title="Обновить статусы">
+                    🔄 Обновить
+                </button>
                 <div class="line"></div>
             </div>
 
@@ -346,6 +349,29 @@
             loading.value = false
         }
     })
+
+    const refreshStatuses = async () => {
+        if (!user.value) return
+
+        const { data: responses } = await supabase
+            .from('responses')
+            .select('survey_id, feedback, sent_to_admin')
+            .eq('user_id', user.value.id)
+
+        passedSurveyIds.value = (responses || []).map(r => r.survey_id)
+
+        const statuses = {}
+            ; (responses || []).forEach(r => {
+                if (r.feedback) {
+                    statuses[r.survey_id] = 'reviewed'
+                } else if (r.sent_to_admin) {
+                    statuses[r.survey_id] = 'pending'
+                } else {
+                    statuses[r.survey_id] = 'completed'
+                }
+            })
+        surveyStatuses.value = statuses
+    }
 </script>
 
 <style scoped>
@@ -801,5 +827,21 @@
         .btn-banner:hover {
             background: #DF2935;
             color: white;
+        }
+
+    .btn-refresh {
+        background: none;
+        border: 2px solid #212844;
+        border-radius: 10px;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-refresh:hover {
+            background: #212844;
+            color: #F2C4CE;
         }
 </style>

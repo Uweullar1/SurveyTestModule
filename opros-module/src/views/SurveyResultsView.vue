@@ -219,35 +219,39 @@
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
 
         const respId = selectedResponse.value.id
-        console.log('ID:', respId)
-        console.log('Feedback text:', overallFeedback.value)
 
-        const { error } = await supabase.rpc('update_response_feedback', {
-            response_id: respId,
-            new_feedback: overallFeedback.value
-        })
-
-        console.log('RPC ошибка:', error)
+        const { error } = await supabase
+            .from('responses')
+            .update({
+                feedback: overallFeedback.value,
+                sent_to_admin: true
+            })
+            .eq('id', respId)
 
         if (error) {
+            console.error('Ошибка:', error)
             alert('Ошибка: ' + error.message)
-        } else {
-            existingFeedback.value = overallFeedback.value
-            if (selectedResponse.value) {
-                selectedResponse.value.feedback = overallFeedback.value
-            }
-            alert('Фидбек отправлен!')
-            overallFeedback.value = ''
+            return
         }
 
-            // Уведомление пользователю
-            if (selectedResponse.value?.user_id) {
-                await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
-                    message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
-                    icon: '💬',
-                    link: `/my-results/${selectedResponse.value.id}`
-                })
-            }
+        // Обновляем локально
+        existingFeedback.value = overallFeedback.value
+        if (selectedResponse.value) {
+            selectedResponse.value.feedback = overallFeedback.value
+            selectedResponse.value.sent_to_admin = true
+        }
+
+        alert('Фидбек отправлен!')
+        overallFeedback.value = ''
+
+        // Уведомление пользователю
+        if (selectedResponse.value?.user_id) {
+            await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
+                message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
+                icon: '💬',
+                link: `/my-results/${respId}`
+            })
+        }
     }
 
     onMounted(async () => {
