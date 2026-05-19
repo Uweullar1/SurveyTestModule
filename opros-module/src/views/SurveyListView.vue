@@ -62,13 +62,19 @@
                                     <div class="title-row">
                                         <span class="survey-label">ОПРОС</span>
                                         <span v-if="survey.departments?.name" class="department-badge">{{ survey.departments.name }}</span>
-                                        <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
+                                        <span v-if="surveyStatuses[survey.id]"
+                                              :class="'status-badge status-' + surveyStatuses[survey.id]"
+                                              :title="statusLabels[surveyStatuses[survey.id]]">
+                                            {{ statusIcons[surveyStatuses[survey.id]] }}
+                                        </span>
                                     </div>
                                     <h3 class="survey-title">{{ survey.title }}</h3>
                                     <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
                                     <div class="card-footer">
                                         <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                        <span class="open-btn">{{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}</span>
+                                        <span class="open-btn" :class="{ 'completed-text': surveyStatuses[survey.id] }">
+                                            {{ surveyStatuses[survey.id] ? statusLabels[surveyStatuses[survey.id]] : 'Открыть →' }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -87,17 +93,34 @@
                                     <div class="title-row">
                                         <span class="survey-label">ОПРОС</span>
                                         <span v-if="survey.departments?.name" class="department-badge">{{ survey.departments.name }}</span>
-                                        <span v-if="passedSurveyIds.includes(survey.id)" class="passed-badge" title="Пройден">✓</span>
+                                        <span v-if="surveyStatuses[survey.id]"
+                                              :class="'status-badge status-' + surveyStatuses[survey.id]"
+                                              :title="statusLabels[surveyStatuses[survey.id]]">
+                                            {{ statusIcons[surveyStatuses[survey.id]] }}
+                                        </span>
                                     </div>
                                     <h3 class="survey-title">{{ survey.title }}</h3>
                                     <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
                                     <div class="card-footer">
                                         <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                        <span class="open-btn">{{ passedSurveyIds.includes(survey.id) ? 'Пройден ✓' : 'Открыть →' }}</span>
+                                        <span class="open-btn" :class="{ 'completed-text': surveyStatuses[survey.id] }">
+                                            {{ surveyStatuses[survey.id] ? statusLabels[surveyStatuses[survey.id]] : 'Открыть →' }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div v-if="!educationCompleted && !canCreate && !isAdmin" class="alert-anketa">
+                    <div class="alert-icon">📝</div>
+                    <div>
+                        <strong>Заполните анкету соискателя</strong>
+                        <p>Чтобы получить доступ к тестам по вакансиям, заполните анкету.</p>
+                        <router-link :to="`/take/${ANKETA_ID}`" class="btn-fill-anketa">
+                            Заполнить анкету →
+                        </router-link>
                     </div>
                 </div>
             </div>
@@ -122,6 +145,8 @@
     const canCreate = ref(false)
     const isAdmin = ref(false)
 
+    const surveyStatuses = ref({})
+
     const showFilters = ref(false)
     const searchQuery = ref('')
     const filterDepartment = ref('')
@@ -129,6 +154,19 @@
 
     const handleCardClick = (survey) => {
         router.push(`/take/${survey.id}`)
+    }
+
+
+    const statusIcons = {
+        completed: '📋',
+        pending: '⏳',
+        reviewed: '💬'
+    }
+
+    const statusLabels = {
+        completed: 'Пройден',
+        pending: 'На проверке',
+        reviewed: 'Проверен'
     }
 
     const filterSurveys = () => {
@@ -415,19 +453,38 @@
             color: #DF2935;
         }
 
-    .passed-badge {
-        background: #B0D7FF;
-        color: #212844;
-        width: 22px;
-        height: 22px;
+    .status-badge {
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
-        font-size: 0.65rem;
+        font-size: 0.7rem;
         font-weight: 900;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 1.5px solid #212844;
         flex-shrink: 0;
+    }
+
+    .status-completed {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border-color: #ffc107;
+    }
+
+    .status-reviewed {
+        background: #d1e7dd;
+        color: #0f5132;
+        border-color: #198754;
+    }
+
+    .completed-text {
+        color: #6c757d !important;
     }
 
     .empty-state {
