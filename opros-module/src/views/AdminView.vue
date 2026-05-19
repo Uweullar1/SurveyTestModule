@@ -7,7 +7,7 @@
                 <button @click="activeTab = 'users'" :class="['tab', { active: activeTab === 'users' }]">👥 Пользователи</button>
                 <button @click="activeTab = 'surveys'" :class="['tab', { active: activeTab === 'surveys' }]">📋 Все опросы</button>
                 <button @click="activeTab = 'results'" :class="['tab', { active: activeTab === 'results' }]">📊 Результаты</button>
-                <button @click="activeTab = 'hr'">👥 Кандидаты</button>
+                <button @click="activeTab = 'hr'" :class="['tab', { active: activeTab === 'hr' }]">👥 Кандидаты</button>
 
                 <button @click="activeTab = 'templates'"
                         :class="['tab', { active: activeTab === 'templates' }]">
