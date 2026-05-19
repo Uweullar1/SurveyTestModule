@@ -8,10 +8,9 @@
                 </router-link>
 
                 <div class="nav-links">
-                    <router-link to="/" class="nav-link">🏠 Главная</router-link>
-                    <router-link to="/my-history" class="nav-link">📋 Мои результаты</router-link>
-                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link">📝 Управление опросами</router-link>
-                    <router-link v-if="isAdmin" to="/admin" class="nav-link">⚙️ Панель администратора</router-link>
+                    <router-link to="/my-history" class="nav-link">Мои результаты</router-link>
+                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link">Управление опросами</router-link>
+                    <router-link v-if="isAdmin" to="/admin" class="nav-link">Панель администратора</router-link>
                 </div>
 
                     <NotificationsBar ref="notifBar" />
