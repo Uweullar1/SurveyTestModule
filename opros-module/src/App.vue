@@ -9,8 +9,8 @@
 
                 <div class="nav-links">
                     <router-link to="/my-history" class="nav-link">Мои результаты</router-link>
-                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link">Управление опросами</router-link>
-                    <router-link v-if="isAdmin" to="/admin" class="nav-link">Панель администратора</router-link>
+                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link" :class="{ active: route.path === '/my-history' }">Управление опросами</router-link>
+                    <router-link v-if="isAdmin" to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">Панель администратора</router-link>
                 </div>
 
                     <NotificationsBar ref="notifBar" />
@@ -44,7 +44,9 @@
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
     import NotificationsBar from './components/NotificationsBar.vue'
+    import { useRoute } from 'vue-router'
 
+    const route = useRoute()
     const notifBar = ref(null)
     const canCreate = ref(false)
     const isAdmin = ref(false)
@@ -279,4 +281,19 @@
             border-width: 2px;
         }
     }
+
+    .nav-link.active {
+        color: #DF2935;
+    }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #DF2935;
+            border-radius: 2px;
+        }
 </style>

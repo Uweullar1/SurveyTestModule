@@ -112,17 +112,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div v-if="!educationCompleted && !canCreate && !isAdmin" class="alert-anketa">
-                    <div class="alert-icon">📝</div>
-                    <div>
-                        <strong>Заполните анкету соискателя</strong>
-                        <p>Чтобы получить доступ к тестам по вакансиям, заполните анкету.</p>
-                        <router-link :to="`/take/${ANKETA_ID}`" class="btn-fill-anketa">
-                            Заполнить анкету →
-                        </router-link>
-                    </div>
-                </div>
             </div>
         </section>
     </div>
