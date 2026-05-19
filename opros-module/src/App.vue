@@ -8,8 +8,8 @@
                 </router-link>
 
                 <div class="nav-links">
-                    <router-link to="/my-history" class="nav-link">Мои результаты</router-link>
-                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link" :class="{ active: route.path === '/my-history' }">Управление опросами</router-link>
+                    <router-link to="/my-history" class="nav-link" :class="{ active: route.path === '/my-history' }">Мои результаты</router-link>
+                    <router-link v-if="canCreate || isAdmin" to="/my-surveys" class="nav-link" :class="{ active: route.path === '/my-surveys' }">Управление опросами</router-link>
                     <router-link v-if="isAdmin" to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">Панель администратора</router-link>
                 </div>
 

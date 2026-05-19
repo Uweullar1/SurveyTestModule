@@ -6,6 +6,38 @@
                 <div class="line"></div>
             </div>
 
+            <!-- ПОДСКАЗКИ ПО СТАТУСАМ -->
+            <div class="status-legend">
+                <div class="legend-item">
+                    <span class="legend-icon">📝</span>
+                    <span class="legend-text">Пройдите опрос, чтобы получить доступ к тестам</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-completed"></span>
+                    <span class="legend-text">Пройден — ожидает проверки</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-pending"></span>
+                    <span class="legend-text">На проверке — отправлен руководителю</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-reviewed"></span>
+                    <span class="legend-text">Проверен — есть фидбек</span>
+                </div>
+            </div>
+
+            <!-- ПОДСКАЗКА ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ -->
+            <div v-if="!educationCompleted && !canCreate && !isAdmin" class="info-banner">
+                <div class="info-banner-icon">👋</div>
+                <div class="info-banner-text">
+                    <strong>Добро пожаловать!</strong>
+                    <p>Заполните анкету соискателя, чтобы открыть доступ к тестам по вакансиям.</p>
+                </div>
+                <router-link :to="`/take/${ANKETA_ID}`" class="btn-banner">
+                    Заполнить анкету →
+                </router-link>
+            </div>
+
             <!-- ПОИСК И ФИЛЬТРЫ -->
             <div class="filters-bar">
                 <div class="search-wrapper">
@@ -459,17 +491,26 @@
         }
 
     .status-badge {
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        font-size: 0.7rem;
-        font-weight: 900;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1.5px solid #212844;
-        flex-shrink: 0;
+        position: relative;
+        cursor: help;
     }
+
+        .status-badge:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #212844;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+        }
 
     .status-completed {
         background: #e9ecef;
@@ -664,4 +705,101 @@
             font-size: 0.65rem;
         }
     }
+
+    .status-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 16px 20px;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .legend-icon {
+        font-size: 1.1rem;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1.5px solid #212844;
+        flex-shrink: 0;
+    }
+
+        .legend-dot.status-completed {
+            background: #e9ecef;
+        }
+
+        .legend-dot.status-pending {
+            background: #fff3cd;
+        }
+
+        .legend-dot.status-reviewed {
+            background: #d1e7dd;
+        }
+
+    .legend-text {
+        white-space: nowrap;
+    }
+
+    .info-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #FDFDF1 0%, #fff 100%);
+        border: 2px solid #B0D7FF;
+        border-radius: 16px;
+        margin-bottom: 24px;
+    }
+
+    .info-banner-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    .info-banner-text {
+        flex: 1;
+    }
+
+        .info-banner-text strong {
+            font-size: 1rem;
+            color: #212844;
+        }
+
+        .info-banner-text p {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+    .btn-banner {
+        background: #212844;
+        color: #F2C4CE;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+        .btn-banner:hover {
+            background: #DF2935;
+            color: white;
+        }
 </style>
