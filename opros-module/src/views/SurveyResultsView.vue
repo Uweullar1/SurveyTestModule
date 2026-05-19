@@ -82,7 +82,7 @@
                     <div class="user-info-header mb-4">
                         <h2 class="fw-bold mb-2">Ответы: {{ getParticipantName(selectedResponse) }}</h2>
                         <div class="info-badge">Завершено: {{ formatDate(selectedResponse.submitted_at) }}</div>
-                     </div>
+                    </div>
 
                     <div v-for="q in questions" :key="q.id" class="question-block mb-4">
                         <h5 class="question-heading mb-2">{{ q.text }}</h5>
@@ -153,16 +153,26 @@
                     </div>
 
                     <!-- Админ видит фидбек создателя -->
-                    <div v-if="isAdmin && existingFeedback" class="overall-feedback-display mt-4 p-3">
-                        <h5>💬 Фидбек проверяющего:</h5>
-                        <p>{{ existingFeedback }}</p>
-                    </div>
+                    <!-- Фидбек — видят и создатель, и админ -->
+                    <div v-if="!isSurvey" class="overall-feedback mt-4 p-3">
+                        <h5>
+                            {{ existingFeedback ? '💬 Фидбек по прохождению' : 'Общий комментарий по прохождению' }}
+                        </h5>
 
-                    <!-- Создатель может оставить фидбек -->
-                    <div v-if="!isAdmin" class="overall-feedback mt-4 p-3">
-                        <h5>Общий комментарий по прохождению</h5>
-                        <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
-                        <button @click="saveOverallFeedback" class="btn-save-final mt-2">💬 Отправить фидбек</button>
+                        <!-- Если уже есть фидбек — показываем его -->
+                        <div v-if="existingFeedback && !isEditingFeedback" class="feedback-display mb-3">
+                            <p>{{ existingFeedback }}</p>
+                            <button @click="startEditFeedback" class="btn-edit-feedback">✏️ Редактировать</button>
+                        </div>
+
+                        <!-- Форма редактирования/создания -->
+                        <div v-if="!existingFeedback || isEditingFeedback">
+                            <textarea v-model="overallFeedback" class="eval-input" rows="3" placeholder="Оставьте общий фидбек..."></textarea>
+                            <div class="feedback-actions mt-2">
+                                <button @click="saveOverallFeedback" class="btn-save-feedback">💬 Сохранить фидбек</button>
+                                <button v-if="isEditingFeedback" @click="cancelEditFeedback" class="btn-cancel-feedback">Отмена</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="publish-bottom">
@@ -211,9 +221,17 @@
     const departments = ref([])
     const isAnketa = computed(() => route.params.id === 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
     const isCreator = ref(false)
+    const isEditingFeedback = ref(false)
 
+    const startEditFeedback = () => {
+        overallFeedback.value = existingFeedback.value
+        isEditingFeedback.value = true
+    }
 
-
+    const cancelEditFeedback = () => {
+        overallFeedback.value = ''
+        isEditingFeedback.value = false
+    }
 
     const saveOverallFeedback = async () => {
         if (!overallFeedback.value.trim()) return alert('Введите комментарий')
@@ -234,17 +252,16 @@
             return
         }
 
-        // Обновляем локально
         existingFeedback.value = overallFeedback.value
         if (selectedResponse.value) {
             selectedResponse.value.feedback = overallFeedback.value
             selectedResponse.value.sent_to_admin = true
         }
 
-        alert('Фидбек отправлен!')
+        alert('Фидбек сохранён!')
         overallFeedback.value = ''
+        isEditingFeedback.value = false
 
-        // Уведомление пользователю
         if (selectedResponse.value?.user_id) {
             await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
                 message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
@@ -597,6 +614,54 @@
 </script>
 
 <style scoped>
+
+    .feedback-display {
+        background: #FDFDF1;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+        .feedback-display p {
+            margin: 0 0 8px;
+            white-space: pre-wrap;
+        }
+
+    .btn-edit-feedback {
+        background: none;
+        border: none;
+        color: #212844;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    .feedback-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-save-feedback {
+        background: #212844;
+        color: #F2C4CE;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .btn-cancel-feedback {
+        background: white;
+        border: 2px solid #dc3545;
+        color: #dc3545;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 700;
+        cursor: pointer;
+    }
     .admin-check-page {
         background: #FDFDF1;
         min-height: 100vh;
