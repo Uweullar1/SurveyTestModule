@@ -178,6 +178,8 @@
     const filterDepartment = ref('')
     const filterPassed = ref('')
 
+
+
     const handleCardClick = (survey) => {
         router.push(`/take/${survey.id}`)
     }
@@ -235,6 +237,7 @@
     })
 
     const deptSurveys = computed(() => {
+        const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
         if (!userDepartmentId.value) return []
         return filteredSurveys.value.filter(s =>
             s.department_id === userDepartmentId.value
@@ -242,6 +245,7 @@
     })
 
     const generalSurveys = computed(() => {
+        const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
         return filteredSurveys.value.filter(s => !s.department_id)
     })
 
@@ -299,6 +303,8 @@
             // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
+
+
             if (educationCompleted && !userDepartmentId.value && !canCreate.value) {
                 // Только что прошел анкету, ждет назначения — только свои
                 query = query.eq('user_id', user.value.id)
@@ -326,6 +332,13 @@
             const { data, error } = await query
             if (error) throw error
             surveys.value = data || []
+
+            const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+
+            // Если анкета уже пройдена — убираем её из списка
+            if (profile?.education_completed) {
+                surveys.value = surveys.value.filter(s => s.id !== ANKETA_ID)
+            }
 
             // Фильтр для стажеров
             if (isIntern) {
