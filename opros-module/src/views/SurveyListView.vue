@@ -184,13 +184,15 @@
 
     // Умный баннер
     const bannerInfo = computed(() => {
-        // Админам и создателям не показываем
         if (isAdmin.value || canCreate.value) {
             return { show: false }
         }
 
-        // 1. Анкета не пройдена
-        if (!educationCompleted.value) {
+        //  Проверяем сначала НАЛИЧИЕ анкеты среди пройденных
+        const anketaPassed = passedSurveyIds.value.includes(ANKETA_ID)
+
+        // 1. Анкета не пройдена (ни в профиле, ни в ответах)
+        if (!educationCompleted.value && !anketaPassed) {
             return {
                 show: true,
                 type: 'welcome',
@@ -202,14 +204,14 @@
             }
         }
 
-        // 2. Анкета пройдена, но нет департамента (ожидает проверки)
-        if (educationCompleted.value && !userDepartmentId.value) {
+        // 2. Анкета пройдена, но нет департамента
+        if ((educationCompleted.value || anketaPassed) && !userDepartmentId.value) {
             return {
                 show: true,
                 type: 'pending',
                 icon: '⏳',
                 title: 'Анкета на проверке',
-                message: 'Ваша анкета отправлена на рассмотрение. Ожидайте назначения на стажировку. Это может занять до 3 рабочих дней.',
+                message: 'Ваша анкета отправлена на рассмотрение. Ожидайте назначения на стажировку.',
                 link: null,
                 buttonText: ''
             }
@@ -368,25 +370,26 @@
             // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-            // Используем ref-значения, а не локальные const
             if (educationCompleted.value && !userDepartmentId.value && !canCreate.value) {
+                // Анкета пройдена, ждёт назначения — НЕ показываем общие опросы
+                // Показываем только опросы, созданные этим пользователем (обычно ничего)
                 query = query.eq('user_id', user.value.id)
             } else if (isIntern.value && userDepartmentId.value) {
+                // Стажёр
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else if (userDepartmentId.value) {
+                // Обычный сотрудник
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                query = query.or(
-                    `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
-                    `user_id.eq.${user.value.id}`
-                )
+                // Вообще без департамента и анкета не пройдена — только свои
+                query = query.eq('user_id', user.value.id)
             }
 
             const { data, error } = await query
