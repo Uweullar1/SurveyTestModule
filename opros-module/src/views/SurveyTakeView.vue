@@ -293,6 +293,7 @@
                         return
                     }
                 }
+            }
 
             const canProceed = await checkMaxResponsesLimit(surveyId)
             if (!canProceed) return
