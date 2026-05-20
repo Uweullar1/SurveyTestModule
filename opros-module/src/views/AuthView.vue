@@ -12,24 +12,48 @@
                     <div class="form-content">
 
                         <template v-if="!isLogin">
-                            <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" />
-                            <div v-if="formErrors.firstName" class="error-message">{{ formErrors.firstName }}</div>
+                            <div class="input-wrapper">
+                                <input v-model="firstName" type="text" placeholder="Имя" class="auth-input" :class="{ 'input-error': formErrors.firstName }" />
+                                <div v-if="formErrors.firstName" class="field-error">
+                                    <span class="field-error-icon">!</span>
+                                    {{ formErrors.firstName }}
+                                </div>
+                            </div>
 
-                            <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" required />
-                            <div v-if="formErrors.lastName" class="error-message">{{ formErrors.lastName }}</div>
+                            <div class="input-wrapper">
+                                <input v-model="lastName" type="text" placeholder="Фамилия" class="auth-input" :class="{ 'input-error': formErrors.lastName }" required />
+                                <div v-if="formErrors.lastName" class="field-error">
+                                    <span class="field-error-icon">!</span>
+                                    {{ formErrors.lastName }}
+                                </div>
+                            </div>
 
-                            <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
-                            <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
-
+                            <div class="input-wrapper">
+                                <input v-model="username" type="text" placeholder="Username" class="auth-input" :class="{ 'input-error': formErrors.username }" required />
+                                <div v-if="formErrors.username" class="field-error">
+                                    <span class="field-error-icon">!</span>
+                                    {{ formErrors.username }}
+                                </div>
+                            </div>
                         </template>
 
 
 
-                        <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
-                        <div v-if="formErrors.email" class="error-message">{{ formErrors.email }}</div>
+                        <div class="input-wrapper">
+                            <input v-model="email" type="email" placeholder="Email" class="auth-input" :class="{ 'input-error': formErrors.email }" required />
+                            <div v-if="formErrors.email" class="field-error">
+                                <span class="field-error-icon">!</span>
+                                {{ formErrors.email }}
+                            </div>
+                        </div>
 
-                        <input v-model="password" type="password" placeholder="Пароль" class="auth-input" required />
-                        <div v-if="formErrors.password" class="error-message">{{ formErrors.password }}</div>
+                        <div class="input-wrapper">
+                            <input v-model="password" type="password" placeholder="Пароль" class="auth-input" :class="{ 'input-error': formErrors.password }" required />
+                            <div v-if="formErrors.password" class="field-error">
+                                <span class="field-error-icon">!</span>
+                                {{ formErrors.password }}
+                            </div>
+                        </div>
 
                         <div class="btn-container">
                             <button type="submit" class="btn-submit">
@@ -284,13 +308,80 @@
         text-decoration: underline;
     }
 
-    .error-message {
-        color: #DF2935;
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin-top: -10px; /* Притягиваем ошибку к инпуту */
-        margin-bottom: 5px;
+
+    .input-wrapper {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
+
+    /* Ошибка — красная полоска с иконкой */
+    .field-error {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 320px;
+        margin-top: 6px;
+        padding: 8px 12px;
+        background: #fff0f0;
+        border: 2px solid #f5c6cb;
+        border-radius: 10px;
+        color: #c41e3a;
+        font-size: 0.8rem;
+        font-weight: 600;
+        animation: shakeError 0.3s ease-out;
+    }
+
+    .field-error-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        background: #c41e3a;
+        color: white;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: 900;
+        flex-shrink: 0;
+    }
+
+    /* Красная обводка инпута при ошибке */
+    .auth-input.input-error {
+        border-color: #c41e3a;
+        background: #fff5f5;
+    }
+
+    /* Анимация тряски */
+    @keyframes shakeError {
+        0%, 100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-4px);
+        }
+
+        50% {
+            transform: translateX(0);
+        }
+
+        75% {
+            transform: translateX(4px);
+        }
+    }
+
+    /* Убедись, что gap в form-content достаточный */
+    .form-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+
     /* Обертка селекта департамента */
     .dept-select-wrapper {
         position: relative;
