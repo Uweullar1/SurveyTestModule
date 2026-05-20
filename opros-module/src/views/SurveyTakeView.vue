@@ -95,10 +95,6 @@
                                         {{ (responses[question.id] || '').length }}/500
                                     </div>
                                 </div>
-
-                            <div class="text-end small text-muted mt-1">
-                                {{ (responses[question.id] || '').length }}/500
-                            </div>
                         </div>
 
                         <div v-else-if="question.question_type === 'scale'" class="mt-3">
