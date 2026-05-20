@@ -75,7 +75,7 @@ export const profileRules = {
         const val = String(value).trim()
         if (val.length < 3) return 'Username минимум 3 символа'
         if (val.length > 30) return 'Username максимум 30 символов'
-        if (!/^[a-zA-Z0-9_]+$/.test(val)) return 'Только буквы, цифры и _'
+        if (!/^[a-zA-Z0-9_]+$/.test(val)) return 'Только латинские буквы, цифры и _'
         return ''
     },
 
