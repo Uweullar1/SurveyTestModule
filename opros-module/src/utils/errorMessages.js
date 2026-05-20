@@ -7,8 +7,8 @@ export const authErrors = {
     'Invalid email or password': 'Неверный email или пароль.',
     
     // Ошибки регистрации
-    'User already registered': 'Пользователь с таким email уже зарегистрирован. Выполните вход или восстановите пароль.',
-    'Email already registered': 'Этот email уже используется. Попробуйте войти или восстановить пароль.',
+    'User already registered': 'Пользователь с таким email уже зарегистрирован. Выполните вход.',
+    'Email already registered': 'Этот email уже используется. Выполните вход.',
     'Password should be at least 6 characters': 'Пароль должен содержать минимум 6 символов.',
     'Signup requires a valid password': 'Введите пароль (минимум 6 символов).',
     'Unable to validate email address: invalid format': 'Некорректный формат email. Проверьте адрес.',
