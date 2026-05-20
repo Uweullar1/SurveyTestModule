@@ -66,6 +66,43 @@
                                       maxlength="500"
                                       :required="question.required"
                                       placeholder="Введите ваш ответ..."></textarea>
+
+                            <!-- Текстовый вопрос -->
+                            <div v-else-if="question.question_type === 'text'" class="mt-3">
+
+                                <!-- Если это телефон (определяем по ключевому слову в тексте вопроса) -->
+                                <div v-if="isPhoneQuestion(question)" class="phone-input-wrapper">
+                                    <input v-model="responses[question.id]"
+                                           type="tel"
+                                           class="form-control custom-input"
+                                           placeholder="+7 (___) ___-__-__"
+                                           maxlength="18"
+                                           @input="formatPhoneInput(question.id)"
+                                           :required="question.required" />
+                                </div>
+
+                                <!-- Если это email -->
+                                <div v-else-if="isEmailQuestion(question)" class="email-input-wrapper">
+                                    <input v-model="responses[question.id]"
+                                           type="email"
+                                           class="form-control custom-input"
+                                           placeholder="example@mail.ru"
+                                           :required="question.required" />
+                                </div>
+
+                                <!-- Обычный текст -->
+                                <div v-else>
+                                    <textarea v-model="responses[question.id]"
+                                              class="form-control custom-textarea"
+                                              rows="3"
+                                              maxlength="500"
+                                              :required="question.required"
+                                              placeholder="Введите ваш ответ..."></textarea>
+                                    <div class="text-end small text-muted mt-1">
+                                        {{ (responses[question.id] || '').length }}/500
+                                    </div>
+                                </div>
+                            </div>
                             <div class="text-end small text-muted mt-1">
                                 {{ (responses[question.id] || '').length }}/500
                             </div>
@@ -120,6 +157,70 @@
     const submitting = ref(false)
     const loading = ref(true)
     const error = ref(null)
+
+
+    // Проверка, является ли вопрос телефоном
+    const isPhoneQuestion = (question) => {
+        const text = question.text?.toLowerCase() || ''
+        return text.includes('телефон') || text.includes('номер телефона') || text.includes('контактный номер')
+    }
+
+    // Проверка, является ли вопрос email
+    const isEmailQuestion = (question) => {
+        const text = question.text?.toLowerCase() || ''
+        return text.includes('почта') || text.includes('email') || text.includes('e-mail') || text.includes('адрес почты')
+    }
+
+    // Форматирование телефона при вводе
+    const formatPhoneInput = (questionId) => {
+        let value = responses[questionId] || ''
+
+        // Убираем всё кроме цифр
+        let numbers = value.replace(/\D/g, '')
+
+        // Ограничиваем 11 цифрами (российский номер)
+        if (numbers.length > 11) numbers = numbers.slice(0, 11)
+
+        // Форматируем
+        let formatted = '+7'
+        if (numbers.length > 1) formatted += ' (' + numbers.slice(1, 4)
+        if (numbers.length >= 4) formatted += ') ' + numbers.slice(4, 7)
+        if (numbers.length >= 7) formatted += '-' + numbers.slice(7, 9)
+        if (numbers.length >= 9) formatted += '-' + numbers.slice(9, 11)
+
+        responses[questionId] = formatted
+    }
+
+    // Валидация перед отправкой
+    const validateForm = () => {
+        for (const question of questions.value) {
+            const answer = responses[question.id]
+
+            if (question.required && !answer) {
+                alert(`Вопрос "${question.text}" обязателен для ответа`)
+                return false
+            }
+
+            // Валидация email
+            if (isEmailQuestion(question) && answer) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                if (!emailRegex.test(answer)) {
+                    alert('Пожалуйста, введите корректный email')
+                    return false
+                }
+            }
+
+            // Валидация телефона
+            if (isPhoneQuestion(question) && answer) {
+                const numbers = answer.replace(/\D/g, '')
+                if (numbers.length < 11) {
+                    alert('Пожалуйста, введите полный номер телефона')
+                    return false
+                }
+            }
+        }
+        return true
+    }
 
     const checkAuth = async () => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -664,4 +765,64 @@
             padding-right: 12px;
         }
     }
+
+    .phone-input-wrapper,
+    .email-input-wrapper {
+        position: relative;
+    }
+
+        .phone-input-wrapper::before {
+            content: '📱';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            z-index: 2;
+        }
+
+        .email-input-wrapper::before {
+            content: '📧';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            z-index: 2;
+        }
+
+    .custom-input {
+        width: 100%;
+        padding: 14px 16px 14px 44px;
+        border: 2px solid #dee2e6;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #212844;
+        background: white;
+        transition: border-color 0.2s;
+    }
+
+        .custom-input:focus {
+            outline: none;
+            border-color: #212844;
+        }
+
+    .custom-textarea {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #dee2e6;
+        border-radius: 14px;
+        font-size: 1rem;
+        color: #212844;
+        background: white;
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+    }
+
+        .custom-textarea:focus {
+            outline: none;
+            border-color: #212844;
+        }
 </style>
