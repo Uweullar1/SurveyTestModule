@@ -4,6 +4,12 @@
             <div class="auth-card">
                 <h2 class="auth-title">{{ isLogin ? 'Вход' : 'Регистрация' }}</h2>
 
+                <ToastNotification v-if="showToast"
+                                   :message="toastMessage"
+                                   :type="toastType"
+                                   :duration="6000"
+                                   @close="showToast = false" />
+
                 <form @submit.prevent="handleAuth" class="auth-form">
                     <div class="form-content">
 
@@ -16,10 +22,10 @@
 
                             <input v-model="username" type="text" placeholder="Username" class="auth-input" required />
                             <div v-if="formErrors.username" class="error-message">{{ formErrors.username}}</div>
-                            
+
                         </template>
 
-                        
+
 
                         <input v-model="email" type="email" placeholder="Email" class="auth-input" required />
                         <div v-if="formErrors.email" class="error-message">{{ formErrors.email }}</div>
@@ -49,11 +55,16 @@
     import { useRouter } from 'vue-router'
     import { supabase } from '../supabase'
     import { profileRules } from '../utils/validation.js'
+    import { getAuthErrorMessage } from '../utils/errorMessages'
+    import ToastNotification from '../components/ToastNotification.vue'
+
 
     const router = useRouter()
 
     const isLogin = ref(true)
-
+    const toastMessage = ref('')
+    const toastType = ref('error')
+    const showToast = ref(false)
     const showReset = ref(false)
     const resetEmail = ref('')
     const resetMessage = ref('')
@@ -68,24 +79,20 @@
     const formErrors = ref({})
 
 
-    const resetPassword = async () => {
-        if (!resetEmail.value) return alert('Введите email')
-
-        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.value, {
-            redirectTo: window.location.origin + '/profile'
-        })
-
-        if (error) {
-            resetMessage.value = 'Ошибка: ' + error.message
-        } else {
-            resetMessage.value = 'Ссылка для сброса пароля отправлена на email!'
-            setTimeout(() => {
-                showReset.value = false
-                resetEmail.value = ''
-                resetMessage.value = ''
-            }, 3000)
-        }
+    // Функция показа ошибки:
+    const showError = (error) => {
+        toastMessage.value = getAuthErrorMessage(error)
+        toastType.value = 'error'
+        showToast.value = true
     }
+
+    // Функция показа успеха:
+    const showSuccess = (message) => {
+        toastMessage.value = message
+        toastType.value = 'success'
+        showToast.value = true
+    }
+
 
     const handleAuth = async () => {
         formErrors.value = {}
@@ -100,6 +107,7 @@
         formErrors.value.password = profileRules.password(password.value)
 
         if (Object.values(formErrors.value).some(err => err !== '' && err !== undefined)) {
+            showError({ message: 'Пожалуйста, исправьте ошибки в форме.' })
             return
         }
 
@@ -110,8 +118,14 @@
                     password: password.value
                 })
 
-                if (error) throw error
-                router.push('/')
+                if (error) {
+                    showError(error)
+                    return
+                }
+
+                showSuccess('Вход выполнен успешно!')
+                setTimeout(() => router.push('/'), 500)
+
             } else {
                 // Проверка уникальности телефона
                 if (phone.value) {
@@ -123,7 +137,7 @@
                         .limit(1)
 
                     if (existing && existing.length > 0) {
-                        alert('Пользователь с таким номером телефона уже зарегистрирован')
+                        showError({ message: 'Пользователь с таким номером телефона уже зарегистрирован.' })
                         return
                     }
                 }
@@ -140,7 +154,10 @@
                     }
                 })
 
-                if (error) throw error
+                if (error) {
+                    showError(error)
+                    return
+                }
 
                 // Автоматический вход после регистрации
                 const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -149,14 +166,15 @@
                 })
 
                 if (!loginError) {
-                    router.push('/')
+                    showSuccess('Регистрация успешна! Добро пожаловать!')
+                    setTimeout(() => router.push('/'), 500)
                 } else {
-                    alert('Регистрация прошла успешно! Теперь войдите.')
+                    showSuccess('Регистрация успешна! Теперь войдите в систему.')
                     isLogin.value = true
                 }
             }
         } catch (err) {
-            alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'))
+            showError(err)
         }
     }
 
