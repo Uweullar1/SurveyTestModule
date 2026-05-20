@@ -819,7 +819,7 @@
     }
 
         .btn-banner:hover {
-            background: #DF2935;
+            background: #212844;
             color: white;
         }
 
