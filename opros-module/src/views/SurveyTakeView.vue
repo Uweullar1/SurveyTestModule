@@ -138,8 +138,7 @@
     const route = useRoute()
     const router = useRouter()
 
-    const STORAGE_KEY = 'survey_draft'
-
+    const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
     const survey = ref({})
     const questions = ref([])
     const responses = ref({})
@@ -278,6 +277,23 @@
                 }
             }
 
+            if (surveyId === ANKETA_ID) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('education_completed')
+                        .eq('id', user.id)
+                        .single()
+
+                    if (profile?.education_completed) {
+                        alert('Вы уже заполнили анкету. Сейчас вы будете перенаправлены на главную.')
+                        router.push('/')
+                        loading.value = false
+                        return
+                    }
+                }
+
             const canProceed = await checkMaxResponsesLimit(surveyId)
             if (!canProceed) return
 
@@ -390,15 +406,17 @@
 
             localStorage.removeItem(`${STORAGE_KEY}_${surveyId}`)
 
-            const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+
 
             // === АНКЕТА КАНДИДАТА ===
             if (surveyId === ANKETA_ID) {
-                await supabase.from('profiles').update({ education_completed: true }).eq('id', session.user.id)
+                await supabase.from('profiles').update({
+                    education_completed: true
+                }).eq('id', session.user.id)
 
                 // Уведомление кандидату
                 await notificationsService.send(session.user.id, 'Анкета отправлена!', {
-                    message: 'Ваша анкета будет рассмотрена в течение 3 рабочих дней. Мы свяжемся с вами.',
+                    message: 'Ваша анкета будет рассмотрена. Мы свяжемся с вами.',
                     icon: '📋',
                     link: '/'
                 })
@@ -420,7 +438,8 @@
                     }
                 }
 
-                alert('Анкета отправлена! Ожидайте дальнейших инструкций.')
+                // ✅ Редирект на главную с сообщением
+                alert('Анкета успешно заполнена! Добро пожаловать на платформу.')
                 router.push('/')
                 return
             }

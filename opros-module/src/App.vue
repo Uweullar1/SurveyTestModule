@@ -72,7 +72,6 @@
                 const { data: allAdmins } = await supabase
                     .from('admins')
                     .select('user_id')
-
                 isAdmin.value = (allAdmins || []).some(a => a.user_id === user.id)
 
                 // Загрузка профиля
@@ -95,18 +94,19 @@
                             localStorage.setItem('avatar', url)
                         }
                     }
-                }
 
-                if (!profile.education_completed && !canCreate.value && !isAdmin.value) {
-                    const { data: passed } = await supabase
-                        .from('responses')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .eq('survey_id', ANKETA_ID)
-                        .limit(1)
+                    // ✅ Перенаправляем на анкету только если она НЕ пройдена
+                    if (!profile.education_completed && !canCreate.value && !isAdmin.value) {
+                        // Проверяем, не на странице ли анкеты уже
+                        if (!isOnAnketaPage.value) {
+                            router.push(`/take/${ANKETA_ID}`)
+                            return
+                        }
+                    }
 
-                    if (!passed || passed.length === 0) {
-                        router.push(`/take/${ANKETA_ID}`)
+                    // ✅ Если анкета пройдена, а пользователь всё ещё на странице анкеты — уводим на главную
+                    if (profile.education_completed && isOnAnketaPage.value) {
+                        router.push('/')
                         return
                     }
                 }
@@ -120,7 +120,6 @@
             console.error('Ошибка загрузки пользователя:', err)
         }
     }
-
     supabase.auth.onAuthStateChange((event, session) => {
         loadUserData()
     })
