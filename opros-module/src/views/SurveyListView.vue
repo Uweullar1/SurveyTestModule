@@ -309,7 +309,6 @@
     })
 
     const deptSurveys = computed(() => {
-        const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
         if (!userDepartmentId.value) return []
         return filteredSurveys.value.filter(s =>
             s.department_id === userDepartmentId.value
@@ -317,7 +316,6 @@
     })
 
     const generalSurveys = computed(() => {
-        const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
         return filteredSurveys.value.filter(s => !s.department_id)
     })
 
@@ -340,10 +338,6 @@
 
             userDepartmentId.value = profile?.department_id || null
             canCreate.value = profile?.can_create || false
-            educationCompleted.value = profile?.education_completed || false
-            isIntern.value = profile?.is_intern || false
-            const isIntern = profile?.is_intern || false
-            const educationCompleted = profile?.education_completed || false
 
             const { data: adminCheck } = await supabase
                 .from('admins')
@@ -359,44 +353,37 @@
 
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
-            // Определяем статус для каждого опроса
+            // Исправлено — без висячей точки с запятой
             const statuses = {}
                 ; (responses || []).forEach(r => {
                     if (r.feedback) {
-                        statuses[r.survey_id] = 'reviewed'     // Проверен, есть фидбек
+                        statuses[r.survey_id] = 'reviewed'
                     } else if (r.sent_to_admin) {
-                        statuses[r.survey_id] = 'pending'      // Отправлен на проверку
+                        statuses[r.survey_id] = 'pending'
                     } else {
-                        statuses[r.survey_id] = 'completed'    // Просто пройден
+                        statuses[r.survey_id] = 'completed'
                     }
                 })
             surveyStatuses.value = statuses
 
-
-
             // ОДИН запрос опросов
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-
-
-            if (educationCompleted && !userDepartmentId.value && !canCreate.value) {
-                // Только что прошел анкету, ждет назначения — только свои
+            // Используем ref-значения, а не локальные const
+            if (educationCompleted.value && !userDepartmentId.value && !canCreate.value) {
                 query = query.eq('user_id', user.value.id)
-            } else if (isIntern && userDepartmentId.value) {
-                // Стажер
+            } else if (isIntern.value && userDepartmentId.value) {
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else if (userDepartmentId.value) {
-                // Обычный сотрудник
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                // Кандидат без департамента
                 query = query.or(
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
@@ -407,15 +394,13 @@
             if (error) throw error
             surveys.value = data || []
 
-            const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
-
             // Если анкета уже пройдена — убираем её из списка
-            if (profile?.education_completed) {
+            if (educationCompleted.value) {
                 surveys.value = surveys.value.filter(s => s.id !== ANKETA_ID)
             }
 
-            // Фильтр для стажеров
-            if (isIntern) {
+            // Фильтр для стажеров — используем ref
+            if (isIntern.value) {
                 const passedIds = (responses || []).map(r => r.survey_id)
                 surveys.value = surveys.value.filter(s => {
                     if (!s.is_for_interns) return false
