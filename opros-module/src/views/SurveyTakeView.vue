@@ -60,12 +60,6 @@
                         </div>
 
                         <div v-else-if="question.question_type === 'text'" class="mt-3">
-                            <textarea v-model="responses[question.id]"
-                                      class="form-control custom-textarea"
-                                      rows="3"
-                                      maxlength="500"
-                                      :required="question.required"
-                                      placeholder="Введите ваш ответ..."></textarea>
 
                             <!-- Текстовый вопрос -->
 
