@@ -263,9 +263,9 @@
         isEditingFeedback.value = false
 
         if (selectedResponse.value?.user_id) {
-            await notificationsService.send(selectedResponse.value.user_id, 'Получен новый фидбек', {
-                message: `Проверяющий оставил комментарий к опросу "${surveyTitle.value}"`,
-                icon: '💬',
+            await notificationsService.send(selectedResponse.value.user_id, 'Опрос проверен', {
+                message: `Ваш ответ на опрос "${surveyTitle.value}" проверен. Оставлен комментарий.`,
+                icon: '✅',
                 link: `/my-results/${respId}`
             })
         }
@@ -448,13 +448,6 @@
                 }
             }
             alert('Результаты сохранены!')
-            if (selectedResponse.value?.user_id) {
-                await notificationsService.send(selectedResponse.value.user_id, 'Ваш ответ проверен', {
-                    message: `Проверяющий оценил ваш ответ в опросе "${surveyTitle.value}"`,
-                    icon: '✅',
-                    link: `/my-results/${selectedResponse.value.id}`
-                })
-            }
         } catch (e) {
             console.error(e)
             alert('Ошибка сохранения')

@@ -146,7 +146,6 @@
     const loading = ref(true)
     const error = ref(null)
 
-
     // Проверка, является ли вопрос телефоном
     const isPhoneQuestion = (question) => {
         const text = question.text?.toLowerCase() || ''
@@ -422,7 +421,7 @@
                     link: '/'
                 })
 
-                // Уведомление всем создателям и админам
+                // Уведомление всем создателям и админам (без дублей)
                 const { data: creators } = await supabase.from('profiles').select('id').eq('can_create', true)
                 const { data: admins } = await supabase.from('admins').select('user_id')
                 const notifyIds = new Set()
@@ -439,7 +438,6 @@
                     }
                 }
 
-                // ✅ Редирект на главную с сообщением
                 alert('Анкета успешно заполнена! Добро пожаловать на платформу.')
                 router.push('/')
                 return
@@ -487,28 +485,47 @@
                 }
             }
 
-            // === УВЕДОМЛЕНИЕ АДМИНАМ О ПРОХОЖДЕНИИ ===
-            const { data: admins } = await supabase.from('admins').select('user_id')
-            if (admins) {
-                for (const admin of admins) {
-                    if (admin.user_id !== session?.user?.id) {
-                        await notificationsService.send(admin.user_id, 'Новое прохождение опроса', {
-                            message: `Пользователь прошел опрос "${survey.value.title}"`,
-                            icon: '📋',
+            // === УВЕДОМЛЕНИЯ (единый блок) ===
+            if (surveyId !== ANKETA_ID) {
+                const notifyIds = new Set()
+
+                // 1. Добавляем создателя опроса (если есть текстовые вопросы)
+                const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
+                if (hasTextQuestions && survey.value.user_id && survey.value.user_id !== session.user.id) {
+                    notifyIds.add(survey.value.user_id)
+                }
+
+                // 2. Добавляем всех админов
+                const { data: admins } = await supabase.from('admins').select('user_id')
+                if (admins) {
+                    admins.forEach(a => {
+                        if (a.user_id !== session?.user?.id) {
+                            notifyIds.add(a.user_id)
+                        }
+                    })
+                }
+
+                // Отправляем ОДНО уведомление каждому
+                for (const userId of notifyIds) {
+                    const isCreator = userId === survey.value.user_id
+
+                    await notificationsService.send(userId,
+                        isCreator ? 'Требуется проверка ответов' : 'Новое прохождение опроса',
+                        {
+                            message: `Опрос "${survey.value.title}" пройден${isCreator ? '. Требуется проверка.' : ' пользователем.'}`,
+                            icon: isCreator ? '🔍' : '📋',
                             link: `/results/${surveyId}/admin`
-                        })
-                    }
+                        }
+                    )
                 }
             }
 
-            // === ТЕКСТОВЫЕ ВОПРОСЫ ===
-            const hasTextQuestions = questions.value.some(q => q.question_type === 'text')
-            if (hasTextQuestions && session?.user?.id !== survey.value.user_id) {
-                await notificationsService.send(survey.value.user_id, 'Требуется проверка ответов', {
-                    message: `Новые ответы в опросе "${survey.value.title}"`,
-                    icon: '🔍',
-                    link: `/results/${surveyId}/admin`
-                })
+            // === РЕДИРЕКТ ===
+            if (survey.value.is_survey) {
+                alert('Спасибо за прохождение опроса!')
+                router.push('/my-history')
+            } else {
+                router.push(`/my-results/${responseId}`)
             }
 
             // === РЕДИРЕКТ ===

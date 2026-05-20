@@ -29,15 +29,15 @@
                 </div>
             </div>
 
-            <!-- ПОДСКАЗКА ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ -->
-            <div v-if="!educationCompleted && !canCreate && !isAdmin" class="info-banner">
-                <div class="info-banner-icon">👋</div>
+            <!-- УМНАЯ ПОДСКАЗКА -->
+            <div v-if="bannerInfo.show && !isAdmin" class="info-banner" :class="'banner-' + bannerInfo.type">
+                <div class="info-banner-icon">{{ bannerInfo.icon }}</div>
                 <div class="info-banner-text">
-                    <strong>Добро пожаловать!</strong>
-                    <p>Заполните анкету соискателя, чтобы открыть доступ к тестам по вакансиям.</p>
+                    <strong>{{ bannerInfo.title }}</strong>
+                    <p>{{ bannerInfo.message }}</p>
                 </div>
-                <router-link :to="`/take/${ANKETA_ID}`" class="btn-banner">
-                    Заполнить анкету →
+                <router-link v-if="bannerInfo.link" :to="bannerInfo.link" class="btn-banner">
+                    {{ bannerInfo.buttonText }}
                 </router-link>
             </div>
 
@@ -177,8 +177,80 @@
     const searchQuery = ref('')
     const filterDepartment = ref('')
     const filterPassed = ref('')
+    const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+    const educationCompleted = ref(false)
+    const isIntern = ref(false)
 
 
+    // Умный баннер
+    const bannerInfo = computed(() => {
+        // Админам и создателям не показываем
+        if (isAdmin.value || canCreate.value) {
+            return { show: false }
+        }
+
+        // 1. Анкета не пройдена
+        if (!educationCompleted.value) {
+            return {
+                show: true,
+                type: 'welcome',
+                icon: '👋',
+                title: 'Добро пожаловать!',
+                message: 'Заполните анкету соискателя, чтобы открыть доступ к тестам по вакансиям.',
+                link: `/take/${ANKETA_ID}`,
+                buttonText: 'Заполнить анкету →'
+            }
+        }
+
+        // 2. Анкета пройдена, но нет департамента (ожидает проверки)
+        if (educationCompleted.value && !userDepartmentId.value) {
+            return {
+                show: true,
+                type: 'pending',
+                icon: '⏳',
+                title: 'Анкета на проверке',
+                message: 'Ваша анкета отправлена на рассмотрение. Ожидайте назначения на стажировку. Это может занять до 3 рабочих дней.',
+                link: null,
+                buttonText: ''
+            }
+        }
+
+        // 3. Стажёр — показываем непройденные опросы
+        if (isIntern.value && userDepartmentId.value) {
+            const unpassedSurveys = surveys.value.filter(s =>
+                s.is_for_interns &&
+                s.department_id === userDepartmentId.value &&
+                !passedSurveyIds.value.includes(s.id)
+            )
+
+            if (unpassedSurveys.length > 0) {
+                const nextSurvey = unpassedSurveys[0] // Берём первый непройденный
+                return {
+                    show: true,
+                    type: 'intern',
+                    icon: '📝',
+                    title: 'Пройдите тесты стажировки',
+                    message: `Осталось пройти ${unpassedSurveys.length} тест(ов): "${nextSurvey.title}"`,
+                    link: `/take/${nextSurvey.id}`,
+                    buttonText: 'Пройти тест →'
+                }
+            } else {
+                // Все стажировочные пройдены
+                return {
+                    show: true,
+                    type: 'completed',
+                    icon: '✅',
+                    title: 'Все тесты пройдены!',
+                    message: 'Ваши ответы проверят. Ожидайте решения руководителя.',
+                    link: null,
+                    buttonText: ''
+                }
+            }
+        }
+
+        // 4. Обычный сотрудник (уже не стажёр) — не показываем баннер
+        return { show: false }
+    })
 
     const handleCardClick = (survey) => {
         router.push(`/take/${survey.id}`)
@@ -268,6 +340,8 @@
 
             userDepartmentId.value = profile?.department_id || null
             canCreate.value = profile?.can_create || false
+            educationCompleted.value = profile?.education_completed || false
+            isIntern.value = profile?.is_intern || false
             const isIntern = profile?.is_intern || false
             const educationCompleted = profile?.education_completed || false
 
@@ -793,11 +867,31 @@
         align-items: center;
         gap: 16px;
         padding: 20px 24px;
-        background: linear-gradient(135deg, #FDFDF1 0%, #fff 100%);
-        border: 2px solid #B0D7FF;
         border-radius: 16px;
         margin-bottom: 24px;
+        border: 2px solid;
     }
+
+    .banner-welcome {
+        background: linear-gradient(135deg, #FDFDF1 0%, #fff 100%);
+        border-color: #B0D7FF;
+    }
+
+    .banner-pending {
+        background: #fffbea;
+        border-color: #ffc107;
+    }
+
+    .banner-intern {
+        background: linear-gradient(135deg, #f0f8ff 0%, #fff 100%);
+        border-color: #0d6efd;
+    }
+
+    .banner-completed {
+        background: #f0fff4;
+        border-color: #198754;
+    }
+
 
     .info-banner-icon {
         font-size: 2rem;
