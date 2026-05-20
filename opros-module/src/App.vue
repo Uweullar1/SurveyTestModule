@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, computed } from 'vue'
+    import { ref, onMounted,  } from 'vue'
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
     import NotificationsBar from './components/NotificationsBar.vue'
@@ -204,7 +204,7 @@
     }
 
         .nav-link:hover {
-            color: #212844;
+            color: #DF2935;
         }
 
 
@@ -291,16 +291,7 @@
         color: #DF2935;
     }
 
-        .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: #DF2935;
-            border-radius: 2px;
-        }
+
 
     .content-wrapper.no-nav {
         padding-top: 0;
