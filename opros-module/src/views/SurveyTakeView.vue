@@ -137,7 +137,7 @@
 
     const route = useRoute()
     const router = useRouter()
-
+    const STORAGE_KEY = 'survey_draft'
     const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
     const survey = ref({})
     const questions = ref([])
