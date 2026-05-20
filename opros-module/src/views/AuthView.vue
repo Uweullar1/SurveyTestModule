@@ -4,11 +4,9 @@
             <div class="auth-card">
                 <h2 class="auth-title">{{ isLogin ? 'Вход' : 'Регистрация' }}</h2>
 
-                <ToastNotification v-if="showToast"
-                                   :message="toastMessage"
-                                   :type="toastType"
-                                   :duration="6000"
-                                   @close="showToast = false" />
+                <div v-if="showToast" :class="['auth-notification', toastType]" @click="showToast = false">
+                    {{ toastMessage }}
+                </div>
 
                 <form @submit.prevent="handleAuth" class="auth-form">
                     <div class="form-content">
@@ -62,9 +60,11 @@
     const router = useRouter()
 
     const isLogin = ref(true)
+
     const toastMessage = ref('')
     const toastType = ref('error')
     const showToast = ref(false)
+
     const showReset = ref(false)
     const resetEmail = ref('')
     const resetMessage = ref('')
@@ -78,20 +78,20 @@
 
     const formErrors = ref({})
 
+    let toastTimer = null
 
     // Функция показа ошибки:
-    const showError = (error) => {
-        toastMessage.value = getAuthErrorMessage(error)
-        toastType.value = 'error'
+    const showNotification = (message, type = 'error') => {
+        toastMessage.value = message
+        toastType.value = type
         showToast.value = true
+
+        clearTimeout(toastTimer)
+        toastTimer = setTimeout(() => {
+            showToast.value = false
+        }, 5000)
     }
 
-    // Функция показа успеха:
-    const showSuccess = (message) => {
-        toastMessage.value = message
-        toastType.value = 'success'
-        showToast.value = true
-    }
 
 
     const handleAuth = async () => {
@@ -107,7 +107,7 @@
         formErrors.value.password = profileRules.password(password.value)
 
         if (Object.values(formErrors.value).some(err => err !== '' && err !== undefined)) {
-            showError({ message: 'Пожалуйста, исправьте ошибки в форме.' })
+            showNotification('Пожалуйста, исправьте ошибки в форме.', 'error')
             return
         }
 
@@ -119,15 +119,14 @@
                 })
 
                 if (error) {
-                    showError(error)
+                    showNotification(getAuthErrorMessage(error), 'error')
                     return
                 }
 
-                showSuccess('Вход выполнен успешно!')
+                showNotification('Вход выполнен успешно!', 'success')
                 setTimeout(() => router.push('/'), 500)
 
             } else {
-                // Проверка уникальности телефона
                 if (phone.value) {
                     const cleanedPhone = '+' + phone.value.replace(/\D/g, '')
                     const { data: existing } = await supabase
@@ -137,12 +136,12 @@
                         .limit(1)
 
                     if (existing && existing.length > 0) {
-                        showError({ message: 'Пользователь с таким номером телефона уже зарегистрирован.' })
+                        showNotification('Пользователь с таким номером телефона уже зарегистрирован.', 'error')
                         return
                     }
                 }
 
-                const { data, error } = await supabase.auth.signUp({
+                const { error } = await supabase.auth.signUp({
                     email: email.value.trim(),
                     password: password.value,
                     options: {
@@ -155,26 +154,25 @@
                 })
 
                 if (error) {
-                    showError(error)
+                    showNotification(getAuthErrorMessage(error), 'error')
                     return
                 }
 
-                // Автоматический вход после регистрации
                 const { error: loginError } = await supabase.auth.signInWithPassword({
                     email: email.value.trim(),
                     password: password.value
                 })
 
                 if (!loginError) {
-                    showSuccess('Регистрация успешна! Добро пожаловать!')
+                    showNotification('Регистрация успешна! Добро пожаловать!', 'success')
                     setTimeout(() => router.push('/'), 500)
                 } else {
-                    showSuccess('Регистрация успешна! Теперь войдите в систему.')
+                    showNotification('Регистрация успешна! Теперь войдите в систему.', 'success')
                     isLogin.value = true
                 }
             }
         } catch (err) {
-            showError(err)
+            showNotification(getAuthErrorMessage(err), 'error')
         }
     }
 
@@ -335,6 +333,47 @@
 
         .btn-submit {
             max-width: 100%;
+        }
+    }
+
+    .auth-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 440px;
+        width: 90%;
+        padding: 14px 20px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+        z-index: 9999;
+        cursor: pointer;
+        animation: slideDown 0.3s ease-out;
+    }
+
+        .auth-notification.error {
+            background: #fff0f0;
+            color: #c41e3a;
+            border: 2px solid #f5c6cb;
+        }
+
+        .auth-notification.success {
+            background: #f0fff4;
+            color: #0f5132;
+            border: 2px solid #badbcc;
+        }
+
+    @keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
         }
     }
 </style>
