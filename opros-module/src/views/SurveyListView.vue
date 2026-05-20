@@ -108,8 +108,8 @@
                                     <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
                                     <div class="card-footer">
                                         <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                        <span class="open-btn" :class="{ 'completed-text': surveyStatuses[survey.id] }">
-                                            {{ surveyStatuses[survey.id] ? statusLabels[surveyStatuses[survey.id]] : 'Открыть →' }}
+                                        <span class="open-btn">
+                                            {{ passedSurveyIds.includes(survey.id) ? 'Смотреть →' : 'Открыть →' }}
                                         </span>
                                     </div>
                                 </div>
@@ -140,8 +140,8 @@
                                     <p class="survey-desc">{{ survey.description || 'Нет описания' }}</p>
                                     <div class="card-footer">
                                         <span class="date">{{ new Date(survey.created_at).toLocaleDateString('ru-RU') }}</span>
-                                        <span class="open-btn" :class="{ 'completed-text': surveyStatuses[survey.id] }">
-                                            {{ surveyStatuses[survey.id] ? statusLabels[surveyStatuses[survey.id]] : 'Открыть →' }}
+                                        <span class="open-btn">
+                                            {{ passedSurveyIds.includes(survey.id) ? 'Смотреть →' : 'Открыть →' }}
                                         </span>
                                     </div>
                                 </div>
