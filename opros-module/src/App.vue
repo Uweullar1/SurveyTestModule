@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import { supabase } from './supabase'
     import { useRouter } from 'vue-router'
     import NotificationsBar from './components/NotificationsBar.vue'
