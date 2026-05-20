@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <nav v-if="isLoggedIn" class="main-header">
+        <nav v-if="isLoggedIn && !isOnAnketaPage" class="main-header">
             <div class="nav-container">
                 <router-link to="/" class="logo-group">
                     <span class="logo-main">VOCUS</span>
@@ -33,7 +33,7 @@
             </div>
         </nav>
 
-        <main class="content-wrapper">
+        <main class="content-wrapper" :class="{ 'no-nav': isOnAnketaPage }">
             <router-view />
         </main>
     </div>
@@ -52,8 +52,14 @@
     const isAdmin = ref(false)
     const router = useRouter()
 
+    const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
+
     const isLoggedIn = ref(false)
     const userAvatar = ref(localStorage.getItem('avatar') || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')
+
+    const isOnAnketaPage = computed(() => {
+        return route.path.includes('/take/') && route.params.id === ANKETA_ID
+    })
 
     const loadUserData = async () => {
         try {
@@ -91,7 +97,6 @@
                     }
                 }
 
-                const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
                 if (!profile.education_completed && !canCreate.value && !isAdmin.value) {
                     const { data: passed } = await supabase
                         .from('responses')
@@ -296,4 +301,9 @@
             background: #DF2935;
             border-radius: 2px;
         }
+
+    .content-wrapper.no-nav {
+        padding-top: 0;
+        min-height: 100vh;
+    }
 </style>
