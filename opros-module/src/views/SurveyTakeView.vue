@@ -157,7 +157,7 @@
     // Проверка, является ли вопрос email
     const isEmailQuestion = (question) => {
         const text = question.text?.toLowerCase() || ''
-        return text.includes('почта') || text.includes('email') || text.includes('e-mail') || text.includes('адрес почты')
+        return text.includes('почту') || text.includes('email') || text.includes('e-mail') || text.includes('адрес почты')
     }
 
     // Форматирование телефона при вводе
