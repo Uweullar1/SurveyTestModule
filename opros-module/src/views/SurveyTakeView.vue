@@ -68,7 +68,6 @@
                                       placeholder="Введите ваш ответ..."></textarea>
 
                             <!-- Текстовый вопрос -->
-                            <div v-else-if="question.question_type === 'text'" class="mt-3">
 
                                 <!-- Если это телефон (определяем по ключевому слову в тексте вопроса) -->
                                 <div v-if="isPhoneQuestion(question)" class="phone-input-wrapper">
@@ -102,7 +101,7 @@
                                         {{ (responses[question.id] || '').length }}/500
                                     </div>
                                 </div>
-                            </div>
+
                             <div class="text-end small text-muted mt-1">
                                 {{ (responses[question.id] || '').length }}/500
                             </div>
