@@ -336,11 +336,17 @@
 
             // Статусы
             const statuses = {}
-                ; (responses || []).forEach(r => {
-                    if (r.feedback) statuses[r.survey_id] = 'reviewed'
-                    else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
-                    else statuses[r.survey_id] = 'completed'
-                })
+            if (responses) {
+                for (const r of responses) {
+                    if (r.feedback) {
+                        statuses[r.survey_id] = 'reviewed'
+                    } else if (r.sent_to_admin) {
+                        statuses[r.survey_id] = 'pending'
+                    } else {
+                        statuses[r.survey_id] = 'completed'
+                    }
+                }
+            }
             surveyStatuses.value = statuses
 
             // ОДИН запрос опросов — ТВОЙ РАБОЧИЙ ВАРИАНТ
@@ -404,11 +410,17 @@
         passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
         const statuses = {}
-            ; (responses || []).forEach(r => {
-                if (r.feedback) statuses[r.survey_id] = 'reviewed'
-                else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
-                else statuses[r.survey_id] = 'completed'
-            })
+        if (responses) {
+            for (const r of responses) {
+                if (r.feedback) {
+                    statuses[r.survey_id] = 'reviewed'
+                } else if (r.sent_to_admin) {
+                    statuses[r.survey_id] = 'pending'
+                } else {
+                    statuses[r.survey_id] = 'completed'
+                }
+            }
+        }
         surveyStatuses.value = statuses
     }
 </script>
