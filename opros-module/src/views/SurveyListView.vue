@@ -394,37 +394,25 @@
 
             const { data, error } = await query
             if (error) throw error
-
-            // Базовая фильтрация анкеты
-            let loadedSurveys = (data || []).filter(s => {
+            surveys.value = (data || []).filter(s => {
                 if (s.id === ANKETA_ID && educationCompleted.value) return false
                 return true
             })
 
-            //  Для стажёров — особая логика
-            if (isIntern.value) {
-                const passedIds = (responses || []).map(r => r.survey_id)
-
-                loadedSurveys = loadedSurveys.filter(s => {
-                    // Свои опросы показываем всегда
-                    if (s.user_id === user.value.id) return true
-
-                    // Стажировочные опросы департамента
-                    if (s.is_for_interns && s.department_id === userDepartmentId.value) {
-                        // Если есть пререквизит — проверяем, пройден ли он
-                        if (s.prerequisite_survey_id) {
-                            return passedIds.includes(s.prerequisite_survey_id)
-                        }
-                        // Нет пререквизита — показываем
-                        return true
-                    }
-
-                    // Всё остальное скрываем
-                    return false
-                })
+            // Если анкета уже пройдена — убираем её из списка
+            if (educationCompleted.value) {
+                surveys.value = surveys.value.filter(s => s.id !== ANKETA_ID)
             }
 
-            surveys.value = loadedSurveys
+            // Фильтр для стажеров
+            if (isIntern) {
+                const passedIds = (responses || []).map(r => r.survey_id)
+                surveys.value = surveys.value.filter(s => {
+                    if (!s.is_for_interns) return false
+                    if (!s.prerequisite_survey_id) return true
+                    return passedIds.includes(s.prerequisite_survey_id)
+                })
+            }
 
             filterSurveys()
         } catch (e) {
