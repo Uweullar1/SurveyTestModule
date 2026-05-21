@@ -317,8 +317,7 @@
             canCreate.value = profile?.can_create || false
             educationCompleted.value = profile?.education_completed || false
             isIntern.value = profile?.is_intern || false
-            const isIntern = profile?.is_intern || false
-            const educationCompleted = profile?.education_completed || false
+
 
             const { data: adminCheck } = await supabase
                 .from('admins')
@@ -352,9 +351,9 @@
             // ОДИН запрос опросов — ТВОЙ РАБОЧИЙ ВАРИАНТ
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-            if (educationCompleted && !userDepartmentId.value && !canCreate.value) {
+            if (educationCompleted.value && !userDepartmentId.value && !canCreate.value) {
                 query = query.eq('user_id', user.value.id)
-            } else if (isIntern && userDepartmentId.value) {
+            } else if (isIntern.value && userDepartmentId.value) {
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
@@ -377,12 +376,12 @@
             surveys.value = data || []
 
             //  Только скрываем анкету
-            if (educationCompleted) {
+            if (educationCompleted.value) {
                 surveys.value = surveys.value.filter(s => s.id !== ANKETA_ID)
             }
 
             // Фильтр для стажеров — ТВОЙ РАБОЧИЙ
-            if (isIntern) {
+            if (isIntern.value) {
                 const passedIds = (responses || []).map(r => r.survey_id)
                 surveys.value = surveys.value.filter(s => {
                     if (!s.is_for_interns) return false
