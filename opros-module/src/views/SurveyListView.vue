@@ -176,6 +176,7 @@
     const ANKETA_ID = 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c'
     const educationCompleted = ref(false)
     const isIntern = ref(false)
+    const internSurveys = ref([])
 
 
     // Умный баннер
@@ -206,17 +207,17 @@
 
         // 3. Стажёр
         if (isIntern.value && userDepartmentId.value) {
-            const unpassedSurveys = surveys.value.filter(s =>
-                s.is_for_interns &&
-                s.department_id === userDepartmentId.value &&
+            const unpassedSurveys = internSurveys.value.filter(s =>
                 !passedSurveyIds.value.includes(s.id)
             )
+
             if (unpassedSurveys.length > 0) {
+                const nextSurvey = unpassedSurveys[0]
                 return {
                     show: true, type: 'intern', icon: '📝',
                     title: 'Пройдите тесты стажировки',
-                    message: `Осталось пройти ${unpassedSurveys.length} тест(ов): "${unpassedSurveys[0].title}"`,
-                    link: `/take/${unpassedSurveys[0].id}`, buttonText: 'Пройти тест →'
+                    message: `Осталось пройти ${unpassedSurveys.length} тест(ов): "${nextSurvey.title}"`,
+                    link: `/take/${nextSurvey.id}`, buttonText: 'Пройти тест →'
                 }
             }
             return {
@@ -318,6 +319,19 @@
             educationCompleted.value = profile?.education_completed || false
             isIntern.value = profile?.is_intern || false
 
+            // стажировочные опросы для баннера
+
+            if (profile?.is_intern && profile?.department_id) {
+                const { data: internData } = await supabase
+                    .from('surveys')
+                    .select('id, title')
+                    .eq('department_id', profile.department_id)
+                    .eq('is_for_interns', true)
+                    .order('created_at')
+
+                internSurveys.value = internData || []
+                console.log('Стажировочные опросы для баннера:', internSurveys.value)
+            }
 
             const { data: adminCheck } = await supabase
                 .from('admins')
@@ -325,6 +339,17 @@
                 .eq('user_id', user.value.id)
                 .maybeSingle()
             isAdmin.value = !!adminCheck
+
+            if (isIntern.value && userDepartmentId.value) {
+                const { data: internData } = await supabase
+                    .from('surveys')
+                    .select('id, title')
+                    .eq('department_id', userDepartmentId.value)
+                    .eq('is_for_interns', true)
+                    .order('created_at')
+
+                internSurveys.value = internData || []
+            }
 
             const { data: responses } = await supabase
                 .from('responses')
