@@ -20,10 +20,6 @@
                     <span class="legend-text">Пройден — ожидает проверки</span>
                 </div>
                 <div class="legend-item">
-                    <span class="legend-dot status-pending"></span>
-                    <span class="legend-text">На проверке — отправлен руководителю</span>
-                </div>
-                <div class="legend-item">
                     <span class="legend-dot status-reviewed"></span>
                     <span class="legend-text">Проверен — есть фидбек</span>
                 </div>
@@ -184,73 +180,53 @@
 
     // Умный баннер
     const bannerInfo = computed(() => {
-        if (isAdmin.value || canCreate.value) {
-            return { show: false }
-        }
+        if (isAdmin.value || canCreate.value) return { show: false }
 
-        //  Проверяем сначала НАЛИЧИЕ анкеты среди пройденных
         const anketaPassed = passedSurveyIds.value.includes(ANKETA_ID)
 
-        // 1. Анкета не пройдена (ни в профиле, ни в ответах)
+        // 1. Анкета не пройдена
         if (!educationCompleted.value && !anketaPassed) {
             return {
-                show: true,
-                type: 'welcome',
-                icon: '👋',
+                show: true, type: 'welcome', icon: '👋',
                 title: 'Добро пожаловать!',
                 message: 'Заполните анкету соискателя, чтобы открыть доступ к тестам по вакансиям.',
-                link: `/take/${ANKETA_ID}`,
-                buttonText: 'Заполнить анкету →'
+                link: `/take/${ANKETA_ID}`, buttonText: 'Заполнить анкету →'
             }
         }
 
-        // 2. Анкета пройдена, но нет департамента
+        // 2. Анкета пройдена, ждёт департамент
         if ((educationCompleted.value || anketaPassed) && !userDepartmentId.value) {
             return {
-                show: true,
-                type: 'pending',
-                icon: '⏳',
+                show: true, type: 'pending', icon: '⏳',
                 title: 'Анкета на проверке',
                 message: 'Ваша анкета отправлена на рассмотрение. Ожидайте назначения на стажировку.',
-                link: null,
-                buttonText: ''
+                link: null, buttonText: ''
             }
         }
 
-        // 3. Стажёр — показываем непройденные опросы
+        // 3. Стажёр
         if (isIntern.value && userDepartmentId.value) {
             const unpassedSurveys = surveys.value.filter(s =>
                 s.is_for_interns &&
                 s.department_id === userDepartmentId.value &&
                 !passedSurveyIds.value.includes(s.id)
             )
-
             if (unpassedSurveys.length > 0) {
-                const nextSurvey = unpassedSurveys[0] // Берём первый непройденный
                 return {
-                    show: true,
-                    type: 'intern',
-                    icon: '📝',
+                    show: true, type: 'intern', icon: '📝',
                     title: 'Пройдите тесты стажировки',
-                    message: `Осталось пройти ${unpassedSurveys.length} тест(ов): "${nextSurvey.title}"`,
-                    link: `/take/${nextSurvey.id}`,
-                    buttonText: 'Пройти тест →'
+                    message: `Осталось пройти ${unpassedSurveys.length} тест(ов): "${unpassedSurveys[0].title}"`,
+                    link: `/take/${unpassedSurveys[0].id}`, buttonText: 'Пройти тест →'
                 }
-            } else {
-                // Все стажировочные пройдены
-                return {
-                    show: true,
-                    type: 'completed',
-                    icon: '✅',
-                    title: 'Все тесты пройдены!',
-                    message: 'Ваши ответы проверят. Ожидайте решения руководителя.',
-                    link: null,
-                    buttonText: ''
-                }
+            }
+            return {
+                show: true, type: 'completed', icon: '✅',
+                title: 'Все тесты пройдены!',
+                message: 'Ваши ответы проверят. Ожидайте решения руководителя.',
+                link: null, buttonText: ''
             }
         }
 
-        // 4. Обычный сотрудник (уже не стажёр) — не показываем баннер
         return { show: false }
     })
 
@@ -339,6 +315,10 @@
 
             userDepartmentId.value = profile?.department_id || null
             canCreate.value = profile?.can_create || false
+            educationCompleted.value = profile?.education_completed || false
+            isIntern.value = profile?.is_intern || false
+            const isIntern = profile?.is_intern || false
+            const educationCompleted = profile?.education_completed || false
 
             const { data: adminCheck } = await supabase
                 .from('admins')
@@ -354,57 +334,48 @@
 
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
-            // Исправлено — без висячей точки с запятой
+            // Статусы
             const statuses = {}
                 ; (responses || []).forEach(r => {
-                    if (r.feedback) {
-                        statuses[r.survey_id] = 'reviewed'
-                    } else if (r.sent_to_admin) {
-                        statuses[r.survey_id] = 'pending'
-                    } else {
-                        statuses[r.survey_id] = 'completed'
-                    }
+                    if (r.feedback) statuses[r.survey_id] = 'reviewed'
+                    else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
+                    else statuses[r.survey_id] = 'completed'
                 })
             surveyStatuses.value = statuses
 
-            // ОДИН запрос опросов
+            // ОДИН запрос опросов — ТВОЙ РАБОЧИЙ ВАРИАНТ
             let query = supabase.from('surveys').select(`*, departments (name)`).order('created_at', { ascending: false })
 
-            if (educationCompleted.value && !userDepartmentId.value && !canCreate.value) {
-                // Анкета пройдена, ждёт назначения — НЕ показываем общие опросы
-                // Показываем только опросы, созданные этим пользователем (обычно ничего)
+            if (educationCompleted && !userDepartmentId.value && !canCreate.value) {
                 query = query.eq('user_id', user.value.id)
-            } else if (isIntern.value && userDepartmentId.value) {
-                // Стажёр
+            } else if (isIntern && userDepartmentId.value) {
                 query = query.or(
                     `and(is_for_interns.eq.true,department_id.eq.${userDepartmentId.value}),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else if (userDepartmentId.value) {
-                // Обычный сотрудник
                 query = query.or(
                     `and(is_private.eq.false,department_id.eq.${userDepartmentId.value},is_for_interns.eq.false),` +
                     `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
                     `user_id.eq.${user.value.id}`
                 )
             } else {
-                // Вообще без департамента и анкета не пройдена — только свои
-                query = query.eq('user_id', user.value.id)
+                query = query.or(
+                    `and(is_private.eq.false,department_id.is.null,is_for_interns.eq.false),` +
+                    `user_id.eq.${user.value.id}`
+                )
             }
 
             const { data, error } = await query
             if (error) throw error
-            surveys.value = (data || []).filter(s => {
-                if (s.id === ANKETA_ID && educationCompleted.value) return false
-                return true
-            })
+            surveys.value = data || []
 
-            // Если анкета уже пройдена — убираем её из списка
-            if (educationCompleted.value) {
+            //  Только скрываем анкету
+            if (educationCompleted) {
                 surveys.value = surveys.value.filter(s => s.id !== ANKETA_ID)
             }
 
-            // Фильтр для стажеров
+            // Фильтр для стажеров — ТВОЙ РАБОЧИЙ
             if (isIntern) {
                 const passedIds = (responses || []).map(r => r.survey_id)
                 surveys.value = surveys.value.filter(s => {
