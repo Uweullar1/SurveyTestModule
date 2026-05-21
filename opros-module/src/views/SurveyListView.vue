@@ -335,7 +335,7 @@
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
             // Статусы
-            const statuses = {}
+            const statuses = {};
                 (responses || []).forEach(r => {
                     if (r.feedback) statuses[r.survey_id] = 'reviewed'
                     else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
@@ -403,7 +403,7 @@
 
         passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
-        const statuses = {}
+        const statuses = {};
             (responses || []).forEach(r => {
                 if (r.feedback) {
                     statuses[r.survey_id] = 'reviewed'
