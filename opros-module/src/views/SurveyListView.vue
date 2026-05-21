@@ -395,7 +395,6 @@
             const { data, error } = await query
             if (error) throw error
             surveys.value = (data || []).filter(s => {
-                // Если анкета пройдена — скрываем её
                 if (s.id === ANKETA_ID && educationCompleted.value) return false
                 return true
             })
@@ -407,9 +406,17 @@
 
             // Фильтр для стажеров — используем ref
             if (isIntern.value) {
+                surveys.value = surveys.value.filter(s => {
+                    if (s.user_id === user.value.id) return true  // свои опросы
+                    if (s.is_for_interns && s.department_id === userDepartmentId.value) return true  // стажировочные
+                    return false  // остальное скрыто
+                })
+            }
+
+            if (isIntern.value) {
                 const passedIds = (responses || []).map(r => r.survey_id)
                 surveys.value = surveys.value.filter(s => {
-                    if (!s.is_for_interns) return false
+                    if (!s.is_for_interns) return true  // свои опросы пропускаем
                     if (!s.prerequisite_survey_id) return true
                     return passedIds.includes(s.prerequisite_survey_id)
                 })
