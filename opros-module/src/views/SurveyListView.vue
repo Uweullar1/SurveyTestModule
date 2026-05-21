@@ -335,8 +335,8 @@
             passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
             // Статусы
-            const statuses = {};
-                (responses || []).forEach(r => {
+            const statuses = {}
+                ; (responses || []).forEach(r => {
                     if (r.feedback) statuses[r.survey_id] = 'reviewed'
                     else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
                     else statuses[r.survey_id] = 'completed'
@@ -403,15 +403,11 @@
 
         passedSurveyIds.value = (responses || []).map(r => r.survey_id)
 
-        const statuses = {};
-            (responses || []).forEach(r => {
-                if (r.feedback) {
-                    statuses[r.survey_id] = 'reviewed'
-                } else if (r.sent_to_admin) {
-                    statuses[r.survey_id] = 'pending'
-                } else {
-                    statuses[r.survey_id] = 'completed'
-                }
+        const statuses = {}
+            ; (responses || []).forEach(r => {
+                if (r.feedback) statuses[r.survey_id] = 'reviewed'
+                else if (r.sent_to_admin) statuses[r.survey_id] = 'pending'
+                else statuses[r.survey_id] = 'completed'
             })
         surveyStatuses.value = statuses
     }
