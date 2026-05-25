@@ -1255,4 +1255,113 @@
             color: #F2C4CE;
         }
 
+    /* HR-фильтры */
+    .filters-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .search-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .search-input {
+        width: 100%;
+        height: 42px;
+        padding: 0 40px 0 16px;
+        border: 2px solid #212844;
+        border-radius: 14px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #212844;
+        background: white;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #DF2935;
+        }
+
+    .search-icon {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    .filter-select {
+        height: 42px;
+        padding: 0 32px 0 12px;
+        border: 2px solid #212844;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #212844;
+        background: white;
+        appearance: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23212844' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+    }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #DF2935;
+        }
+
+    .filter-reset {
+        height: 42px;
+        padding: 0 14px;
+        border: none;
+        background: transparent;
+        color: #DF2935;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+        white-space: nowrap;
+    }
+
+        .filter-reset:hover {
+            color: #c41e3a;
+        }
+
+    /* Кнопка просмотра */
+    .btn-view-sm {
+        background: #212844;
+        color: #F2C4CE;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+        .btn-view-sm:hover {
+            background: #2d365a;
+            transform: scale(1.05);
+        }
+
+    /* Бейдж "На проверке" */
+    .badge-survey {
+        background: #B0D7FF;
+        color: #212844;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
 </style>
