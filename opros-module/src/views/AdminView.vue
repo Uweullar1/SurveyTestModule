@@ -181,7 +181,15 @@
                     <div class="results-table-wrapper">
                         <div class="d-flex justify-content-between align-items-center" style="padding: 12px 16px; border-bottom: 1px solid #eee;">
                             <span style="font-weight: 800; font-size: 0.8rem; color: #212844;">{{ filteredHRCandidates.length }} кандидатов</span>
-                            <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт</button>
+                            <div class="export-bar">
+                                <select v-model="hrExportPeriod" class="export-select-sm">
+                                    <option value="all">Всё время</option>
+                                    <option value="today">Сегодня</option>
+                                    <option value="week">Неделя</option>
+                                    <option value="month">Месяц</option>
+                                </select>
+                                <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт</button>
+                            </div>
                         </div>
                         <table class="results-table">
                             <thead>
@@ -192,6 +200,7 @@
                                     <th>Анкета</th>
                                     <th>Тесты</th>
                                     <th>Баллы</th>
+                                    <th>Дата анкеты</th>
                                     <th>Статус</th>
                                     <th></th>
                                 </tr>
@@ -204,6 +213,7 @@
                                     <td>{{ candidate.anketaDone ? '✅' : '❌' }}</td>
                                     <td>{{ candidate.testsPassed }}/{{ candidate.testsTotal }}</td>
                                     <td><span class="score-badge">{{ candidate.totalScore }}</span></td>
+                                    <td class="small">{{ candidate.anketaDate || '—' }}</td>
                                     <td>
                                         <span v-if="candidate.allTestsCompleted" class="status-passed">Пройдены</span>
                                         <span v-else-if="candidate.sentToAdmin" class="badge-survey">На проверке</span>
@@ -274,7 +284,7 @@
     const resultSearch = ref('')
     const resultSurveyFilter = ref('')
     const resultDeptFilter = ref('')
-
+    const hrExportPeriod = ref('all')
     const hrSearch = ref('')
     const hrDeptFilter = ref('')
     const hrStatusFilter = ref('')
@@ -318,14 +328,31 @@
     })
 
     const exportAllCandidates = () => {
-        const headers = ['Кандидат', 'Телефон', 'Департамент', 'Анкета', 'Тесты', 'Статус']
-        const rows = hrCandidates.value.map(c => [
+        let data = [...hrCandidates.value]
+        const now = new Date()
+
+        // Фильтр по дате анкеты
+        if (hrExportPeriod.value === 'today') {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            data = data.filter(c => c.anketaDate && new Date(c.anketaDate) >= today)
+        } else if (hrExportPeriod.value === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            data = data.filter(c => c.anketaDate && new Date(c.anketaDate) >= weekAgo)
+        } else if (hrExportPeriod.value === 'month') {
+            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+            data = data.filter(c => c.anketaDate && new Date(c.anketaDate) >= monthAgo)
+        }
+
+        const headers = ['Кандидат', 'Телефон', 'Департамент', 'Анкета', 'Тесты', 'Баллы', 'Дата анкеты', 'Статус']
+        const rows = data.map(c => [
             c.name,
             c.phone || '—',
             c.department,
             c.anketaDone ? 'Пройдена' : 'Не пройдена',
             `${c.testsPassed}/${c.testsTotal}`,
-            c.allTestsCompleted ? 'Тесты пройдены' : 'В процессе'
+            c.totalScore,
+            c.anketaDate ? new Date(c.anketaDate).toLocaleDateString('ru-RU') : '—',
+            c.allTestsCompleted ? 'Тесты пройдены' : c.sentToAdmin ? 'На проверке' : 'В процессе'
         ])
 
         let csv = headers.join(',') + '\n'
@@ -334,7 +361,8 @@
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
         link.href = URL.createObjectURL(blob)
-        link.download = 'hr_кандидаты.csv'
+        const period = hrExportPeriod.value === 'all' ? 'все' : hrExportPeriod.value
+        link.download = `hr_кандидаты_${period}.csv`
         link.click()
     }
 
@@ -369,7 +397,6 @@
     const loadHRData = async () => {
         loadingHR.value = true
 
-        // Все кандидаты (is_intern = true ИЛИ кто прошел анкету)
         const { data: candidates } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, phone, department_id, education_completed, is_intern, departments(name)')
@@ -379,12 +406,13 @@
         if (!candidates) { loadingHR.value = false; return }
 
         const enriched = await Promise.all(candidates.map(async (c) => {
-            // Проверяем прохождение анкеты
+            // Проверяем прохождение анкеты + дата
             const { data: anketaResp } = await supabase
                 .from('responses')
-                .select('id')
+                .select('id, submitted_at')
                 .eq('user_id', c.id)
                 .eq('survey_id', 'f4bb9a82-31d2-4b53-bf7c-48d814bca84c')
+                .order('submitted_at', { ascending: false })
                 .limit(1)
 
             // Загружаем все стажировочные опросы для департамента кандидата
@@ -396,7 +424,6 @@
 
             const surveyIds = (internSurveys || []).map(s => s.id)
 
-            // ✅ Считаем баллы за стажировочные тесты
             let totalScore = 0
             let testsPassed = 0
 
@@ -410,23 +437,19 @@
                 const uniquePassed = [...new Set((passedSurveys || []).map(r => r.survey_id))]
                 testsPassed = uniquePassed.length
 
-                // Считаем баллы по каждому пройденному тесту
                 if (passedSurveys && passedSurveys.length > 0) {
                     const responseIds = passedSurveys.map(r => r.id)
 
-                    // Загружаем вопросы с choices для этих опросов
                     const { data: questions } = await supabase
                         .from('questions')
                         .select('id, question_type, no_evaluation, survey_id, choices(id, is_correct)')
                         .in('survey_id', surveyIds)
 
-                    // Загружаем ответы
                     const { data: answers } = await supabase
                         .from('answers')
                         .select('*')
                         .in('response_id', responseIds)
 
-                    // Считаем баллы
                     for (const resp of passedSurveys) {
                         const respAnswers = (answers || []).filter(a => a.response_id === resp.id)
                         const respQuestions = (questions || []).filter(q => q.survey_id === resp.survey_id)
@@ -453,7 +476,6 @@
                 }
             }
 
-            // Проверяем отправлено ли руководителю
             const { data: sentCheck } = await supabase
                 .from('responses')
                 .select('id')
@@ -466,16 +488,17 @@
                 name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Без имени',
                 phone: c.phone || null,
                 department: c.departments?.name || '—',
+                departmentId: c.department_id,
                 anketaDone: anketaResp?.length > 0,
+                anketaDate: anketaResp?.[0]?.submitted_at || null,  // ✅ дата анкеты
                 testsPassed: testsPassed,
                 testsTotal: surveyIds.length,
-                totalScore: totalScore,  // ✅ добавляем баллы
+                totalScore: totalScore,
                 allTestsCompleted: testsPassed === surveyIds.length && surveyIds.length > 0,
                 sentToAdmin: sentCheck?.length > 0
             }
         }))
 
-        // ✅ Сортируем по баллам (по убыванию) + потом по имени
         enriched.sort((a, b) => {
             if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
             return a.name.localeCompare(b.name)
@@ -1237,23 +1260,27 @@
         gap: 8px;
     }
 
-    .btn-export-sm {
+    .export-select-sm {
         height: 30px;
-        padding: 0 12px;
+        padding: 0 24px 0 10px;
         border: 2px solid #212844;
         border-radius: 8px;
-        background: white;
+        font-size: 0.7rem;
         font-weight: 700;
-        font-size: 0.75rem;
         color: #212844;
+        background: white;
+        appearance: none;
         cursor: pointer;
-        transition: all 0.2s;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23212844' d='M5 7L1 2h8z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 6px center;
     }
 
-        .btn-export-sm:hover {
-            background: #212844;
-            color: #F2C4CE;
+        .export-select-sm:focus {
+            outline: none;
+            border-color: #DF2935;
         }
+
 
     /* HR-фильтры */
     .filters-bar {
