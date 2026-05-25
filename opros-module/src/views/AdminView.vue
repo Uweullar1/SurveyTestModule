@@ -213,7 +213,7 @@
                                     <td>{{ candidate.anketaDone ? '✅' : '❌' }}</td>
                                     <td>{{ candidate.testsPassed }}/{{ candidate.testsTotal }}</td>
                                     <td><span class="score-badge">{{ candidate.totalScore }}</span></td>
-                                    <td class="small">{{ candidate.anketaDate || '—' }}</td>
+                                    <td class="small">{{ formatDateShort(candidate.anketaDate) }}</td>
                                     <td>
                                         <span v-if="candidate.allTestsCompleted" class="status-passed">Пройдены</span>
                                         <span v-else-if="candidate.sentToAdmin" class="badge-survey">На проверке</span>
@@ -326,6 +326,15 @@
 
         return result
     })
+
+    const formatDateShort = (date) => {
+        if (!date) return '—'
+        return new Date(date).toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        })
+    }
 
     const exportAllCandidates = () => {
         let data = [...hrCandidates.value]
