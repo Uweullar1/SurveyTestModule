@@ -128,6 +128,25 @@
                 </div>
             </div>
 
+            <div v-if="activeTab === 'hr'" class="filters-bar mb-3">
+                <div class="search-wrapper">
+                    <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
+                    <span class="search-icon">🔍</span>
+                </div>
+                <select v-model="hrDeptFilter" class="filter-select">
+                    <option value="">Все департаменты</option>
+                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                </select>
+                <select v-model="hrStatusFilter" class="filter-select">
+                    <option value="">Все статусы</option>
+                    <option value="anketa">Только анкета</option>
+                    <option value="testing">Проходят тесты</option>
+                    <option value="completed">Всё пройдено</option>
+                    <option value="sent">Отправлены руководителю</option>
+                </select>
+                <button v-if="hrSearch || hrDeptFilter || hrStatusFilter" @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''" class="filter-reset">Сбросить</button>
+            </div>
+
             <!-- HR-ОТЧЕТЫ -->
             <div v-if="activeTab === 'hr'" class="tab-content">
                 <div v-if="loadingHR" class="text-center py-4">Загрузка...</div>
@@ -146,6 +165,25 @@
                             <div class="stat-label">Прошли все тесты</div>
                             <div class="stat-value">{{ hrStats.allTestsCompleted }}</div>
                         </div>
+                    </div>
+
+                    <div v-if="activeTab === 'hr'" class="filters-bar mb-3">
+                        <div class="search-wrapper">
+                            <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        <select v-model="hrDeptFilter" class="filter-select">
+                            <option value="">Все департаменты</option>
+                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                        </select>
+                        <select v-model="hrStatusFilter" class="filter-select">
+                            <option value="">Все статусы</option>
+                            <option value="anketa">Только анкета</option>
+                            <option value="testing">Проходят тесты</option>
+                            <option value="completed">Всё пройдено</option>
+                            <option value="sent">Отправлены руководителю</option>
+                        </select>
+                        <button v-if="hrSearch || hrDeptFilter || hrStatusFilter" @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''" class="filter-reset">Сбросить</button>
                     </div>
 
                     <!-- Таблица кандидатов -->
@@ -167,7 +205,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="c in hrCandidates" :key="c.id">
+                                <tr v-for="candidate in filteredHRCandidates" :key="candidate.id">
                                     <td><div class="fw-bold">{{ c.name }}</div></td>
                                     <td>{{ c.phone || '—' }}</td>
                                     <td>{{ c.department || '—' }}</td>
@@ -242,6 +280,11 @@
     const resultSurveyFilter = ref('')
     const resultDeptFilter = ref('')
 
+    const hrCandidates = ref([])
+    const hrSearch = ref('')
+    const hrDeptFilter = ref('')
+    const hrStatusFilter = ref('')
+
 
     const loadingHR = ref(false)
     const hrCandidates = ref([])
@@ -253,6 +296,34 @@
     })
 
 
+
+    const filteredHRCandidates = computed(() => {
+        let result = [...hrCandidates.value]
+
+        // Поиск по имени
+        if (hrSearch.value.trim()) {
+            const q = hrSearch.value.toLowerCase()
+            result = result.filter(c => c.name.toLowerCase().includes(q))
+        }
+
+        // Фильтр по департаменту
+        if (hrDeptFilter.value) {
+            result = result.filter(c => c.department === departments.value.find(d => d.id === hrDeptFilter.value)?.name)
+        }
+
+        // Фильтр по статусу
+        if (hrStatusFilter.value === 'anketa') {
+            result = result.filter(c => c.anketaDone && c.testsTotal === 0)
+        } else if (hrStatusFilter.value === 'testing') {
+            result = result.filter(c => c.anketaDone && c.testsPassed > 0 && !c.allTestsCompleted)
+        } else if (hrStatusFilter.value === 'completed') {
+            result = result.filter(c => c.allTestsCompleted)
+        } else if (hrStatusFilter.value === 'sent') {
+            result = result.filter(c => c.sentToAdmin)
+        }
+
+        return result
+    })
 
     const exportAllCandidates = () => {
         const headers = ['Кандидат', 'Телефон', 'Департамент', 'Анкета', 'Тесты', 'Статус']
@@ -333,17 +404,61 @@
 
             const surveyIds = (internSurveys || []).map(s => s.id)
 
-            // Проверяем сколько пройдено
+            // ✅ Считаем баллы за стажировочные тесты
+            let totalScore = 0
             let testsPassed = 0
+
             if (surveyIds.length > 0) {
                 const { data: passedSurveys } = await supabase
                     .from('responses')
-                    .select('survey_id')
+                    .select('id, survey_id')
                     .eq('user_id', c.id)
                     .in('survey_id', surveyIds)
 
                 const uniquePassed = [...new Set((passedSurveys || []).map(r => r.survey_id))]
                 testsPassed = uniquePassed.length
+
+                // Считаем баллы по каждому пройденному тесту
+                if (passedSurveys && passedSurveys.length > 0) {
+                    const responseIds = passedSurveys.map(r => r.id)
+
+                    // Загружаем вопросы с choices для этих опросов
+                    const { data: questions } = await supabase
+                        .from('questions')
+                        .select('id, question_type, no_evaluation, survey_id, choices(id, is_correct)')
+                        .in('survey_id', surveyIds)
+
+                    // Загружаем ответы
+                    const { data: answers } = await supabase
+                        .from('answers')
+                        .select('*')
+                        .in('response_id', responseIds)
+
+                    // Считаем баллы
+                    for (const resp of passedSurveys) {
+                        const respAnswers = (answers || []).filter(a => a.response_id === resp.id)
+                        const respQuestions = (questions || []).filter(q => q.survey_id === resp.survey_id)
+
+                        for (const q of respQuestions) {
+                            if (q.question_type === 'scale' || q.no_evaluation) continue
+                            const ansList = respAnswers.filter(a => a.question_id === q.id)
+                            if (ansList.length === 0) continue
+
+                            if (q.question_type === 'text') {
+                                if (ansList[0]?.score > 0) totalScore += Number(ansList[0].score)
+                                continue
+                            }
+
+                            const correctIds = (q.choices || []).filter(c => c.is_correct).map(c => String(c.id))
+                            const userIds = ansList.map(a => String(a.choice_id)).filter(id => id !== 'null')
+
+                            if (correctIds.length > 0 && userIds.length === correctIds.length &&
+                                userIds.every(id => correctIds.includes(id))) {
+                                totalScore++
+                            }
+                        }
+                    }
+                }
             }
 
             // Проверяем отправлено ли руководителю
@@ -362,10 +477,17 @@
                 anketaDone: anketaResp?.length > 0,
                 testsPassed: testsPassed,
                 testsTotal: surveyIds.length,
+                totalScore: totalScore,  // ✅ добавляем баллы
                 allTestsCompleted: testsPassed === surveyIds.length && surveyIds.length > 0,
                 sentToAdmin: sentCheck?.length > 0
             }
         }))
+
+        // ✅ Сортируем по баллам (по убыванию) + потом по имени
+        enriched.sort((a, b) => {
+            if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+            return a.name.localeCompare(b.name)
+        })
 
         hrCandidates.value = enriched
         hrStats.value = {
