@@ -131,29 +131,7 @@
 
             <!-- HR-ОТЧЕТЫ -->
             <div v-if="activeTab === 'hr'" class="tab-content">
-                <!-- ФИЛЬТРЫ (один раз) -->
-                <div class="filters-bar mb-3">
-                    <div class="search-wrapper">
-                        <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
-                        <span class="search-icon">🔍</span>
-                    </div>
-                    <select v-model="hrDeptFilter" class="filter-select">
-                        <option value="">Все департаменты</option>
-                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-                    </select>
-                    <select v-model="hrStatusFilter" class="filter-select">
-                        <option value="">Все статусы</option>
-                        <option value="anketa">Только анкета</option>
-                        <option value="testing">Проходят тесты</option>
-                        <option value="completed">Всё пройдено</option>
-                        <option value="sent">Отправлены руководителю</option>
-                    </select>
-                    <button v-if="hrSearch || hrDeptFilter || hrStatusFilter"
-                            @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''"
-                            class="filter-reset">
-                        Сбросить
-                    </button>
-                </div>
+
 
                 <div v-if="loadingHR" class="text-center py-4">Загрузка...</div>
                 <div v-else>
@@ -228,6 +206,30 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- ФИЛЬТРЫ (один раз) -->
+                <div class="filters-bar mb-3">
+                    <div class="search-wrapper">
+                        <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <select v-model="hrDeptFilter" class="filter-select">
+                        <option value="">Все департаменты</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                    </select>
+                    <select v-model="hrStatusFilter" class="filter-select">
+                        <option value="">Все статусы</option>
+                        <option value="anketa">Только анкета</option>
+                        <option value="testing">Проходят тесты</option>
+                        <option value="completed">Всё пройдено</option>
+                        <option value="sent">Отправлены руководителю</option>
+                    </select>
+                    <button v-if="hrSearch || hrDeptFilter || hrStatusFilter"
+                            @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''"
+                            class="filter-reset">
+                        Сбросить
+                    </button>
                 </div>
             </div>
 
