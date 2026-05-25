@@ -149,6 +149,30 @@
 
             <!-- HR-ОТЧЕТЫ -->
             <div v-if="activeTab === 'hr'" class="tab-content">
+                <!-- ФИЛЬТРЫ (один раз) -->
+                <div class="filters-bar mb-3">
+                    <div class="search-wrapper">
+                        <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <select v-model="hrDeptFilter" class="filter-select">
+                        <option value="">Все департаменты</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                    </select>
+                    <select v-model="hrStatusFilter" class="filter-select">
+                        <option value="">Все статусы</option>
+                        <option value="anketa">Только анкета</option>
+                        <option value="testing">Проходят тесты</option>
+                        <option value="completed">Всё пройдено</option>
+                        <option value="sent">Отправлены руководителю</option>
+                    </select>
+                    <button v-if="hrSearch || hrDeptFilter || hrStatusFilter"
+                            @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''"
+                            class="filter-reset">
+                        Сбросить
+                    </button>
+                </div>
+
                 <div v-if="loadingHR" class="text-center py-4">Загрузка...</div>
                 <div v-else>
                     <!-- Сводка -->
@@ -165,31 +189,16 @@
                             <div class="stat-label">Прошли все тесты</div>
                             <div class="stat-value">{{ hrStats.allTestsCompleted }}</div>
                         </div>
-                    </div>
-
-                    <div v-if="activeTab === 'hr'" class="filters-bar mb-3">
-                        <div class="search-wrapper">
-                            <input v-model="hrSearch" type="text" placeholder="Поиск по имени..." class="search-input" />
-                            <span class="search-icon">🔍</span>
+                        <div class="stat-card">
+                            <div class="stat-label">Отправлены руководителю</div>
+                            <div class="stat-value">{{ hrStats.sentToAdmin }}</div>
                         </div>
-                        <select v-model="hrDeptFilter" class="filter-select">
-                            <option value="">Все департаменты</option>
-                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-                        </select>
-                        <select v-model="hrStatusFilter" class="filter-select">
-                            <option value="">Все статусы</option>
-                            <option value="anketa">Только анкета</option>
-                            <option value="testing">Проходят тесты</option>
-                            <option value="completed">Всё пройдено</option>
-                            <option value="sent">Отправлены руководителю</option>
-                        </select>
-                        <button v-if="hrSearch || hrDeptFilter || hrStatusFilter" @click="hrSearch = ''; hrDeptFilter = ''; hrStatusFilter = ''" class="filter-reset">Сбросить</button>
                     </div>
 
                     <!-- Таблица кандидатов -->
                     <div class="results-table-wrapper">
                         <div class="d-flex justify-content-between align-items-center" style="padding: 12px 16px; border-bottom: 1px solid #eee;">
-                            <span style="font-weight: 800; font-size: 0.8rem; color: #212844;">{{ hrCandidates.length }} кандидатов</span>
+                            <span style="font-weight: 800; font-size: 0.8rem; color: #212844;">{{ filteredHRCandidates.length }} кандидатов</span>
                             <button @click="exportAllCandidates" class="btn-export-sm">📥 Экспорт</button>
                         </div>
                         <table class="results-table">
@@ -200,24 +209,28 @@
                                     <th>Департамент</th>
                                     <th>Анкета</th>
                                     <th>Тесты</th>
+                                    <th>Баллы</th>
                                     <th>Статус</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="candidate in filteredHRCandidates" :key="candidate.id">
-                                    <td><div class="fw-bold">{{ c.name }}</div></td>
-                                    <td>{{ c.phone || '—' }}</td>
-                                    <td>{{ c.department || '—' }}</td>
-                                    <td>{{ c.anketaDone ? '✅' : '❌' }}</td>
-                                    <td>{{ c.testsPassed }}/{{ c.testsTotal }}</td>
+                                    <td><div class="fw-bold">{{ candidate.name }}</div></td>
+                                    <td>{{ candidate.phone || '—' }}</td>
+                                    <td>{{ candidate.department || '—' }}</td>
+                                    <td>{{ candidate.anketaDone ? '✅' : '❌' }}</td>
+                                    <td>{{ candidate.testsPassed }}/{{ candidate.testsTotal }}</td>
+                                    <td><span class="score-badge">{{ candidate.totalScore }}</span></td>
                                     <td>
-                                        <span v-if="c.allTestsCompleted" class="badge-survey">Пройдены</span>
-                                        <span v-else-if="c.anketaDone" class="status-failed">В процессе</span>
-                                        <span v-else class="status-failed">Ожидает</span>
+                                        <span v-if="candidate.allTestsCompleted" class="status-passed">Пройдены</span>
+                                        <span v-else-if="candidate.sentToAdmin" class="badge-survey">На проверке</span>
+                                        <span v-else-if="candidate.anketaDone && candidate.testsPassed > 0" class="status-failed">В процессе</span>
+                                        <span v-else-if="candidate.anketaDone" class="status-failed">Ожидает</span>
+                                        <span v-else>—</span>
                                     </td>
                                     <td>
-                                        <button @click="exportCandidate(c)" class="btn-view-sm" title="Экспорт данных кандидата">📥</button>
+                                        <button @click="exportCandidate(candidate)" class="btn-view-sm" title="Экспорт">📥</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -280,12 +293,9 @@
     const resultSurveyFilter = ref('')
     const resultDeptFilter = ref('')
 
-    const hrCandidates = ref([])
     const hrSearch = ref('')
     const hrDeptFilter = ref('')
     const hrStatusFilter = ref('')
-
-
     const loadingHR = ref(false)
     const hrCandidates = ref([])
     const hrStats = ref({
