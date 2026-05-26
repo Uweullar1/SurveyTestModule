@@ -54,10 +54,32 @@
 
             <!-- ВСЕ ОПРОСЫ -->
             <div v-if="activeTab === 'surveys'" class="tab-content">
+                <!-- ФИЛЬТРЫ -->
+                <div class="filters-bar mb-3">
+                    <div class="search-wrapper">
+                        <input v-model="surveySearch" type="text" placeholder="Поиск по названию..." class="search-input" @input="filterSurveys" />
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <select v-model="surveyDeptFilter" class="filter-select" @change="filterSurveys">
+                        <option value="">Все департаменты</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                    </select>
+                    <select v-model="surveyStatusFilter" class="filter-select" @change="filterSurveys">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="closed">Закрытые</option>
+                    </select>
+                    <button v-if="surveySearch || surveyDeptFilter || surveyStatusFilter"
+                            @click="surveySearch = ''; surveyDeptFilter = ''; surveyStatusFilter = ''; filterSurveys()"
+                            class="filter-reset">
+                        Сбросить
+                    </button>
+                </div>
+
                 <div v-if="loadingSurveys" class="loader-wrapper"><div class="custom-spinner"></div><p>Загружаем опросы...</p></div>
-                <div v-else-if="allSurveys.length === 0" class="empty-state"><div class="empty-icon">📋</div><h2>Нет опросов</h2><p>В системе пока нет созданных опросов.</p></div>
+                <div v-else-if="filteredSurveys.length === 0" class="empty-state"><div class="empty-icon">📋</div><h2>Нет опросов</h2><p>{{ allSurveys.length === 0 ? 'В системе пока нет созданных опросов.' : 'Ничего не найдено. Измените фильтры.' }}</p></div>
                 <div v-else class="surveys-admin-grid">
-                    <div v-for="survey in allSurveys" :key="survey.id" class="survey-card">
+                    <div v-for="survey in filteredSurveys" :key="survey.id" class="survey-card">
                         <div class="card-status" :class="{ 'closed': survey.is_closed }">{{ survey.is_closed ? 'Закрыт' : 'Активен' }}</div>
                         <div class="card-main">
                             <h3 class="survey-title">{{ survey.title }}</h3>
@@ -232,7 +254,7 @@
                     </div>
                 </div>
 
-                
+
             </div>
 
 
@@ -301,7 +323,36 @@
         sentToAdmin: 0
     })
 
+    const surveySearch = ref('')
+    const surveyDeptFilter = ref('')
+    const surveyStatusFilter = ref('')
 
+    const filteredSurveys = computed(() => {
+        let result = [...allSurveys.value]
+
+        // Поиск по названию
+        if (surveySearch.value.trim()) {
+            const q = surveySearch.value.toLowerCase()
+            result = result.filter(s => s.title?.toLowerCase().includes(q))
+        }
+
+        // Фильтр по департаменту
+        if (surveyDeptFilter.value) {
+            result = result.filter(s => s.department_id === surveyDeptFilter.value)
+        }
+
+        // Фильтр по статусу
+        if (surveyStatusFilter.value === 'active') {
+            result = result.filter(s => !s.is_closed)
+        } else if (surveyStatusFilter.value === 'closed') {
+            result = result.filter(s => s.is_closed)
+        }
+
+        return result
+    })
+
+    const filterSurveys = () => {
+    }
 
     const filteredHRCandidates = computed(() => {
         let result = [...hrCandidates.value]
