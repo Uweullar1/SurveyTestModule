@@ -88,11 +88,11 @@
                                     <textarea v-model="responses[question.id]"
                                               class="form-control custom-textarea"
                                               rows="3"
-                                              maxlength="500"
+                                              maxlength="255"
                                               :required="question.required"
                                               placeholder="Введите ваш ответ..."></textarea>
                                     <div class="text-end small text-muted mt-1">
-                                        {{ (responses[question.id] || '').length }}/500
+                                        {{ (responses[question.id] || '').length }}/255
                                     </div>
                                 </div>
                         </div>
